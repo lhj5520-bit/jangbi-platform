@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="420" viewBox="0 0 1200 420" role="img" aria-label="공정거래위원회 로고">
+  <title>공정거래위원회 로고</title>
+  <desc>공정거래위원회 기관 상징을 참고해 제작한 SVG 벡터 파일</desc>
+  <rect width="1200" height="420" fill="#ffffff"/>
+  <g transform="translate(70 55) scale(1.1)">
+    <path d="M130 18C61 18 5 74 5 143c0 69 56 125 125 125 39 0 74-18 97-46 16-20 25-45 25-72 0-31-13-58-34-78 0 55-44 99-99 99-39 0-73-23-89-57 11-55 60-96 118-96 41 0 78 20 100 50C225 37 180 18 130 18Z" fill="#003964"/>
+    <path d="M130 18c69 0 125 56 125 125 0 53-33 98-79 116 24-25 38-58 38-95 0-76-61-137-137-137-22 0-43 5-61 15C38 27 82 18 130 18Z" fill="#e4002b"/>
+    <path d="M35 121c14-45 56-78 106-78 61 0 111 50 111 111 0 3 0 6-.3 9-8-50-51-88-103-88-46 0-85 30-99 72-6-8-11-17-14.7-26Z" fill="#ffffff"/>
+  </g>
+  <text x="390" y="252" font-family="Noto Sans KR, Apple SD Gothic Neo, Malgun Gothic, Arial, sans-serif" font-size="92" font-weight="700" fill="#565656" letter-spacing="-6">공정거래위원회</text>
+</svg>
