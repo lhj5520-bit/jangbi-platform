@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import DispatchModal from './dispatches/DispatchModal'
 const Card = ({ children, className = '' }: { children: React.ReactNode; className?: string }) => (
   <div className={`rounded-lg border border-slate-200 bg-white shadow-sm ${className}`}>{children}</div>
 )
@@ -10,6 +11,9 @@ const Card = ({ children, className = '' }: { children: React.ReactNode; classNa
 export default function DashboardPage() {
   const supabase = createClient()
   const [loading, setLoading] = useState(true)
+  const [dispatchModalOpen, setDispatchModalOpen] = useState(false)
+  const [dashEquipment, setDashEquipment] = useState<any[]>([])
+  const [dashSuppliers, setDashSuppliers] = useState<any[]>([])
   const [now] = useState(() => new Date())
   const toKST = (d: Date) => new Date(d.getTime() + 9 * 3600000).toISOString().slice(0, 10)
   const today = toKST(now)
@@ -134,6 +138,11 @@ export default function DashboardPage() {
       setLoading(false)
     }
     load()
+  }, [])
+
+  useEffect(() => {
+    supabase.from('equipment').select('*, supplier:suppliers(*)').then(({ data }: { data: any[] | null }) => setDashEquipment(data ?? []))
+    supabase.from('suppliers').select('*').then(({ data }: { data: any[] | null }) => setDashSuppliers(data ?? []))
   }, [])
 
   useEffect(() => {
@@ -280,7 +289,7 @@ export default function DashboardPage() {
             </div>
           )}
           <span className="rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 font-medium text-zinc-100">{today}</span>
-          <a href="/dashboard/dispatches" className="rounded-lg bg-amber-400 px-3 py-2 font-semibold text-zinc-950 hover:bg-amber-300">배차 등록</a>
+          <button onClick={() => setDispatchModalOpen(true)} className="rounded-lg bg-amber-400 px-3 py-2 font-semibold text-zinc-950 hover:bg-amber-300">+ 배차 등록</button>
         </div>
       </div>
 
@@ -543,6 +552,16 @@ export default function DashboardPage() {
           </Card>
         )
       })()}
+      {dispatchModalOpen && (
+        <DispatchModal
+          dispatch={null}
+          equipment={dashEquipment}
+          suppliers={dashSuppliers}
+          onClose={() => setDispatchModalOpen(false)}
+          onSaved={() => setDispatchModalOpen(false)}
+          large
+        />
+      )}
     </div>
   )
 }

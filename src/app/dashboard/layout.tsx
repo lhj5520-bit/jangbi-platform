@@ -44,7 +44,6 @@ const navItems: NavItem[] = [
   { href: '/dashboard/suppliers',        label: '중기업체',           icon: 'suppliers' },
   { href: '/dashboard/equipment-own',    label: '장비(자차)',          icon: null, customIcon: ExcavatorIcon },
   { href: '/dashboard/equipment-other',  label: '장비(타사)',          icon: null, customIcon: ExcavatorIcon },
-  { href: '/dashboard/dispatches',       label: '배차 등록',          icon: 'dispatch' },
   { href: '/dashboard/daily-logs',       label: '작업확인서출력',      icon: 'ledger' },
   { href: '/dashboard/dispatch-ledger',  label: '배차내역서',          icon: 'statement' },
   { href: '/dashboard/trade-statement',  label: '거래명세서',          icon: 'invoice' },

@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic'
 import { useEffect, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import LedgerExcelUploadModal from './LedgerExcelUploadModal'
+import DispatchModal from '../dispatches/DispatchModal'
 import LogModal from '../daily-logs/LogModal'
 
 interface LedgerRow {
@@ -56,6 +57,7 @@ export default function DispatchLedgerPage() {
   const [allSuppliers, setAllSuppliers] = useState<any[]>([])
   const [allClients, setAllClients] = useState<any[]>([])
   const [logModalData, setLogModalData] = useState<{ log: any; dispatches: any[] } | null>(null)
+  const [newDispatchOpen, setNewDispatchOpen] = useState(false)
   const [exporting, setExporting] = useState(false)
   const [exportVisible, setExportVisible] = useState(false)
   const exportRef = useRef<HTMLDivElement>(null)
@@ -850,6 +852,10 @@ export default function DispatchLedgerPage() {
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-xl font-bold text-gray-900">배차내역서</h1>
         <div className="flex gap-2">
+          <button onClick={() => setNewDispatchOpen(true)}
+            className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg">
+            + 배차 등록
+          </button>
           <button onClick={() => { setClientMergeOpen(true); setMergeSelected(new Set()); setMergeTarget(''); setMergeSearch('') }}
             className="bg-rose-500 hover:bg-rose-600 text-white text-sm font-medium px-4 py-2 rounded-lg">
             🔀 발주처 정리
@@ -1093,6 +1099,15 @@ export default function DispatchLedgerPage() {
         </div>
       </div>
     )}
+      {newDispatchOpen && (
+        <DispatchModal
+          dispatch={null}
+          equipment={fullEquipment}
+          suppliers={allSuppliers}
+          onClose={() => setNewDispatchOpen(false)}
+          onSaved={() => { setNewDispatchOpen(false); load() }}
+        />
+      )}
     </>
   )
 }

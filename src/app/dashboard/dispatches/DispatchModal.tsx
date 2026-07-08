@@ -10,9 +10,10 @@ interface Props {
   suppliers: Supplier[]
   onClose: () => void
   onSaved: () => void
+  large?: boolean
 }
 
-export default function DispatchModal({ dispatch, equipment, suppliers, onClose, onSaved }: Props) {
+export default function DispatchModal({ dispatch, equipment, suppliers, onClose, onSaved, large }: Props) {
   const isEdit = !!dispatch
   const supabase = createClient()
   const [saving, setSaving] = useState(false)
@@ -149,7 +150,7 @@ export default function DispatchModal({ dispatch, equipment, suppliers, onClose,
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-xl">
+      <div className={`bg-white rounded-2xl w-full ${large ? 'max-w-2xl' : 'max-w-lg'} max-h-[90vh] overflow-y-auto shadow-xl`}>
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
           <h2 className="font-bold text-gray-900">{isEdit ? '배차 수정' : '배차 등록'}</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl">X</button>
