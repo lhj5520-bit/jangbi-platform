@@ -47,6 +47,7 @@ const navItems: NavItem[] = [
   { href: '/dashboard/daily-logs',       label: '작업확인서출력',      icon: 'ledger' },
   { href: '/dashboard/dispatch-ledger',  label: '배차내역서',          icon: 'statement' },
   { href: '/dashboard/trade-statement',  label: '거래명세서',          icon: 'invoice' },
+  { href: '/dashboard/estimate',         label: '견적서',              icon: 'invoice' },
   { href: '/dashboard/rental-contract', label: '임대차계약서',         icon: 'ledger' },
   { href: '/dashboard/invoices',         label: '매출계산서',          icon: 'invoice' },
   { href: '/dashboard/purchase-invoices',label: '매입계산서',          icon: 'purchase' },
@@ -227,7 +228,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <span className="flex h-8 w-8 items-center justify-center rounded-md bg-zinc-900 text-zinc-400 group-hover:bg-zinc-800 group-hover:text-amber-200">
           <Icons.expenses />
         </span>
-        <span className="flex-1 text-left">업체관리</span>
+        <span className="flex-1 text-left">관리자메뉴</span>
         <span className="text-xs text-zinc-500">{mgmtOpen ? '▲' : '▼'}</span>
       </button>
 
