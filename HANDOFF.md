@@ -3,7 +3,7 @@
 **프로젝트**: jangbi-platform  
 **배포 URL**: https://jangbi-platform.vercel.app  
 **Supabase**: https://qeurmytrzghonavsiqwa.supabase.co
-**최종 업데이트**: 2026-07-07
+**최종 업데이트**: 2026-07-08
 
 ---
 
@@ -46,6 +46,101 @@ vercel --prod
   ALTER TABLE purchase_invoices ADD COLUMN IF NOT EXISTS invoice_image_url TEXT;
   ```
 - [ ] `purchase_invoices` 테이블에 `paid_at` 컬럼 존재 여부 확인 (없으면 추가)
+
+---
+
+## ✅ [2026-07-08] 완료 작업 (2차 — 임대차계약서 신설)
+
+### src/app/dashboard/rental-contract/page.tsx (신규)
+- **건설기계임대차 표준계약서 페이지 신설** (표준약관 제10059호, 2015.10.30 개정)
+  - 임대인: 가온건설중기(자차) 또는 중기업체(suppliers) 선택 → 회사정보 자동입력
+  - 임차인: 발주처(clients) 선택 → 회사정보 자동입력
+  - 장비: 선택한 임대인의 장비 목록 → 자동입력 (건설기계명, 등록번호, 형식, 보험/검사여부)
+  - 목적물 표시 테이블(건설기계·현장), 계약조건(사용기간/금액/가동시간/지급시기), 확약문구, 서명란
+  - 임대인 서명란 도장 자동표시 (`position: absolute` + `zIndex: 10` 패턴 준수)
+  - 모바일 스케일: `transform: scale(docScale)` + `transformOrigin: top left` (zoom 금지 준수)
+  - 출력: 🖨️ 인쇄 / 📷 JPG(Web Share API→클립보드→다운로드 우선순위) / 🔗 서명링크
+  - 💾 저장: DB upsert → savedId 획득 → 링크 공유 시 자동 저장 트리거
+  - 표준약관 전문: "📄 표준약관" 버튼으로 토글 (인쇄 시 2페이지로 출력)
+  - 날짜 입력칸: onBlur 자동포맷 (8자리 숫자 → YYYY-MM-DD)
+  - 모든 input: `width: 100%` + `minWidth: 0` 적용 (모바일 표 터짐 방지)
+
+### src/app/sign/rental/[contractId]/page.tsx (신규)
+- **임차인 서명 페이지** (링크 공유용, 대시보드 없는 독립 페이지)
+  - URL: `/sign/rental/{contractId}`
+  - 계약 내용 요약 표시 (임대인, 임차인, 기계명, 현장, 금액, 계약일)
+  - Canvas 서명: 마우스/터치 모두 지원
+  - 제출 → `rental_contracts.lessee_signature` + `signed_at` DB 저장
+  - 이미 서명된 경우 완료 화면 표시
+
+### src/app/dashboard/layout.tsx
+- 거래명세서 바로 아래에 "임대차계약서" 메뉴 추가 (`/dashboard/rental-contract`, icon: ledger)
+- 파일 잘림(truncation) 복구: `</main></div>` + 닫는 태그 누락 부분 복구
+
+### src/app/dashboard/page.tsx
+- 파일 잘림(truncation) 복구: 부가세 카드 body(매출세액/매입세액/납부세액 2열 그리드) + 닫는 태그 복구
+- tsc --noEmit: 0건 확인
+
+### Supabase SQL 실행 필요 (rental_contracts 테이블 신설)
+```sql
+CREATE TABLE IF NOT EXISTS rental_contracts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  supplier_id UUID REFERENCES suppliers(id),
+  is_own_equipment BOOLEAN DEFAULT FALSE,
+  client_id UUID REFERENCES clients(id),
+  equipment_id UUID REFERENCES equipment(id),
+  lessor_name TEXT, lessor_business_no TEXT, lessor_ceo TEXT, lessor_address TEXT,
+  lessee_name TEXT, lessee_business_no TEXT, lessee_ceo TEXT, lessee_address TEXT,
+  equip_name TEXT, equip_reg_no TEXT, equip_model TEXT,
+  insurance_yn TEXT DEFAULT '여', inspection_yn TEXT DEFAULT '여', equip_note TEXT,
+  site_name TEXT, site_address TEXT, orderer TEXT, contractor TEXT,
+  guarantee_yn TEXT DEFAULT '여', site_note TEXT,
+  period_start DATE, period_end DATE,
+  daily_amount NUMERIC, total_amount NUMERIC,
+  working_hours TEXT DEFAULT '1일 8시간 기준, 월 200시간 기준',
+  payment_days INTEGER DEFAULT 30,
+  lessee_signature TEXT,
+  contract_date DATE,
+  signed_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+GRANT ALL ON TABLE rental_contracts TO anon, authenticated;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated;
+```
+
+---
+
+## ✅ [2026-07-08] 완료 작업
+
+### dashboard/page.tsx
+- **청주시 날씨 위젯 추가**: 헤더 우측에 온도·날씨 상태 표시
+  - Open-Meteo API (무료, 키 불필요) / 좌표: 36.6424°N 127.4890°E
+  - WMO 날씨코드 → 한국어 변환 (맑음/구름조금/비/눈/천둥번개 등)
+
+### trade-statement/page.tsx
+- **입금계좌 중복 표시 제거**: tfoot 행 + 하단 div 두 곳에 표시되던 것을 tfoot만 유지, 하단은 회사명만 표시
+
+### equipment/EquipmentList.tsx + equipment/page.tsx
+- **정기검사·보험만기 날짜+D-xx 두 줄 표시**
+  - `checkExpire()` 개편: 항상 원본 날짜(회색 xs) + D-xx 배지 두 줄 렌더링
+  - 정기검사: `inspection_expire + 30일` 기준 카운트다운
+  - 보험만기: 원본 날짜 그대로 카운트다운
+  - 만료 시 "만료(N일경과)" 빨간 텍스트, UTC 파싱 버그 수정
+
+### equipment/SupplierEquipmentModal.tsx
+- **날짜 입력 포맷 자동화**: 정기검사일·보험만기일 `type="date"` → `type="text"` 변경
+  - `fmtDate()` 함수: `onBlur` 시 8자리 숫자 → `YYYY-MM-DD` 자동 변환 (예: `20261102` → `2026-11-02`)
+- **도장 업체별 완전 분리**: 모든 경로에서 글로벌 `ts_stamp` 폴백 제거
+  - `selectStamp`, `deleteStamp`, `handleSupplierChange`, 초기 useEffect 전부 수정
+  - `stampImg` 초기값을 `useState(() => ...)` 동기 로드로 변경 (useEffect 타이밍 이슈 해소)
+
+### trade-statement/page.tsx (도장)
+- `onSaved` 콜백: 업체 변경 후 해당 업체 도장(`ts_stamp_sup_${id}`)만 로드, 글로벌 폴백 제거
+- 도장 업로드 시 글로벌(`ts_stamp`) + 업체별(`ts_stamp_sup_${id}`) 동시 저장
+
+### git 초기화
+- `git init` + remote 연결: https://github.com/lhj5520-bit/jangbi-platform
+- 이후 작업 완료 시: `git add -A && git commit -m "..." && git push`
 
 ---
 

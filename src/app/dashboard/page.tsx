@@ -520,25 +520,24 @@ export default function DashboardPage() {
           <Card className="mt-4 overflow-hidden border-0 bg-white shadow-lg">
             <div className="flex items-center justify-between gap-3 border-b border-zinc-800 bg-zinc-950 px-5 py-4">
               <p className="text-base font-bold text-amber-300">🏛 <span className="text-white">{vatKey.slice(0,4)}</span>년 <span className="text-white">{(vatKey.match(/(\d+)기/)||[])[1]??''}</span>기 {vatKey.includes('예정')?'예정':'확정'} 부가세</p>
-              {deadline && <span className={`rounded-lg px-2.5 py-1 text-xs font-bold ${daysLeft!==null&&daysLeft<=30?'bg-red-500 text-white':'bg-zinc-700 text-zinc-300'}`}>신고기한 {deadline}{daysLeft!==null?` (D-${daysLeft})`:''}</span>}
+              {deadline && daysLeft !== null && (
+                <span className={`rounded-lg px-2.5 py-1 text-xs font-bold ${daysLeft <= 30 ? 'bg-red-500 text-white' : 'bg-zinc-700 text-zinc-300'}`}>
+                  신고기한 {deadline} (D-{daysLeft})
+                </span>
+              )}
             </div>
-            <div className="p-4 space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3">
-                  <p className="text-xs font-bold text-zinc-600 mb-1">매출세액</p>
-                  <p className="text-base font-bold text-blue-700">{(vat.sales_vat??0).toLocaleString()}원</p>
-                </div>
-                <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3">
-                  <p className="text-xs font-bold text-zinc-600 mb-1">매입세액</p>
-                  <p className="text-base font-bold text-blue-700">{(vat.purchase_vat??0).toLocaleString()}원</p>
-                </div>
+            <div className="grid grid-cols-2 gap-3 p-5">
+              <div className="rounded-lg bg-blue-50 p-3">
+                <p className="text-xs text-zinc-500">매출세액</p>
+                <p className="text-xl font-bold text-blue-700">{(vat.sales_vat ?? 0).toLocaleString()}원</p>
               </div>
-              <div className={`rounded-lg px-4 py-3 ${net<0?'border border-emerald-300 bg-emerald-50':'border border-red-200 bg-red-50'}`}>
-                <p className="text-xs font-bold text-zinc-600 mb-1">납부세액 (매출 − 매입)</p>
-                <p className={`text-2xl font-bold ${net<0?'text-emerald-600':'text-red-600'}`}>{net.toLocaleString()}원</p>
+              <div className="rounded-lg bg-orange-50 p-3">
+                <p className="text-xs text-zinc-500">매입세액</p>
+                <p className="text-xl font-bold text-orange-600">{(vat.purchase_vat ?? 0).toLocaleString()}원</p>
               </div>
-              <div className="flex justify-end">
-                <a href="/dashboard/vat" className="text-xs font-medium text-blue-600 hover:text-blue-500">상세보기 →</a>
+              <div className={`col-span-2 rounded-lg p-3 ${net >= 0 ? 'bg-red-50' : 'bg-green-50'}`}>
+                <p className="text-xs text-zinc-500">{net >= 0 ? '납부세액 (내야 할 세금)' : '환급세액 (돌려받을 세금)'}</p>
+                <p className={`text-2xl font-bold ${net >= 0 ? 'text-red-600' : 'text-green-600'}`}>{Math.abs(net).toLocaleString()}원</p>
               </div>
             </div>
           </Card>

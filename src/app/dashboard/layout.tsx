@@ -48,6 +48,7 @@ const navItems: NavItem[] = [
   { href: '/dashboard/daily-logs',       label: '작업확인서출력',      icon: 'ledger' },
   { href: '/dashboard/dispatch-ledger',  label: '배차내역서',          icon: 'statement' },
   { href: '/dashboard/trade-statement',  label: '거래명세서',          icon: 'invoice' },
+  { href: '/dashboard/rental-contract', label: '임대차계약서',         icon: 'ledger' },
   { href: '/dashboard/invoices',         label: '매출계산서',          icon: 'invoice' },
   { href: '/dashboard/purchase-invoices',label: '매입계산서',          icon: 'purchase' },
   { href: '/dashboard/vat',              label: '부가세',              icon: 'vat' },
