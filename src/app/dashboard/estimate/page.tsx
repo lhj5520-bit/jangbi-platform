@@ -13,6 +13,15 @@ const GAON = {
   biz_item: '건설장비 운영업',
 }
 
+const TYPE_OPTIONS = ['굴삭기', '덤프트럭', '화물차', '기타']
+const SPEC_OPTIONS: Record<string, string[]> = {
+  '굴삭기':   ['01', '02', '03LC', '03W', '04W', '05W', '06W', '07W', '08W'],
+  '덤프트럭': ['5D/T', '8D/T', '11D/T', '14D/T', '15D/T', '18D/T', '20D/T', '25D/T'],
+  '화물차':   ['1T', '2.5T', '3.5T', '5T', '11T', '25T'],
+  '기타':     [],
+}
+const UNIT_OPTIONS = ['시간', '일대', '월대', '식', '대', '회']
+
 interface Row {
   id: number
   type: string
@@ -94,7 +103,12 @@ export default function EstimatePage() {
   }, [rows])
 
   function updateRow(id: number, field: keyof Row, value: string) {
-    setRows(prev => prev.map(r => r.id === id ? { ...r, [field]: value } : r))
+    setRows(prev => prev.map(r => {
+      if (r.id !== id) return r
+      const next = { ...r, [field]: value }
+      if (field === 'type') next.spec = ''
+      return next
+    }))
   }
 
   function addRow() {
@@ -173,7 +187,7 @@ export default function EstimatePage() {
           </button>
           <button onClick={handlePrint}
             className="text-xs px-2.5 py-1.5 rounded bg-gray-700 text-white">
-            🖨️ 인쇄
+            📄 PDF 저장
           </button>
           <button onClick={handleJpg}
             className="text-xs px-2.5 py-1.5 rounded bg-green-600 text-white">
@@ -294,14 +308,31 @@ export default function EstimatePage() {
                 <tbody>
                   {rows.map(r => (
                     <tr key={r.id}>
-                      <td style={cTd}>
-                        <input value={r.type} onChange={e => updateRow(r.id, 'type', e.target.value)} style={cInp} />
+                      <td style={{ ...cTd, textAlign: 'center' }}>
+                        <select value={r.type} onChange={e => updateRow(r.id, 'type', e.target.value)}
+                          style={{ ...cInp, cursor: 'pointer' }}>
+                          <option value=""></option>
+                          {TYPE_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
+                        </select>
                       </td>
-                      <td style={cTd}>
-                        <input value={r.spec} onChange={e => updateRow(r.id, 'spec', e.target.value)} style={cInp} />
+                      <td style={{ ...cTd, textAlign: 'center' }}>
+                        {(!r.type || r.type === '기타') ? (
+                          <input value={r.spec} onChange={e => updateRow(r.id, 'spec', e.target.value)}
+                            style={cInp} placeholder="직접 입력" />
+                        ) : (
+                          <select value={r.spec} onChange={e => updateRow(r.id, 'spec', e.target.value)}
+                            style={{ ...cInp, cursor: 'pointer' }}>
+                            <option value=""></option>
+                            {(SPEC_OPTIONS[r.type] ?? []).map(s => <option key={s} value={s}>{s}</option>)}
+                          </select>
+                        )}
                       </td>
-                      <td style={cTd}>
-                        <input value={r.unit} onChange={e => updateRow(r.id, 'unit', e.target.value)} style={cInp} />
+                      <td style={{ ...cTd, textAlign: 'center' }}>
+                        <select value={r.unit} onChange={e => updateRow(r.id, 'unit', e.target.value)}
+                          style={{ ...cInp, cursor: 'pointer' }}>
+                          <option value=""></option>
+                          {UNIT_OPTIONS.map(u => <option key={u} value={u}>{u}</option>)}
+                        </select>
                       </td>
                       <td style={cTd}>
                         <input type="number" value={r.unit_price} onChange={e => updateRow(r.id, 'unit_price', e.target.value)}
@@ -343,8 +374,11 @@ export default function EstimatePage() {
       <style>{`
         @media print {
           .no-print { display: none !important; }
-          body, html { margin: 0; padding: 0; background: #fff; }
+          header, nav, aside { display: none !important; }
+          body, html { margin: 0; padding: 0; background: #fff; overflow: visible !important; }
           @page { size: A4 portrait; margin: 10mm 12mm; }
+          main, .flex-1 { overflow: visible !important; height: auto !important; }
+          ::-webkit-scrollbar { display: none !important; }
           .print-area-wrapper { height: auto !important; overflow: visible !important; }
           .print-doc { transform: none !important; width: 186mm !important; }
         }

@@ -472,7 +472,7 @@ export default function RentalContractPage() {
           </button>
           <button onClick={handlePrint}
             className="text-xs px-2.5 py-1.5 rounded bg-gray-700 text-white">
-            🖨️ 인쇄
+            📄 PDF 저장
           </button>
           <button onClick={handleJpg}
             className="text-xs px-2.5 py-1.5 rounded bg-green-600 text-white">
@@ -740,8 +740,11 @@ export default function RentalContractPage() {
       <style>{`
         @media print {
           .no-print { display: none !important; }
-          body, html { margin: 0; padding: 0; background: #fff; }
+          header, nav, aside { display: none !important; }
+          body, html { margin: 0; padding: 0; background: #fff; overflow: visible !important; }
           @page { size: A4 portrait; margin: 10mm 12mm; }
+          main, .flex-1 { overflow: visible !important; height: auto !important; }
+          ::-webkit-scrollbar { display: none !important; }
           .print-area-wrapper { height: auto !important; overflow: visible !important; }
           .print-doc { transform: none !important; width: 186mm !important; }
         }

@@ -275,7 +275,10 @@ export default function DashboardPage() {
       <div className="mb-5 flex flex-col gap-5 overflow-hidden rounded-lg border border-zinc-800 bg-zinc-950 p-5 text-white shadow-xl md:flex-row md:items-end md:justify-between md:p-6">
         <div>
           <p className="text-xs font-semibold uppercase text-amber-300">Operations Dashboard</p>
-          <h1 className="mt-1 text-3xl font-bold text-white">안녕하세요, 관리자님!</h1>
+          <div className="mt-1 flex items-center gap-4 flex-wrap">
+            <h1 className="text-3xl font-bold text-white">안녕하세요, 관리자님!</h1>
+            <button onClick={() => setDispatchModalOpen(true)} className="rounded-xl bg-amber-400 px-5 py-2.5 text-base font-bold text-zinc-950 hover:bg-amber-300 transition-colors">+ 배차 등록</button>
+          </div>
           <p className="mt-2 text-sm text-zinc-300">오늘 배차, 자금, 세금 상태를 한 화면에서 확인하세요.</p>
         </div>
         <div className="flex items-center gap-2 text-xs text-zinc-300 flex-wrap">
@@ -289,7 +292,6 @@ export default function DashboardPage() {
             </div>
           )}
           <span className="rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 font-medium text-zinc-100">{today}</span>
-          <button onClick={() => setDispatchModalOpen(true)} className="rounded-lg bg-amber-400 px-3 py-2 font-semibold text-zinc-950 hover:bg-amber-300">+ 배차 등록</button>
         </div>
       </div>
 
