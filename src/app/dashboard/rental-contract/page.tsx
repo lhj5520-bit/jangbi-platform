@@ -131,6 +131,7 @@ const cTA: React.CSSProperties = {
   border: 'none', outline: 'none', width: '100%', minWidth: 0,
   fontSize: 11, fontFamily: 'inherit', background: 'transparent', padding: 0,
   resize: 'none', overflow: 'hidden', display: 'block', lineHeight: 1.4,
+  minHeight: '1.5em',
 }
 const AR = (e: React.FormEvent<HTMLTextAreaElement>) => {
   const t = e.currentTarget; t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px'
@@ -307,12 +308,14 @@ export default function RentalContractPage() {
 
   // form 로드 후 textarea 자동 높이 조정
   useEffect(() => {
-    const timer = setTimeout(() => {
+    const resize = () => {
       document.querySelectorAll('.print-doc textarea').forEach((t: any) => {
-        t.style.height = 'auto'
+        t.style.height = '0'
         t.style.height = t.scrollHeight + 'px'
       })
-    }, 50)
+    }
+    resize()
+    const timer = setTimeout(resize, 200)
     return () => clearTimeout(timer)
   }, [form])
 
