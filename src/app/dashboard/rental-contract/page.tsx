@@ -849,6 +849,8 @@ export default function RentalContractPage() {
           .print-doc h1, .print-doc h2, .print-doc h3 {
             font-size: 16px !important;
           }
+          .print-doc select { display: none !important; }
+          .print-doc textarea { border: none !important; outline: none !important; resize: none !important; }
         }
       `}</style>
     </div>
