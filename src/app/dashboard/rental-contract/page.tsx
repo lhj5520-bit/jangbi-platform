@@ -216,9 +216,17 @@ export default function RentalContractPage() {
       .then(({ data }) => setSuppliers((data ?? []).sort((a: any, b: any) => a.name.localeCompare(b.name, 'ko'))))
     supabase.from('clients').select('*').order('name')
       .then(({ data }) => setClients(data ?? []))
-    // 가온 도장
+    // 가온 도장 (로컬 우선, 없으면 user metadata)
     const gaonStamp = localStorage.getItem('ts_stamp') ?? ''
-    setStampImg(gaonStamp)
+    if (gaonStamp) {
+      setStampImg(gaonStamp)
+      supabase.auth.updateUser({ data: { gaon_stamp: gaonStamp } }).catch(() => {})
+    } else {
+      supabase.auth.getUser().then(({ data: { user } }: any) => {
+        const meta = user?.user_metadata?.gaon_stamp ?? ''
+        if (meta) setStampImg(meta)
+      })
+    }
     // 자차 장비 로드
     supabase.from('equipment').select('*').eq('ownership', 'own').order('plate_no')
       .then(({ data }) => setEquipList(data ?? []))
@@ -237,7 +245,13 @@ export default function RentalContractPage() {
         lessor_addr: GAON.address,
       }))
       const stamp = localStorage.getItem('ts_stamp') ?? ''
-      setStampImg(stamp)
+      if (stamp) {
+        setStampImg(stamp)
+      } else {
+        supabase.auth.getUser().then(({ data: { user } }: any) => {
+          setStampImg(user?.user_metadata?.gaon_stamp ?? '')
+        })
+      }
       supabase.from('equipment').select('*').eq('ownership', 'own').order('plate_no')
         .then(({ data }) => setEquipList(data ?? []))
     } else {
