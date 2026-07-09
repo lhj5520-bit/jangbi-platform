@@ -102,6 +102,12 @@ const EQ_LABEL: Record<string, string> = {
   cargo: '화물차',
 }
 
+function fmtDate(v: string): string {
+  const d = v.replace(/[^\d]/g, '').slice(0, 8)
+  if (d.length <= 4) return d
+  if (d.length <= 6) return d.slice(0,4) + '.' + d.slice(4)
+  return d.slice(0,4) + '.' + d.slice(4,6) + '.' + d.slice(6)
+}
 function fmtAmt(v: string): string {
   const n = v.replace(/[^\d]/g, '')
   return n ? Number(n).toLocaleString() : ''
@@ -292,7 +298,7 @@ export default function RentalContractPage() {
         ...p,
         equip_name: EQ_LABEL[eq.type] ?? eq.type ?? '',
         equip_reg_no: eq.plate_no ?? '',
-        equip_model: eq.spec ?? eq.model ?? '',
+        equip_model: eq.model ?? eq.spec ?? '',
         insurance_yn: eq.insurance_expire && eq.insurance_expire > today ? '여' : '부',
         inspection_yn: inspYn,
       }))
@@ -459,14 +465,15 @@ export default function RentalContractPage() {
   const ynOpts = ['여', '부']
   const pdOpts = ['30', '60']
 
-  const sigRow = (label: string, key: keyof ContractForm, hasStamp?: boolean) => (
+  const sigRow = (label: string, key: keyof ContractForm, hasStamp?: boolean, beforeContent?: React.ReactNode) => (
     <tr key={key}>
       <td style={{ ...cTd, width: 90, fontWeight: 600, background: '#fafafa', whiteSpace: 'nowrap' }}>{label}</td>
-      <td style={{ ...cTd, position: 'relative' }}>
+      <td style={{ ...cTd, position: 'relative', overflow: 'visible' }}>
+        {beforeContent}
         <textarea value={form[key]} onChange={e => setF(key, e.target.value)} style={cTA} rows={1} onInput={AR} />
         {hasStamp && stampImg && (
           <img src={stampImg} alt="도장"
-            style={{ position: 'absolute', right: 4, top: '50%', marginTop: -22, width: 44, height: 44, objectFit: 'contain', zIndex: 10, opacity: 0.85 }} />
+            style={{ position: 'absolute', right: -22, top: '50%', marginTop: -22, width: 44, height: 44, objectFit: 'contain', zIndex: 10, opacity: 0.85 }} />
         )}
       </td>
     </tr>
@@ -527,8 +534,8 @@ export default function RentalContractPage() {
       </div>
 
       {/* ── 문서 래퍼 ── */}
-      <div className="p-4">
-        <div className="print-area-wrapper" style={{ height: docHeight * docScale + 16 }}>
+      <div className="p-4" style={{ display: 'flex', justifyContent: 'center' }}>
+        <div className="print-area-wrapper" style={{ width: 900 * docScale, height: docHeight * docScale + 16, overflow: 'hidden', flexShrink: 0 }}>
           <div ref={printAreaRef} className="print-doc" style={{ transform: `scale(${docScale})`, transformOrigin: 'top left', width: 900 }}>
 
             {/* ── 1페이지: 계약서 본문 ── */}
@@ -604,8 +611,20 @@ export default function RentalContractPage() {
                       <tr>
                         <td style={cTd}><textarea value={form.site_name} onChange={e => setF('site_name', e.target.value)} style={cTA} rows={1} onInput={AR} /></td>
                         <td style={cTd}><textarea value={form.site_addr} onChange={e => setF('site_addr', e.target.value)} style={cTA} rows={1} onInput={AR} /></td>
-                        <td style={cTd}><textarea value={form.orderer} onChange={e => setF('orderer', e.target.value)} style={cTA} rows={1} onInput={AR} /></td>
-                        <td style={cTd}><textarea value={form.contractor} onChange={e => setF('contractor', e.target.value)} style={cTA} rows={1} onInput={AR} /></td>
+                        <td style={cTd}>
+          <select style={{...cTA,fontSize:10,color:'#999'}} onChange={e=>{if(e.target.value)setF('orderer',e.target.value)}}>
+            <option value="">발주처 선택▼</option>
+            {clients.map((c:any)=><option key={c.id} value={c.name}>{c.name}</option>)}
+          </select>
+          <textarea value={form.orderer} onChange={e=>setF('orderer',e.target.value)} style={cTA} rows={1} onInput={AR} />
+        </td>
+                        <td style={cTd}>
+          <select style={{...cTA,fontSize:10,color:'#999'}} onChange={e=>{if(e.target.value)setF('contractor',e.target.value)}}>
+            <option value="">임차인 선택▼</option>
+            {clients.map((c:any)=><option key={c.id} value={c.name}>{c.name}</option>)}
+          </select>
+          <textarea value={form.contractor} onChange={e=>setF('contractor',e.target.value)} style={cTA} rows={1} onInput={AR} />
+        </td>
                         <td style={{ ...cTd, textAlign: 'center' }}>
                           <select value={form.guarantee_yn} onChange={e => setF('guarantee_yn', e.target.value)}
                             style={{ fontSize: 11, fontFamily: 'inherit', background: 'transparent', border: 'none', outline: 'none', width: '100%', minWidth: 0 }}>
@@ -629,12 +648,12 @@ export default function RentalContractPage() {
                       <td style={{ ...cTd, fontSize: 11 }}>
                         <span style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 4 }}>
                           <input value={form.period_start} onChange={e => setF('period_start', e.target.value)}
-                            onBlur={e => setF('period_start', e.target.value.replace(/-/g, '.'))}
+                            onBlur={e => setF('period_start', fmtDate(e.target.value))}
                             placeholder="YYYY.MM.DD" style={{ ...cInp, width: 96 }} />
                           <span>부터</span>
                           <span style={{ margin: '0 2px' }}>~</span>
                           <input value={form.period_end} onChange={e => setF('period_end', e.target.value)}
-                            onBlur={e => setF('period_end', e.target.value.replace(/-/g, '.'))}
+                            onBlur={e => setF('period_end', fmtDate(e.target.value))}
                             placeholder="YYYY.MM.DD" style={{ ...cInp, width: 96 }} />
                           <span>까지</span>
                         </span>
@@ -722,7 +741,7 @@ export default function RentalContractPage() {
               <div style={{ textAlign: 'center', marginBottom: 22, fontSize: 13 }}>
                 <span>계약일 &nbsp;</span>
                 <input value={form.contract_date} onChange={e => setF('contract_date', e.target.value)}
-                  onBlur={e => setF('contract_date', e.target.value.replace(/-/g, '.'))}
+                  onBlur={e => setF('contract_date', fmtDate(e.target.value))}
                   style={{ border: 'none', borderBottom: '1px solid #555', outline: 'none', fontSize: 13, width: 120, textAlign: 'center', minWidth: 0, fontFamily: 'inherit', background: 'transparent' }} />
               </div>
 
@@ -734,7 +753,12 @@ export default function RentalContractPage() {
                     <tr><th colSpan={2} style={{ ...cTh, textAlign: 'center', fontSize: 12 }}>임대인 (건설기계 사업자)</th></tr>
                   </thead>
                   <tbody>
-                    {sigRow('상 호', 'lessor_name')}
+                    {sigRow('상 호', 'lessor_name', false,
+                      <select style={{...cTA,fontSize:10,color:'#999'}} value={selectedSupId} onChange={e=>setSelectedSupId(e.target.value)}>
+                        <option value="gaon">가온건설중기 (기본)</option>
+                        {suppliers.map((s:any)=><option key={s.id} value={s.id}>{s.name}</option>)}
+                      </select>
+                    )}
                     {sigRow('사업자등록번호', 'lessor_biz_no')}
                     {sigRow('성 명 (인)', 'lessor_ceo', true)}
                     {sigRow('주 소', 'lessor_addr')}
