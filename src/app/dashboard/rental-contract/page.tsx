@@ -298,7 +298,7 @@ export default function RentalContractPage() {
         ...p,
         equip_name: EQ_LABEL[eq.type] ?? eq.type ?? '',
         equip_reg_no: eq.plate_no ?? '',
-        equip_model: eq.model ?? eq.spec ?? '',
+        equip_model: eq.spec ?? eq.model ?? '',
         insurance_yn: eq.insurance_expire && eq.insurance_expire > today ? '여' : '부',
         inspection_yn: inspYn,
       }))
@@ -404,7 +404,7 @@ export default function RentalContractPage() {
 
       const captureStyle = document.createElement('style')
       captureStyle.id = 'rc-capture-style'
-      captureStyle.textContent = `.no-print { display: none !important; } input[type="radio"], input[type="checkbox"] { accent-color: #333; }`
+      captureStyle.textContent = `.no-print { display: none !important; } .no-print-sel { display: none !important; } input[type="radio"], input[type="checkbox"] { accent-color: #333; }`
       document.head.appendChild(captureStyle)
 
       const origTransform = el.style.transform
@@ -628,14 +628,14 @@ export default function RentalContractPage() {
                         <td style={cTd}><textarea value={form.site_name} onChange={e => setF('site_name', e.target.value)} style={cTA} rows={1} onInput={AR} /></td>
                         <td style={cTd}><textarea value={form.site_addr} onChange={e => setF('site_addr', e.target.value)} style={cTA} rows={1} onInput={AR} /></td>
                         <td style={cTd}>
-          <select style={{...cTA,fontSize:10,color:'#999'}} onChange={e=>{if(e.target.value)setF('orderer',e.target.value)}}>
+          <select className="no-print-sel" style={{...cTA,fontSize:10,color:'#999'}} onChange={e=>{if(e.target.value)setF('orderer',e.target.value)}}>
             <option value="">발주처 선택▼</option>
             {clients.map((c:any)=><option key={c.id} value={c.name}>{c.name}</option>)}
           </select>
           <textarea value={form.orderer} onChange={e=>setF('orderer',e.target.value)} style={cTA} rows={1} onInput={AR} />
         </td>
                         <td style={cTd}>
-          <select style={{...cTA,fontSize:10,color:'#999'}} onChange={e=>{if(e.target.value)setF('contractor',e.target.value)}}>
+          <select className="no-print-sel" style={{...cTA,fontSize:10,color:'#999'}} onChange={e=>{if(e.target.value)setF('contractor',e.target.value)}}>
             <option value="">임차인 선택▼</option>
             {clients.map((c:any)=><option key={c.id} value={c.name}>{c.name}</option>)}
           </select>
@@ -770,7 +770,7 @@ export default function RentalContractPage() {
                   </thead>
                   <tbody>
                     {sigRow('상 호', 'lessor_name', false,
-                      <select style={{...cTA,fontSize:10,color:'#999'}} value={selectedSupId} onChange={e=>setSelectedSupId(e.target.value)}>
+                      <select className="no-print-sel" style={{...cTA,fontSize:10,color:'#999'}} value={selectedSupId} onChange={e=>setSelectedSupId(e.target.value)}>
                         <option value="gaon">가온건설중기 (기본)</option>
                         {suppliers.map((s:any)=><option key={s.id} value={s.id}>{s.name}</option>)}
                       </select>
@@ -788,7 +788,7 @@ export default function RentalContractPage() {
                   </thead>
                   <tbody>
                     {sigRow('상 호', 'lessee_name', false,
-                      <select style={{...cTA,fontSize:10,color:'#999'}} onChange={e=>{if(e.target.value)setSelectedClientId(e.target.value)}}>
+                      <select className="no-print-sel" style={{...cTA,fontSize:10,color:'#999'}} onChange={e=>{if(e.target.value)setSelectedClientId(e.target.value)}}>
                         <option value="">발주처/임차인 선택▼</option>
                         {clients.map((c:any)=><option key={c.id} value={c.id}>{c.name}</option>)}
                       </select>
@@ -849,7 +849,7 @@ export default function RentalContractPage() {
           .print-doc h1, .print-doc h2, .print-doc h3 {
             font-size: 16px !important;
           }
-          .print-doc select { display: none !important; }
+          .print-doc select.no-print-sel { display: none !important; }
           .print-doc textarea { border: none !important; outline: none !important; resize: none !important; }
         }
       `}</style>
