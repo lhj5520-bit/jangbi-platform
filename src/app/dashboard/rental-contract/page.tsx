@@ -216,16 +216,17 @@ export default function RentalContractPage() {
       .then(({ data }) => setSuppliers((data ?? []).sort((a: any, b: any) => a.name.localeCompare(b.name, 'ko'))))
     supabase.from('clients').select('*').order('name')
       .then(({ data }) => setClients(data ?? []))
-    // 가온 도장 (로컬 우선, 없으면 user metadata)
+    // 가온 도장: localStorage 도장 있으면 app_settings에 백업, 없으면 app_settings에서 불레옴
     const gaonStamp = localStorage.getItem('ts_stamp') ?? ''
     if (gaonStamp) {
       setStampImg(gaonStamp)
-      supabase.auth.updateUser({ data: { gaon_stamp: gaonStamp } }).catch(() => {})
+      supabase.from('app_settings').upsert(
+        { key: 'gaon_stamp', value: gaonStamp },
+        { onConflict: 'user_id,key' }
+      ).then(() => {})
     } else {
-      supabase.auth.getUser().then(({ data: { user } }: any) => {
-        const meta = user?.user_metadata?.gaon_stamp ?? ''
-        if (meta) setStampImg(meta)
-      })
+      supabase.from('app_settings').select('value').eq('key', 'gaon_stamp').maybeSingle()
+        .then(({ data }: any) => { if (data?.value) { setStampImg(data.value); try { localStorage.setItem('ts_stamp', data.value) } catch {} } })
     }
     // 자차 장비 로드
     supabase.from('equipment').select('*').eq('ownership', 'own').order('plate_no')
@@ -248,9 +249,8 @@ export default function RentalContractPage() {
       if (stamp) {
         setStampImg(stamp)
       } else {
-        supabase.auth.getUser().then(({ data: { user } }: any) => {
-          setStampImg(user?.user_metadata?.gaon_stamp ?? '')
-        })
+        supabase.from('app_settings').select('value').eq('key', 'gaon_stamp').maybeSingle()
+          .then(({ data }: any) => { if (data?.value) setStampImg(data.value) })
       }
       supabase.from('equipment').select('*').eq('ownership', 'own').order('plate_no')
         .then(({ data }) => setEquipList(data ?? []))
