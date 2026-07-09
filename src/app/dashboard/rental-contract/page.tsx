@@ -334,6 +334,16 @@ export default function RentalContractPage() {
     })
   }
 
+  async function deleteContract() {
+    if (!savedId) return
+    if (!confirm('이 계약서를 삭제할까요?')) return
+    const { error } = await supabase.from('rental_contracts').delete().eq('id', savedId)
+    if (error) { alert('삭제 실패: ' + error.message); return }
+    setContracts(prev => prev.filter((c: any) => c.id !== savedId))
+    setSavedId('')
+    alert('삭제되었습니다.')
+  }
+
   async function saveContract(): Promise<string | null> {
     setSaving(true)
     const payload = {
@@ -489,6 +499,12 @@ export default function RentalContractPage() {
             <option value="">📂 저정된 계약서…</option>
             {contracts.map((c: any) => <option key={c.id} value={c.id}>{c.contract_date ? c.contract_date.replace(/-/g,'.') : '--'} {c.lessee_name} {c.site_name}</option>)}
           </select>
+          {savedId && (
+            <button onClick={deleteContract}
+              className="text-xs bg-red-500 hover:bg-red-600 text-white rounded px-2 py-1.5">
+              🗑 삭제
+            </button>
+          )}
 
           <select value={selectedSupId} onChange={e => setSelectedSupId(e.target.value)}
             className="text-xs border border-gray-300 rounded px-2 py-1.5 bg-white max-w-[150px] truncate">
@@ -771,7 +787,12 @@ export default function RentalContractPage() {
                     <tr><th colSpan={2} style={{ ...cTh, textAlign: 'center', fontSize: 12 }}>임차인 (건설업자)</th></tr>
                   </thead>
                   <tbody>
-                    {sigRow('상 호', 'lessee_name')}
+                    {sigRow('상 호', 'lessee_name', false,
+                      <select style={{...cTA,fontSize:10,color:'#999'}} onChange={e=>{if(e.target.value)setSelectedClientId(e.target.value)}}>
+                        <option value="">발주처/임차인 선택▼</option>
+                        {clients.map((c:any)=><option key={c.id} value={c.id}>{c.name}</option>)}
+                      </select>
+                    )}
                     {sigRow('사업자등록번호', 'lessee_biz_no')}
                     {sigRow('성 명 (인)', 'lessee_ceo')}
                     {sigRow('주 소', 'lessee_addr')}
@@ -810,11 +831,24 @@ export default function RentalContractPage() {
           .no-print { display: none !important; }
           header, nav, aside { display: none !important; }
           body, html { margin: 0; padding: 0; background: #fff; overflow: visible !important; }
-          @page { size: A4 portrait; margin: 10mm 12mm; }
+          @page { size: A4 portrait; margin: 0; }
           main, .flex-1 { overflow: visible !important; height: auto !important; }
           ::-webkit-scrollbar { display: none !important; }
-          .print-area-wrapper { height: auto !important; overflow: visible !important; }
-          .print-doc { transform: none !important; width: 186mm !important; }
+          .print-area-wrapper { height: auto !important; overflow: visible !important; width: auto !important; }
+          .print-doc {
+            transform: none !important;
+            width: 210mm !important;
+            padding: 8mm !important;
+            box-sizing: border-box !important;
+          }
+          .print-doc table, .print-doc th, .print-doc td,
+          .print-doc textarea, .print-doc input, .print-doc select,
+          .print-doc p, .print-doc div, .print-doc span {
+            font-size: 13px !important;
+          }
+          .print-doc h1, .print-doc h2, .print-doc h3 {
+            font-size: 16px !important;
+          }
         }
       `}</style>
     </div>
