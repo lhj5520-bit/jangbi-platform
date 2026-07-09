@@ -4,7 +4,6 @@ export const dynamic = 'force-dynamic'
 import { useEffect, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import LedgerExcelUploadModal from './LedgerExcelUploadModal'
-import DispatchModal from '../dispatches/DispatchModal'
 import LogModal from '../daily-logs/LogModal'
 
 interface LedgerRow {
@@ -1100,10 +1099,12 @@ export default function DispatchLedgerPage() {
       </div>
     )}
       {newDispatchOpen && (
-        <DispatchModal
-          dispatch={null}
+        <LogModal
+          log={null}
+          dispatches={[]}
           equipment={fullEquipment}
           suppliers={allSuppliers}
+          clients={allClients}
           onClose={() => setNewDispatchOpen(false)}
           onSaved={() => { setNewDispatchOpen(false); load() }}
         />

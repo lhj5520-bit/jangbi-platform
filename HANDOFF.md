@@ -49,6 +49,62 @@ vercel --prod
 
 ---
 
+## ✅ [2026-07-08] 완료 작업 (3차 — 배차등록 통합·임대차 인쇄·견적서 드롭다운)
+
+### deploy.bat 개편
+- `git push origin main` + `vercel --prod` 한 번에 실행되도록 통합
+- 더블클릭 한 번으로 깃 커밋+푸시+배포 완료
+
+### git-push.bat 신설
+- `.git/index.lock` 자동 제거 → `git add -A` → `git commit -m "update"` → `git push origin main`
+- 한글 없이 ASCII만 사용 (인코딩 오류 방지)
+
+### dashboard/page.tsx — 배차 등록 모달 통합
+- 기존 `/dashboard/dispatches`로 이동하는 링크 버튼 → `DispatchModal` 팝업으로 교체
+- "안녕하세요, 관리자님!" 글씨 바로 옆에 **+ 배차 등록** 버튼 배치 (크게)
+- `dashEquipment`, `dashSuppliers` state 추가 + 별도 useEffect로 데이터 로드
+- `DispatchModal` import: `./dispatches/DispatchModal`
+
+### layout.tsx — 배차 등록 메뉴 제거
+- `/dashboard/dispatches` (`배차 등록`) 사이드바에서 제거
+- 견적서 항목은 기존 `/dashboard/estimate` 유지
+
+### dispatches/DispatchModal.tsx — large prop 추가
+- `large?: boolean` prop 신설: `max-w-lg` → `max-w-2xl` 전환용
+
+### dispatch-ledger/page.tsx — 배차 등록 버튼 추가
+- 헤더 버튼 목록 맨 앞에 `+ 배차 등록` 버튼 추가
+- `DispatchModal` import + `newDispatchOpen` state + 저장 후 `load()` 호출
+- 75KB 대용량 파일 → Edit 도구 대신 Python 문자열 치환으로 수정 (파일 잘림 방지)
+
+### rental-contract/page.tsx — 인쇄 버튼 + 프린트 CSS
+- `🖨️ 인쇄` → `📄 PDF 저장` 레이블 변경
+- `@media print` CSS 보강:
+  - `header, nav, aside { display: none !important }` — 사이드바·모바일헤더 숨김
+  - `main, .flex-1 { overflow: visible !important; height: auto !important }` — 스크롤바 제거
+  - `::-webkit-scrollbar { display: none !important }` — 웹킷 스크롤바 완전 제거
+
+### estimate/page.tsx — 견적서 규격·단위 드롭다운
+- 기존 텍스트 input 3개 → 드롭다운(select)으로 교체
+- **종류** (`TYPE_OPTIONS`): 굴삭기 / 덤프트럭 / 화물차 / 기타
+- **규격** (`SPEC_OPTIONS`): 종류별 동적 목록
+  - 굴삭기: 03LC, 03W, 06W
+  - 덤프트럭: 5D/T ~ 25D/T (7종)
+  - 화물차: 1T ~ 25T (6종)
+  - 기타: 텍스트 직접 입력
+- **단위** (`UNIT_OPTIONS`): 시간 / 일대 / 월대 / 식 / 대 / 회
+- 종류 변경 시 규격 자동 초기화 (updateRow 로직 개선)
+- `🖨️ 인쇄` → `📄 PDF 저장` 레이블 변경
+- `@media print` CSS 보강 (rental-contract와 동일 패턴)
+
+### 파일 잘림(truncation) 반복 이슈 주의사항
+- Edit 도구는 파일 크기 ~40KB 이상에서 파일 끝을 잘라냄
+- **대용량 파일 수정 원칙**: Python `str.replace()` 사용, 수정 후 반드시 파일 끝 확인
+- 끝이 잘렸을 경우: `open(path, 'ab').write(tail)` 로 이어붙임
+- rental-contract/page.tsx (41KB), dispatch-ledger/page.tsx (75KB) 특히 주의
+
+---
+
 ## ✅ [2026-07-08] 완료 작업 (2차 — 임대차계약서 신설)
 
 ### src/app/dashboard/rental-contract/page.tsx (신규)

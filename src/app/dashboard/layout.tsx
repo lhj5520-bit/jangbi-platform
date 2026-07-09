@@ -355,8 +355,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </header>
 
         {/* 페이지 콘텐츠 */}
-        <main className="flex-1 overf
-low-y-auto bg-[#f3f0ea]">
+        <main className="flex-1 overflow-y-auto bg-[#f3f0ea]">
           {children}
         </main>
       </div>

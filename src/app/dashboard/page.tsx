@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import DispatchModal from './dispatches/DispatchModal'
+import LogModal from './daily-logs/LogModal'
 const Card = ({ children, className = '' }: { children: React.ReactNode; className?: string }) => (
   <div className={`rounded-lg border border-slate-200 bg-white shadow-sm ${className}`}>{children}</div>
 )
@@ -14,6 +14,7 @@ export default function DashboardPage() {
   const [dispatchModalOpen, setDispatchModalOpen] = useState(false)
   const [dashEquipment, setDashEquipment] = useState<any[]>([])
   const [dashSuppliers, setDashSuppliers] = useState<any[]>([])
+  const [dashClients, setDashClients] = useState<any[]>([])
   const [now] = useState(() => new Date())
   const toKST = (d: Date) => new Date(d.getTime() + 9 * 3600000).toISOString().slice(0, 10)
   const today = toKST(now)
@@ -143,6 +144,7 @@ export default function DashboardPage() {
   useEffect(() => {
     supabase.from('equipment').select('*, supplier:suppliers(*)').then(({ data }: { data: any[] | null }) => setDashEquipment(data ?? []))
     supabase.from('suppliers').select('*').then(({ data }: { data: any[] | null }) => setDashSuppliers(data ?? []))
+    supabase.from('clients').select('*').then(({ data }: { data: any[] | null }) => setDashClients(data ?? []))
   }, [])
 
   useEffect(() => {
@@ -555,13 +557,14 @@ export default function DashboardPage() {
         )
       })()}
       {dispatchModalOpen && (
-        <DispatchModal
-          dispatch={null}
+        <LogModal
+          log={null}
+          dispatches={[]}
           equipment={dashEquipment}
           suppliers={dashSuppliers}
+          clients={dashClients}
           onClose={() => setDispatchModalOpen(false)}
           onSaved={() => setDispatchModalOpen(false)}
-          large
         />
       )}
     </div>

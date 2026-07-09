@@ -115,7 +115,7 @@ const cTd: React.CSSProperties = {
 }
 const cTh: React.CSSProperties = {
   border: '1px solid #444', padding: '3px 5px', fontSize: 11, fontWeight: 700,
-  background: '#f0f0f0', textAlign: 'center', verticalAlign: 'middle', whiteSpace: 'nowrap',
+  background: '#f0f0f0', textAlign: 'center', verticalAlign: 'middle',
 }
 const cInp: React.CSSProperties = {
   border: 'none', outline: 'none', width: '100%', minWidth: 0,
@@ -149,7 +149,7 @@ const INIT_F: ContractForm = {
   period_start: '', period_end: '',
   daily_amount: '', total_amount: '',
   working_hours: '1일 8시간 기준, 월 200시간 기준', payment_days: '30',
-  contract_date: new Date().toISOString().slice(0, 10),
+  contract_date: new Date().toISOString().slice(0, 10).replace(/-/g, '.'),
 }
 
 // ─────────────────────────────────────────────
@@ -310,12 +310,12 @@ export default function RentalContractPage() {
       site_name: form.site_name, site_address: form.site_addr,
       orderer: form.orderer, contractor: form.contractor,
       guarantee_yn: form.guarantee_yn, site_note: form.site_note,
-      period_start: form.period_start || null, period_end: form.period_end || null,
+      period_start: form.period_start ? form.period_start.replace(/\./g, '-') : null, period_end: form.period_end ? form.period_end.replace(/\./g, '-') : null,
       daily_amount: parseFloat(form.daily_amount.replace(/,/g, '')) || null,
       total_amount: parseFloat(form.total_amount.replace(/,/g, '')) || null,
       working_hours: form.working_hours,
       payment_days: parseInt(form.payment_days) || 30,
-      contract_date: form.contract_date || null,
+      contract_date: form.contract_date ? form.contract_date.replace(/\./g, '-') : null,
     }
 
     let result: { data: { id: string } | null; error: any }
@@ -588,11 +588,13 @@ export default function RentalContractPage() {
                       <td style={{ ...cTd, fontSize: 11 }}>
                         <span style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 4 }}>
                           <input value={form.period_start} onChange={e => setF('period_start', e.target.value)}
-                            placeholder="YYYY-MM-DD" style={{ ...cInp, width: 96 }} />
+                            onBlur={e => setF('period_start', e.target.value.replace(/-/g, '.'))}
+                            placeholder="YYYY.MM.DD" style={{ ...cInp, width: 96 }} />
                           <span>부터</span>
                           <span style={{ margin: '0 2px' }}>~</span>
                           <input value={form.period_end} onChange={e => setF('period_end', e.target.value)}
-                            placeholder="YYYY-MM-DD" style={{ ...cInp, width: 96 }} />
+                            onBlur={e => setF('period_end', e.target.value.replace(/-/g, '.'))}
+                            placeholder="YYYY.MM.DD" style={{ ...cInp, width: 96 }} />
                           <span>까지</span>
                         </span>
                       </td>
@@ -679,6 +681,7 @@ export default function RentalContractPage() {
               <div style={{ textAlign: 'center', marginBottom: 22, fontSize: 13 }}>
                 <span>계약일 &nbsp;</span>
                 <input value={form.contract_date} onChange={e => setF('contract_date', e.target.value)}
+                  onBlur={e => setF('contract_date', e.target.value.replace(/-/g, '.'))}
                   style={{ border: 'none', borderBottom: '1px solid #555', outline: 'none', fontSize: 13, width: 120, textAlign: 'center', minWidth: 0, fontFamily: 'inherit', background: 'transparent' }} />
               </div>
 
