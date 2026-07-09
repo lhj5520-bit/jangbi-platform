@@ -305,6 +305,17 @@ export default function RentalContractPage() {
     }
   }, [selectedEquipId, equipList])
 
+  // form 로드 후 textarea 자동 높이 조정
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      document.querySelectorAll('.print-doc textarea').forEach((t: any) => {
+        t.style.height = 'auto'
+        t.style.height = t.scrollHeight + 'px'
+      })
+    }, 50)
+    return () => clearTimeout(timer)
+  }, [form])
+
   function setF(k: keyof ContractForm, v: string) {
     setForm(p => ({ ...p, [k]: v }))
   }
@@ -344,7 +355,7 @@ export default function RentalContractPage() {
     alert('삭제되었습니다.')
   }
 
-  async function saveContract(): Promise<string | null> {
+  async function saveContract(forceNew = false): Promise<string | null> {
     setSaving(true)
     const payload = {
       supplier_id: selectedSupId === 'gaon' ? null : (selectedSupId || null),
@@ -370,7 +381,7 @@ export default function RentalContractPage() {
     }
 
     let result: { data: { id: string } | null; error: any }
-    if (savedId) {
+    if (!forceNew && savedId) {
       result = await supabase.from('rental_contracts').update(payload).eq('id', savedId).select('id').single()
     } else {
       result = await supabase.from('rental_contracts').insert(payload).select('id').single()
@@ -390,6 +401,14 @@ export default function RentalContractPage() {
   async function handleSave() {
     const id = await saveContract()
     if (id) alert('✅ 계약서가 저장됐습니다.')
+  }
+
+  async function copyContract() {
+    const newId = await saveContract(true)
+    if (!newId) return
+    setSavedId(newId)
+    setContracts(prev => [{ id: newId, contract_date: form.contract_date.replace(/\./g,'-'), lessee_name: form.lessee_name, site_name: form.site_name }, ...prev])
+    alert('📋 계약서가 복사되었습니다.')
   }
 
   function handlePrint() {
@@ -499,6 +518,12 @@ export default function RentalContractPage() {
             <option value="">📂 저정된 계약서…</option>
             {contracts.map((c: any) => <option key={c.id} value={c.id}>{c.contract_date ? c.contract_date.replace(/-/g,'.') : '--'} {c.lessee_name} {c.site_name}</option>)}
           </select>
+          {savedId && (
+            <button onClick={copyContract}
+              className="text-xs bg-blue-500 hover:bg-blue-600 text-white rounded px-2 py-1.5">
+              📋 복사
+            </button>
+          )}
           {savedId && (
             <button onClick={deleteContract}
               className="text-xs bg-red-500 hover:bg-red-600 text-white rounded px-2 py-1.5">
