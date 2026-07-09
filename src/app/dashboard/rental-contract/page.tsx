@@ -111,7 +111,7 @@ function fmtAmt(v: string): string {
 // 인라인 스타일 공통
 // ─────────────────────────────────────────────
 const cTd: React.CSSProperties = {
-  border: '1px solid #444', padding: '3px 5px', fontSize: 11, verticalAlign: 'middle',
+  border: '1px solid #444', padding: '3px 5px', fontSize: 11, verticalAlign: 'middle', overflow: 'hidden',
 }
 const cTh: React.CSSProperties = {
   border: '1px solid #444', padding: '3px 5px', fontSize: 11, fontWeight: 700,
@@ -120,6 +120,14 @@ const cTh: React.CSSProperties = {
 const cInp: React.CSSProperties = {
   border: 'none', outline: 'none', width: '100%', minWidth: 0,
   fontSize: 11, fontFamily: 'inherit', background: 'transparent', padding: 0,
+}
+const cTA: React.CSSProperties = {
+  border: 'none', outline: 'none', width: '100%', minWidth: 0,
+  fontSize: 11, fontFamily: 'inherit', background: 'transparent', padding: 0,
+  resize: 'none', overflow: 'hidden', display: 'block', lineHeight: 1.4,
+}
+const AR = (e: React.FormEvent<HTMLTextAreaElement>) => {
+  const t = e.currentTarget; t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px'
 }
 
 // ─────────────────────────────────────────────
@@ -172,6 +180,7 @@ export default function RentalContractPage() {
   const [showTerms, setShowTerms] = useState(false)
   const [saving, setSaving] = useState(false)
   const [savedId, setSavedId] = useState<string>('')
+  const [contracts, setContracts] = useState<any[]>([])
   const [attachChecks, setAttachChecks] = useState({ biz_reg: false, equip_reg: false, insurance: false })
 
   // 스케일 / 높이
@@ -206,6 +215,8 @@ export default function RentalContractPage() {
     // 자차 장비 로드
     supabase.from('equipment').select('*').eq('ownership', 'own').order('plate_no')
       .then(({ data }) => setEquipList(data ?? []))
+    supabase.from('rental_contracts').select('id,contract_date,lessee_name,site_name').order('created_at', { ascending: false }).limit(50)
+      .then(({ data }) => setContracts(data ?? []))
   }, [])
 
   // 임대인 변경 → 회사정보 + 장비목록 + 도장 갱신
@@ -293,6 +304,30 @@ export default function RentalContractPage() {
   }
 
   // DB 저장
+  async function loadContract(id: string) {
+    const { data } = await supabase.from('rental_contracts').select('*').eq('id', id).single()
+    if (!data) return
+    setSavedId(id)
+    const toD = (s: string | null) => s ? s.replace(/-/g, '.') : ''
+    setForm({
+      lessor_name: data.lessor_name ?? '', lessor_biz_no: data.lessor_business_no ?? '',
+      lessor_ceo: data.lessor_ceo ?? '', lessor_addr: data.lessor_address ?? '',
+      lessee_name: data.lessee_name ?? '', lessee_biz_no: data.lessee_business_no ?? '',
+      lessee_ceo: data.lessee_ceo ?? '', lessee_addr: data.lessee_address ?? '',
+      equip_name: data.equip_name ?? '', equip_reg_no: data.equip_reg_no ?? '',
+      equip_model: data.equip_model ?? '', insurance_yn: data.insurance_yn ?? '',
+      inspection_yn: data.inspection_yn ?? '', equip_note: data.equip_note ?? '',
+      site_name: data.site_name ?? '', site_addr: data.site_address ?? '',
+      orderer: data.orderer ?? '', contractor: data.contractor ?? '',
+      guarantee_yn: data.guarantee_yn ?? '', site_note: data.site_note ?? '',
+      period_start: toD(data.period_start), period_end: toD(data.period_end),
+      daily_amount: data.daily_amount ? Number(data.daily_amount).toLocaleString() : '',
+      total_amount: data.total_amount ? Number(data.total_amount).toLocaleString() : '',
+      working_hours: data.working_hours ?? '8', payment_days: String(data.payment_days ?? '30'),
+      contract_date: toD(data.contract_date),
+    })
+  }
+
   async function saveContract(): Promise<string | null> {
     setSaving(true)
     const payload = {
@@ -428,7 +463,7 @@ export default function RentalContractPage() {
     <tr key={key}>
       <td style={{ ...cTd, width: 90, fontWeight: 600, background: '#fafafa', whiteSpace: 'nowrap' }}>{label}</td>
       <td style={{ ...cTd, position: 'relative' }}>
-        <input value={form[key]} onChange={e => setF(key, e.target.value)} style={cInp} />
+        <textarea value={form[key]} onChange={e => setF(key, e.target.value)} style={cTA} rows={1} onInput={AR} />
         {hasStamp && stampImg && (
           <img src={stampImg} alt="도장"
             style={{ position: 'absolute', right: 4, top: '50%', marginTop: -22, width: 44, height: 44, objectFit: 'contain', zIndex: 10, opacity: 0.85 }} />
@@ -442,6 +477,12 @@ export default function RentalContractPage() {
       {/* ── 툴바 ── */}
       <div className="no-print sticky top-0 z-30 flex flex-wrap gap-2 items-center bg-white border-b border-gray-200 px-3 py-2.5 shadow-sm">
         <div className="flex flex-wrap gap-1.5 flex-1 min-w-0">
+          <select onChange={e => { if (e.target.value) loadContract(e.target.value) }}
+            className="text-xs border border-gray-300 rounded px-2 py-1.5 bg-white max-w-[160px] truncate">
+            <option value="">📂 저정된 계약서…</option>
+            {contracts.map((c: any) => <option key={c.id} value={c.id}>{c.contract_date ? c.contract_date.replace(/-/g,'.') : '--'} {c.lessee_name} {c.site_name}</option>)}
+          </select>
+
           <select value={selectedSupId} onChange={e => setSelectedSupId(e.target.value)}
             className="text-xs border border-gray-300 rounded px-2 py-1.5 bg-white max-w-[150px] truncate">
             <option value="gaon">㈜가온건설중기 (자차)</option>
@@ -524,9 +565,9 @@ export default function RentalContractPage() {
                     </thead>
                     <tbody>
                       <tr>
-                        <td style={cTd}><input value={form.equip_name} onChange={e => setF('equip_name', e.target.value)} style={cInp} /></td>
-                        <td style={cTd}><input value={form.equip_reg_no} onChange={e => setF('equip_reg_no', e.target.value)} style={cInp} /></td>
-                        <td style={cTd}><input value={form.equip_model} onChange={e => setF('equip_model', e.target.value)} style={cInp} /></td>
+                        <td style={cTd}><textarea value={form.equip_name} onChange={e => setF('equip_name', e.target.value)} style={cTA} rows={1} onInput={AR} /></td>
+                        <td style={cTd}><textarea value={form.equip_reg_no} onChange={e => setF('equip_reg_no', e.target.value)} style={cTA} rows={1} onInput={AR} /></td>
+                        <td style={cTd}><textarea value={form.equip_model} onChange={e => setF('equip_model', e.target.value)} style={cTA} rows={1} onInput={AR} /></td>
                         <td style={{ ...cTd, textAlign: 'center' }}>
                           <select value={form.insurance_yn} onChange={e => setF('insurance_yn', e.target.value)}
                             style={{ fontSize: 11, fontFamily: 'inherit', background: 'transparent', border: 'none', outline: 'none', width: '100%', minWidth: 0 }}>
@@ -539,7 +580,7 @@ export default function RentalContractPage() {
                             {ynOpts.map(v => <option key={v}>{v}</option>)}
                           </select>
                         </td>
-                        <td style={cTd}><input value={form.equip_note} onChange={e => setF('equip_note', e.target.value)} style={cInp} /></td>
+                        <td style={cTd}><textarea value={form.equip_note} onChange={e => setF('equip_note', e.target.value)} style={cTA} rows={1} onInput={AR} /></td>
                       </tr>
                     </tbody>
                   </table>
@@ -561,17 +602,17 @@ export default function RentalContractPage() {
                     </thead>
                     <tbody>
                       <tr>
-                        <td style={cTd}><input value={form.site_name} onChange={e => setF('site_name', e.target.value)} style={cInp} /></td>
-                        <td style={cTd}><input value={form.site_addr} onChange={e => setF('site_addr', e.target.value)} style={cInp} /></td>
-                        <td style={cTd}><input value={form.orderer} onChange={e => setF('orderer', e.target.value)} style={cInp} /></td>
-                        <td style={cTd}><input value={form.contractor} onChange={e => setF('contractor', e.target.value)} style={cInp} /></td>
+                        <td style={cTd}><textarea value={form.site_name} onChange={e => setF('site_name', e.target.value)} style={cTA} rows={1} onInput={AR} /></td>
+                        <td style={cTd}><textarea value={form.site_addr} onChange={e => setF('site_addr', e.target.value)} style={cTA} rows={1} onInput={AR} /></td>
+                        <td style={cTd}><textarea value={form.orderer} onChange={e => setF('orderer', e.target.value)} style={cTA} rows={1} onInput={AR} /></td>
+                        <td style={cTd}><textarea value={form.contractor} onChange={e => setF('contractor', e.target.value)} style={cTA} rows={1} onInput={AR} /></td>
                         <td style={{ ...cTd, textAlign: 'center' }}>
                           <select value={form.guarantee_yn} onChange={e => setF('guarantee_yn', e.target.value)}
                             style={{ fontSize: 11, fontFamily: 'inherit', background: 'transparent', border: 'none', outline: 'none', width: '100%', minWidth: 0 }}>
                             {ynOpts.map(v => <option key={v}>{v}</option>)}
                           </select>
                         </td>
-                        <td style={cTd}><input value={form.site_note} onChange={e => setF('site_note', e.target.value)} style={cInp} /></td>
+                        <td style={cTd}><textarea value={form.site_note} onChange={e => setF('site_note', e.target.value)} style={cTA} rows={1} onInput={AR} /></td>
                       </tr>
                     </tbody>
                   </table>
