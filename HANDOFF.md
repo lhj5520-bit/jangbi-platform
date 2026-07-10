@@ -3,7 +3,7 @@
 **프로젝트**: jangbi-platform  
 **배포 URL**: https://jangbi-platform.vercel.app  
 **Supabase**: https://qeurmytrzghonavsiqwa.supabase.co
-**최종 업데이트**: 2026-07-08
+**최종 업데이트**: 2026-07-09
 
 ---
 
@@ -46,6 +46,109 @@ vercel --prod
   ALTER TABLE purchase_invoices ADD COLUMN IF NOT EXISTS invoice_image_url TEXT;
   ```
 - [ ] `purchase_invoices` 테이블에 `paid_at` 컬럼 존재 여부 확인 (없으면 추가)
+
+---
+
+## ✅ [2026-07-09] 완료 작업 (4차 — 임대차계약서 고도화·LogModal 통합)
+
+### dashboard/page.tsx + dispatch-ledger/page.tsx — DispatchModal → LogModal 교체
+- 대시보드 `+ 배차 등록` 버튼 클릭 시 기존 DispatchModal(버림) → LogModal로 교체
+- dispatch-ledger 신규 배차 버튼도 동일 교체
+- LogModal props: `log={null} dispatches={[]} equipment suppliers clients onClose onSaved`
+- `dashClients` state + Supabase clients 로드 추가
+
+### dashboard/layout.tsx — 스크롤 버그 수정
+- `overflow-y-auto`가 이전 세션 Edit 잘림으로 `overf
+low-y-auto`로 분리된 버그 수정
+- Python bytes replace로 수정 (Edit 도구 대신)
+
+### rental-contract/page.tsx — 다수 기능 추가 (대규모)
+
+#### textarea 자동리사이즈 (cTA + AR)
+- 모든 입력 칸: `<input>` → `<textarea rows={1} onInput={AR} style={cTA}>`
+- `cTA`: `resize:none overflow:hidden display:block lineHeight:1.4 minHeight:1.5em`
+- `AR` 핸들러: `t.style.height='0'; t.style.height=t.scrollHeight+'px'`
+- `useEffect([form])`: 폼 데이터 로드 시 전체 textarea 높이 재계산 (0→scrollHeight)
+
+#### 저장된 계약서 불러오기
+- mount 시 `rental_contracts.select('id,contract_date,lessee_name,site_name')` 최신 50건 로드
+- 툴바 📂 드롭다운 → 선택하면 `loadContract(id)` 호출 → 전체 폼 복원
+- `savedId` state로 신규/수정 구분 (save 시 upsert 패턴)
+- 날짜 DB(YYYY-MM-DD) ↔ 화면(YYYY.MM.DD) 변환: `toD()` helper
+
+#### 계약서 복사
+- 툴바 📋 복사 버튼 (savedId 있을 때만 표시)
+- `saveContract(forceNew=true)` → 강제 INSERT → 새 savedId로 갱신
+- `contracts` 목록 상단에 추가
+
+#### 계약서 삭제
+- 툴바 🗑 삭제 버튼 (savedId 있을 때만 표시, 빨간색)
+- confirm 후 Supabase DELETE → 목록에서 제거 + savedId 초기화
+
+#### 서류 가운데 정렬
+- 외부 wrapper: `display:flex justifyContent:center`
+- print-area-wrapper: `width: 900*docScale overflow:hidden flexShrink:0`
+- 문서가 뷰포트 중앙에 위치
+
+#### 날짜 자동 포맷
+- `fmtDate(v)`: 숫자만 추출 → `2026.07.09` 형식 자동 변환
+- period_start / period_end / contract_date 의 onBlur에 적용
+
+#### 발주처·임차인 드롭다운 (나.현장 테이블)
+- `orderer` 칸: `발주처 선택▼` select + textarea 콤보 (선택 시 textarea 자동입력)
+- `contractor` 칸: `임차인 선택▼` select + textarea 콤보
+- 인쇄/JPG 시 `className="no-print-sel"` 으로 드롭다운 숨김
+
+#### 임차인(건설업자) 상호 드롭다운
+- `lessee_name` sigRow에 `발주처/임차인 선택▼` select 추가
+- 선택 시 `selectedClientId` 변경 → useEffect가 lessee 4개 필드 자동입력
+
+#### 임대인(건설기계사업자) 상호 드롭다운
+- `lessor_name` sigRow에 중기업체 select 추가 (가온=기본값)
+- 선택 시 `selectedSupId` 변경 → useEffect가 lessor 4개 필드 + 도장 + 장비목록 자동갱신
+
+#### 형식(모델명) 우선순위 수정
+- `eq.spec ?? eq.model` → `eq.spec ?? eq.model` 유지 (spec이 실제 모델명 필드)
+- DB에서 spec이 비면 model로 fallback
+
+#### 도장 위치 수정
+- `sigRow` td: `overflow:'visible'` 추가
+- 도장 img: `right: -22` (셀 경계 밖으로 살짝 걸침)
+- `sigRow` 함수 시그니처: `beforeContent?: React.ReactNode` 파라미터 추가
+
+#### 인쇄/PDF 크기 개선
+- `@page { margin: 0 }` (여백 제거로 더 크게 출력)
+- `.print-doc { width:210mm padding:8mm box-sizing:border-box }`
+- `.print-doc *` 글꼴 13px 강제 (기존 11px → 인쇄 시 더 선명)
+- `.print-doc select.no-print-sel { display:none }` — 드롭다운 숨김
+
+#### 가온 도장 크로스디바이스 동기화
+- 기존: `localStorage.getItem('ts_stamp')` 만 사용 (다른 기기 미지원)
+- 수정: localStorage 도장 있으면 `app_settings` 테이블에 upsert 백업
+- 없으면 `app_settings.gaon_stamp` 에서 로드 + localStorage 동기화
+
+#### Supabase SQL 필요 (미실행 시 일부 기능 미작동)
+```sql
+-- 서명 링크 공개 읽기 (anon 접근 허용)
+create policy "public read for sign" on rental_contracts
+  for select to anon using (true);
+
+-- 로그인 사용자 계약서 목록 읽기
+create policy "auth read" on rental_contracts
+  for select to authenticated using (true);
+
+-- 가온 도장 크로스디바이스 저장용 테이블
+create table if not exists app_settings (
+  id uuid default gen_random_uuid() primary key,
+  user_id uuid references auth.users(id) on delete cascade,
+  key text not null,
+  value text,
+  unique(user_id, key)
+);
+alter table app_settings enable row level security;
+create policy "own settings" on app_settings
+  using (auth.uid() = user_id) with check (auth.uid() = user_id);
+```
 
 ---
 

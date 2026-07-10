@@ -1055,5 +1055,12 @@ export default function BankPage() {
         )
       })()}
     </div>
+
+    {uploadOpen && (
+      <BankUploadModal
+        onClose={() => setUploadOpen(false)}
+        onSaved={() => { setUploadOpen(false); load() }}
+      />
+    )}
   )
 }
