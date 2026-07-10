@@ -855,6 +855,10 @@ export default function DispatchLedgerPage() {
             className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg">
             + 배차 등록
           </button>
+          <button onClick={() => load()}
+            className="bg-gray-600 hover:bg-gray-700 text-white text-sm font-medium px-4 py-2 rounded-lg">
+            🔄 저장반영
+          </button>
           <button onClick={() => { setClientMergeOpen(true); setMergeSelected(new Set()); setMergeTarget(''); setMergeSearch('') }}
             className="bg-rose-500 hover:bg-rose-600 text-white text-sm font-medium px-4 py-2 rounded-lg">
             🔀 발주처 정리
