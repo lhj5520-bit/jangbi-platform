@@ -4,6 +4,40 @@ export const dynamic = 'force-dynamic'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import LogModal from './daily-logs/LogModal'
+function MemoWidget() {
+  const [text, setText] = useState(() => {
+    if (typeof window === 'undefined') return ''
+    return localStorage.getItem('dashboard_memo') ?? ''
+  })
+  const [saved, setSaved] = useState(false)
+  function save() {
+    localStorage.setItem('dashboard_memo', text)
+    setSaved(true)
+    setTimeout(() => setSaved(false), 1500)
+  }
+  return (
+    <div className="mb-5 rounded-lg border border-zinc-200 bg-white shadow-sm">
+      <div className="flex items-center justify-between px-4 py-2.5 border-b border-zinc-100">
+        <span className="text-sm font-semibold text-zinc-700">📝 메모장</span>
+        <button onClick={save}
+          className={`text-xs px-3 py-1 rounded-lg font-medium transition-colors ${
+            saved ? 'bg-green-500 text-white' : 'bg-zinc-800 hover:bg-zinc-700 text-white'
+          }`}>
+          {saved ? '✅ 저장됨' : '저장'}
+        </button>
+      </div>
+      <textarea
+        value={text}
+        onChange={e => setText(e.target.value)}
+        onKeyDown={e => { if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); save() } }}
+        placeholder="여기에 메모를 입력하세요... (Ctrl+S 로 저장)"
+        className="w-full px-4 py-3 text-sm text-zinc-700 resize-none focus:outline-none rounded-b-lg"
+        rows={4}
+      />
+    </div>
+  )
+}
+
 const Card = ({ children, className = '' }: { children: React.ReactNode; className?: string }) => (
   <div className={`rounded-lg border border-slate-200 bg-white shadow-sm ${className}`}>{children}</div>
 )
@@ -296,6 +330,9 @@ export default function DashboardPage() {
           <span className="rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 font-medium text-zinc-100">{today}</span>
         </div>
       </div>
+
+      {/* 메모장 */}
+      <MemoWidget />
 
       {/* 연간 이윤 분석 */}
       <Card className="mb-5 overflow-hidden border-zinc-800 bg-zinc-950 text-white shadow-xl">
