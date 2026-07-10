@@ -9,16 +9,20 @@ function MemoWidget() {
   const [text, setText] = useState('')
   const [saved, setSaved] = useState(false)
   useEffect(() => {
-    supabase.from('app_settings').select('value').eq('key','dashboard_memo').maybeSingle()
-      .then(({ data }: any) => {
-        if (data?.value) setText(data.value)
-        else setText(localStorage.getItem('dashboard_memo') ?? '')
-      })
+    supabase.auth.getUser().then(async ({ data: { user } }: any) => {
+      if (!user) { setText(localStorage.getItem('dashboard_memo') ?? ''); return }
+      const { data } = await supabase.from('app_settings')
+        .select('value').eq('key','dashboard_memo').eq('user_id', user.id).maybeSingle()
+      if (data?.value) setText(data.value)
+      else setText(localStorage.getItem('dashboard_memo') ?? '')
+    })
   }, [])
   async function save() {
     localStorage.setItem('dashboard_memo', text)
+    const { data: { user } } = await supabase.auth.getUser() as any
+    if (!user) return
     await supabase.from('app_settings').upsert(
-      { key: 'dashboard_memo', value: text },
+      { user_id: user.id, key: 'dashboard_memo', value: text },
       { onConflict: 'user_id,key' }
     )
     setSaved(true)
