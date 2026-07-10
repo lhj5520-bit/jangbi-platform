@@ -5,13 +5,22 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import LogModal from './daily-logs/LogModal'
 function MemoWidget() {
-  const [text, setText] = useState(() => {
-    if (typeof window === 'undefined') return ''
-    return localStorage.getItem('dashboard_memo') ?? ''
-  })
+  const supabase = createClient()
+  const [text, setText] = useState('')
   const [saved, setSaved] = useState(false)
-  function save() {
+  useEffect(() => {
+    supabase.from('app_settings').select('value').eq('key','dashboard_memo').maybeSingle()
+      .then(({ data }: any) => {
+        if (data?.value) setText(data.value)
+        else setText(localStorage.getItem('dashboard_memo') ?? '')
+      })
+  }, [])
+  async function save() {
     localStorage.setItem('dashboard_memo', text)
+    await supabase.from('app_settings').upsert(
+      { key: 'dashboard_memo', value: text },
+      { onConflict: 'user_id,key' }
+    )
     setSaved(true)
     setTimeout(() => setSaved(false), 1500)
   }
