@@ -44,8 +44,8 @@ const navItems: NavItem[] = [
   { href: '/dashboard/suppliers',        label: '중기업체',           icon: 'suppliers' },
   { href: '/dashboard/equipment-own',    label: '장비(자차)',          icon: null, customIcon: ExcavatorIcon },
   { href: '/dashboard/equipment-other',  label: '장비(타사)',          icon: null, customIcon: ExcavatorIcon },
-  { href: '/dashboard/daily-logs',       label: '작업확인서출력',      icon: 'ledger' },
   { href: '/dashboard/dispatch-ledger',  label: '배차내역서',          icon: 'statement' },
+  { href: '/dashboard/daily-logs',       label: '작업확인서출력',      icon: 'ledger' },
   { href: '/dashboard/trade-statement',  label: '거래명세서',          icon: 'invoice' },
   { href: '/dashboard/estimate',         label: '견적서',              icon: 'invoice' },
   { href: '/dashboard/rental-contract', label: '임대차계약서',         icon: 'ledger' },
@@ -355,7 +355,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </header>
 
         {/* 페이지 콘텐츠 */}
-        <main className="flex-1 overflow-y-auto bg-[#f3f0ea]">
+        <main className="flex-1 overflow-auto bg-[#f3f0ea]">
           {children}
         </main>
       </div>

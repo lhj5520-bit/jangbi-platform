@@ -23,9 +23,9 @@ function MemoWidget() {
     setTimeout(() => setSaved(false), 1500)
   }
   return (
-    <div className="mb-5 rounded-lg border border-zinc-200 bg-white shadow-sm">
+    <div className="mb-5 rounded-lg border-2 border-red-400 bg-white shadow-sm">
       <div className="flex items-center justify-between px-4 py-2.5 border-b border-zinc-100">
-        <span className="text-sm font-semibold text-zinc-700">📝 메모장</span>
+        <span className="text-sm font-semibold text-red-600">📝 메모장</span>
         <button onClick={save}
           className={`text-xs px-3 py-1 rounded-lg font-medium transition-colors ${
             saved ? 'bg-green-500 text-white' : 'bg-zinc-800 hover:bg-zinc-700 text-white'
