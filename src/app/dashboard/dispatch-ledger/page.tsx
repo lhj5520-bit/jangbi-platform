@@ -514,19 +514,10 @@ export default function DispatchLedgerPage() {
     const selectedDispatchIds = sorted.filter(r => selectedRows.has(r.id)).map(r => r.dispatch_id)
     const { data: origDisps } = await supabase.from('dispatches').select('*').in('id', selectedDispatchIds)
     if (!origDisps || origDisps.length === 0) { setCopying(false); return }
-    const newDisps = origDisps.map(d => ({
-      start_date: copyDate,
-      equipment_id: d.equipment_id ?? null,
-      supplier_id: d.supplier_id ?? null,
-      equipment_text: d.equipment_text ?? null,
-      driver_name: d.driver_name ?? null,
-      client_name: d.client_name ?? null,
-      client_unit_price: d.client_unit_price ?? null,
-      supplier_unit_price: d.supplier_unit_price ?? null,
-      site_name: d.site_name ?? null,
-      memo: d.memo ?? null,
-      commission_amount: d.commission_amount ?? null,
-    }))
+    const newDisps = origDisps.map(d => {
+      const { id, created_at, updated_at, daily_logs, equipment, supplier, ...rest } = d as any
+      return { ...rest, start_date: copyDate }
+    })
     const { error } = await supabase.from('dispatches').insert(newDisps)
     if (error) { alert('복사 실패: ' + error.message); setCopying(false); return }
     setCopying(false)
