@@ -45,6 +45,84 @@ function MemoWidget() {
   )
 }
 
+function TaxScheduleWidget({ today }: { today: string }) {
+  const now = new Date(today)
+  const year = now.getFullYear()
+  const month = now.getMonth() + 1 // 1~12
+  const day = now.getDate()
+  const lastDay = new Date(year, month, 0).getDate()
+
+  // 마감일 기준 상태
+  function status(deadlineDay: number | 'last') {
+    const d = deadlineDay === 'last' ? lastDay : deadlineDay
+    if (day > d) return 'past'
+    if (d - day <= 7) return 'soon'
+    return 'upcoming'
+  }
+
+  // 월별 세무 항목
+  const items: { day: number | 'last'; label: string }[] = []
+
+  // 매월 10일: 원천세 신고
+  items.push({ day: 10, label: '원천세 신고 (월별/반기별)' })
+
+  // 분기 부가세
+  if (month === 1) items.push({ day: 25, label: '부가세 2기 확정신고 및 납부' })
+  if (month === 4) items.push({ day: 25, label: '부가세 1기 예정신고 및 납부' })
+  if (month === 7) items.push({ day: 25, label: '부가세 1기 확정신고 및 납부' })
+  if (month === 10) items.push({ day: 25, label: '부가세 2기 예정신고 및 납부' })
+
+  // 월별 말일 항목
+  // 일용/간이 지급명세서: 1·4·7·10월 말일
+  if ([1, 4, 7, 10].includes(month))
+    items.push({ day: 'last', label: '일용/간이 지급명세서 마감' })
+
+  // 종합소득세 관련
+  if (month === 5) items.push({ day: 31, label: '종합소득세 신고 및 납부' })
+  if (month === 7) items.push({ day: 'last', label: '종합소득세 분납 납부' })
+
+  // 재산세
+  if (month === 7) items.push({ day: 'last', label: '재산세 (주택분1기·건물분) 고지분 납부' })
+  if (month === 9) items.push({ day: 'last', label: '재산세 (주택분2기) 고지분 납부' })
+
+  // 법인 관련
+  if (month === 3) items.push({ day: 'last', label: '법인세 신고 및 납부' })
+  if (month === 7) items.push({ day: 'last', label: '법인 지방소득세 (법인세분) 신고' })
+  if (month === 8) items.push({ day: 'last', label: '법인 중간예납' })
+
+  // 날짜순 정렬
+  const sorted = [...items].sort((a, b) => {
+    const da = a.day === 'last' ? lastDay : a.day
+    const db = b.day === 'last' ? lastDay : b.day
+    return da - db
+  })
+
+  const monthLabel = `${year}년 ${month}월`
+
+  return (
+    <div className="mb-5 rounded-lg border border-blue-100 bg-white shadow-sm overflow-hidden">
+      <div className="flex items-center gap-2 border-b border-blue-100 bg-blue-50 px-4 py-3">
+        <span className="text-base">📅</span>
+        <span className="text-sm font-bold text-blue-800">{monthLabel} 세무일정</span>
+      </div>
+      <div className="divide-y divide-gray-50 px-4 py-1">
+        {sorted.map((item, i) => {
+          const s = status(item.day)
+          const dayLabel = item.day === 'last' ? '말일' : `${item.day}일`
+          return (
+            <div key={i} className={`flex items-center gap-3 py-2.5 ${s === 'past' ? 'opacity-40' : ''}`}>
+              <span className={`w-10 shrink-0 text-sm font-bold ${s === 'past' ? 'text-gray-400' : 'text-gray-700'}`}>{dayLabel}</span>
+              <span className={`flex-1 text-sm ${s === 'past' ? 'text-gray-400 line-through' : 'text-gray-700'}`}>{item.label}</span>
+              {s === 'soon' && <span className="shrink-0 rounded-full bg-red-500 px-2.5 py-0.5 text-xs font-bold text-white">임박</span>}
+              {s === 'past' && <span className="shrink-0 rounded-full bg-gray-300 px-2.5 py-0.5 text-xs font-medium text-gray-500">마감</span>}
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 const Card = ({ children, className = '' }: { children: React.ReactNode; className?: string }) => (
   <div className={`rounded-lg border border-slate-200 bg-white shadow-sm ${className}`}>{children}</div>
 )
@@ -340,6 +418,10 @@ export default function DashboardPage() {
 
       {/* 메모장 */}
       <MemoWidget />
+
+      {/* 세무일정 */}
+      <TaxScheduleWidget today={today} />
+
 
       {/* 연간 이윤 분석 */}
       <Card className="mb-5 overflow-hidden border-zinc-800 bg-zinc-950 text-white shadow-xl">

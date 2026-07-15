@@ -126,7 +126,7 @@ export default function WorkConfirmPage() {
     let av = '', bv = ''
     const logA = logDetailMap[a.id]
     const logB = logDetailMap[b.id]
-    if (sortCol === 'log_date') { av = logA?.log_date ?? (a as any).start_date ?? ''; bv = logB?.log_date ?? (b as any).start_date ?? '' }
+    if (sortCol === 'log_date') { av = (a as any).start_date ?? logA?.log_date ?? ''; bv = (b as any).start_date ?? logB?.log_date ?? '' }
     else if (sortCol === 'site') { av = (a as any).site_name ?? ''; bv = (b as any).site_name ?? '' }
     else if (sortCol === 'equip') { av = getEquipLabel(a); bv = getEquipLabel(b) }
     else if (sortCol === 'driver') { av = (a as any).driver_name ?? ''; bv = (b as any).driver_name ?? '' }
@@ -179,7 +179,7 @@ export default function WorkConfirmPage() {
   const tableRows = sorted.flatMap(d => {
     const sup = d.supplier as Supplier
     const log = logDetailMap[d.id]
-    const dateTd = log?.log_date ?? (d as any).start_date
+    const dateTd = (d as any).start_date ?? log?.log_date
     const siteTd = (d as any).site_name ?? '-'
     const equipTd = getEquipLabel(d)
     const driverTd = (d as any).driver_name ?? '-'
