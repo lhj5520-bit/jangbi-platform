@@ -786,6 +786,12 @@ export default function DispatchLedgerPage() {
       {selectedRows.size > 0 && (
         <div className="flex items-center gap-3 mb-3 px-4 py-3 bg-blue-50 border border-blue-200 rounded-xl">
           <span className="text-sm text-blue-700 font-medium">{selectedRows.size}행 선택됨</span>
+          <input type="date" value={copyDate} onChange={e => setCopyDate(e.target.value)}
+            className="px-2 py-1.5 border border-teal-300 rounded-lg text-sm focus:outline-none w-36" />
+          <button onClick={handleBulkCopy} disabled={copying || !copyDate}
+            className="bg-teal-600 hover:bg-teal-700 disabled:opacity-40 text-white text-sm font-medium px-3 py-1.5 rounded-lg">
+            {copying ? '복사 중...' : '📋 날짜 복사'}
+          </button>
           <input type="text" value={bulkOwner} onChange={e => setBulkOwner(e.target.value)}
             placeholder="차주명 입력..."
             className="px-3 py-1.5 border border-blue-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-36" />
@@ -869,12 +875,6 @@ export default function DispatchLedgerPage() {
           <button onClick={() => handleBulkInvoice(false)}
             className="border border-gray-300 text-gray-600 text-sm font-medium px-3 py-1.5 rounded-lg hover:bg-gray-50">
             발행취소
-          </button>
-          <input type="date" value={copyDate} onChange={e => setCopyDate(e.target.value)}
-            className="px-2 py-1.5 border border-teal-300 rounded-lg text-sm focus:outline-none w-36" />
-          <button onClick={handleBulkCopy} disabled={copying || !copyDate}
-            className="bg-teal-600 hover:bg-teal-700 disabled:opacity-40 text-white text-sm font-medium px-3 py-1.5 rounded-lg">
-            {copying ? '복사 중...' : '📋 날짜 복사'}
           </button>
           <button onClick={handleBulkDelete} disabled={deleting}
             className="bg-red-600 hover:bg-red-700 disabled:opacity-40 text-white text-sm font-medium px-4 py-1.5 rounded-lg">
