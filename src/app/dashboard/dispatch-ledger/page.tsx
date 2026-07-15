@@ -523,7 +523,7 @@ export default function DispatchLedgerPage() {
       if (logsForDisp.length > 0) {
         const newLogs = logsForDisp.map((l: any) => {
           const { id: _lid, created_at: _lca, updated_at: _lua, ...lrest } = l
-          return { ...lrest, dispatch_id: newDisp.id, is_paid: false, invoice_issued: false, invoice_image_url: null }
+          return { ...lrest, dispatch_id: newDisp.id, log_date: copyDate, is_paid: false, invoice_issued: false, invoice_image_url: null }
         })
         await supabase.from('daily_logs').insert(newLogs)
       }

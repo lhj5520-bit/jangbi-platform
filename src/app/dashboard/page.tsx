@@ -112,8 +112,8 @@ export default function DashboardPage() {
         {data:lastBankTx},
         {data:monthExpenseRows},
       ] = await Promise.all([
-        supabase.from('daily_logs').select('id').eq('log_date', today),
-        supabase.from('daily_logs').select('id').eq('log_date', yesterday),
+        supabase.from('dispatches').select('id').eq('start_date', today),
+        supabase.from('dispatches').select('id').eq('start_date', yesterday),
         supabase.from('daily_logs').select('quantity,dispatch:dispatches(client_unit_price)').gte('log_date',monthStart).lte('log_date',today),
         supabase.from('daily_logs').select('quantity,dispatch:dispatches(client_unit_price)').gte('log_date',prevMonthStart).lte('log_date',prevMonthEnd),
         supabase.from('daily_logs').select('log_date,is_paid,quantity,dispatch:dispatches(client_unit_price)').gte('log_date',last7[0]).lte('log_date',today),
