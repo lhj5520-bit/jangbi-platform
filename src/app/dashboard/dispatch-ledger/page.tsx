@@ -514,12 +514,20 @@ export default function DispatchLedgerPage() {
     const selectedDispatchIds = sorted.filter(r => selectedRows.has(r.id)).map(r => r.dispatch_id)
     const { data: origDisps } = await supabase.from('dispatches').select('*').in('id', selectedDispatchIds)
     if (!origDisps || origDisps.length === 0) { setCopying(false); return }
-    const newDisps = origDisps.map(d => {
-      const { id, created_at, updated_at, daily_logs, equipment, supplier, ...rest } = d as any
-      return { ...rest, start_date: copyDate }
-    })
-    const { error } = await supabase.from('dispatches').insert(newDisps)
-    if (error) { alert('복사 실패: ' + error.message); setCopying(false); return }
+    const { data: origLogs } = await supabase.from('daily_logs').select('*').in('dispatch_id', selectedDispatchIds)
+    for (const d of origDisps) {
+      const { id, created_at, updated_at, daily_logs: _dl, equipment: _eq, supplier: _sup, ...rest } = d as any
+      const { data: newDisp, error } = await supabase.from('dispatches').insert({ ...rest, start_date: copyDate }).select().single()
+      if (error || !newDisp) { alert('복사 실패: ' + error?.message); setCopying(false); return }
+      const logsForDisp = (origLogs ?? []).filter((l: any) => l.dispatch_id === d.id)
+      if (logsForDisp.length > 0) {
+        const newLogs = logsForDisp.map((l: any) => {
+          const { id: _lid, created_at: _lca, updated_at: _lua, ...lrest } = l
+          return { ...lrest, dispatch_id: newDisp.id, is_paid: false, invoice_issued: false, invoice_image_url: null }
+        })
+        await supabase.from('daily_logs').insert(newLogs)
+      }
+    }
     setCopying(false)
     setSelectedRows(new Set())
     load()
@@ -775,7 +783,7 @@ export default function DispatchLedgerPage() {
     <>
     <div className="p-4 md:p-6" ref={exportRef}>
       {selectedRows.size > 0 && (
-        <div className="flex items-center gap-3 mb-3 px-4 py-3 bg-blue-50 border border-blue-200 rounded-xl">
+        <div className="flex items-center gap-3 mb-3 px-4 py-3 bg-blue-50 border border-blue-200 rounded-xl overflow-x-auto">
           <span className="text-sm text-blue-700 font-medium">{selectedRows.size}행 선택됨</span>
           <input type="date" value={copyDate} onChange={e => setCopyDate(e.target.value)}
             className="px-2 py-1.5 border border-teal-300 rounded-lg text-sm focus:outline-none w-36" />
