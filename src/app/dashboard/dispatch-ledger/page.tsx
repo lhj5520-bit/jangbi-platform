@@ -63,6 +63,8 @@ export default function DispatchLedgerPage() {
   const exportPrintRef = useRef<HTMLDivElement>(null)
   const [deleteConfirm, setDeleteConfirm] = useState<LedgerRow | null>(null)
   const [deleting, setDeleting] = useState(false)
+  const [copyDate, setCopyDate] = useState(today)
+  const [copying, setCopying] = useState(false)
   const [clientMergeOpen, setClientMergeOpen] = useState(false)
   const [mergeSelected, setMergeSelected] = useState<Set<string>>(new Set())
   const [mergeTarget, setMergeTarget] = useState('')
@@ -505,6 +507,33 @@ export default function DispatchLedgerPage() {
     load()
   }
 
+  async function handleBulkCopy() {
+    if (selectedRows.size === 0 || !copyDate) return
+    if (!confirm(`선택한 ${selectedRows.size}건을 ${copyDate}로 복사하시겠습니까?`)) return
+    setCopying(true)
+    const selectedDispatchIds = sorted.filter(r => selectedRows.has(r.id)).map(r => r.dispatch_id)
+    const { data: origDisps } = await supabase.from('dispatches').select('*').in('id', selectedDispatchIds)
+    if (!origDisps || origDisps.length === 0) { setCopying(false); return }
+    const newDisps = origDisps.map(d => ({
+      start_date: copyDate,
+      equipment_id: d.equipment_id ?? null,
+      supplier_id: d.supplier_id ?? null,
+      equipment_text: d.equipment_text ?? null,
+      driver_name: d.driver_name ?? null,
+      client_name: d.client_name ?? null,
+      client_unit_price: d.client_unit_price ?? null,
+      supplier_unit_price: d.supplier_unit_price ?? null,
+      site_name: d.site_name ?? null,
+      memo: d.memo ?? null,
+      commission_amount: d.commission_amount ?? null,
+    }))
+    const { error } = await supabase.from('dispatches').insert(newDisps)
+    if (error) { alert('복사 실패: ' + error.message); setCopying(false); return }
+    setCopying(false)
+    setSelectedRows(new Set())
+    load()
+  }
+
   async function handleBulkDelete() {
     if (selectedRows.size === 0) return
     if (!confirm(selectedRows.size + '건을 삭제하시겠습니까?')) return
@@ -840,6 +869,12 @@ export default function DispatchLedgerPage() {
           <button onClick={() => handleBulkInvoice(false)}
             className="border border-gray-300 text-gray-600 text-sm font-medium px-3 py-1.5 rounded-lg hover:bg-gray-50">
             발행취소
+          </button>
+          <input type="date" value={copyDate} onChange={e => setCopyDate(e.target.value)}
+            className="px-2 py-1.5 border border-teal-300 rounded-lg text-sm focus:outline-none w-36" />
+          <button onClick={handleBulkCopy} disabled={copying || !copyDate}
+            className="bg-teal-600 hover:bg-teal-700 disabled:opacity-40 text-white text-sm font-medium px-3 py-1.5 rounded-lg">
+            {copying ? '복사 중...' : '📋 날짜 복사'}
           </button>
           <button onClick={handleBulkDelete} disabled={deleting}
             className="bg-red-600 hover:bg-red-700 disabled:opacity-40 text-white text-sm font-medium px-4 py-1.5 rounded-lg">
