@@ -18,6 +18,12 @@ function parseH(slot: string | null): number {
 }
 
 const fmt = (n: number) => Math.round(n).toLocaleString()
+function fmtDate(v: string) {
+  const d = v.replace(/[^\d]/g, '')
+  if (d.length === 8) return `${d.slice(0, 4)}-${d.slice(4, 6)}-${d.slice(6, 8)}`
+  if (d.length === 6) return `20${d.slice(0, 2)}-${d.slice(2, 4)}-${d.slice(4, 6)}`
+  return v
+}
 const todayStr = () => new Date(new Date().getTime() + 9 * 3600000).toISOString().slice(0, 10)
 
 export default function EquipmentCostsPage() {
@@ -90,18 +96,19 @@ export default function EquipmentCostsPage() {
     if (!form.equipment_id) return alert('장비를 선택해주세요.')
     const amount = Number(form.amount.replace(/[^\d]/g, ''))
     if (!amount) return alert('금액을 입력해주세요.')
-    if (!form.cost_date) return alert('날짜를 입력해주세요.')
+    const costDate = fmtDate(form.cost_date)
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(costDate)) return alert('날짜를 YYYY-MM-DD 형식으로 입력해주세요. (예: 20260717)')
     setSaving(true)
     const { data: inserted, error } = await supabase.from('equipment_costs').insert({
       equipment_id: form.equipment_id,
-      cost_date: form.cost_date,
+      cost_date: costDate,
       category: form.category,
       amount,
       memo: form.memo || null,
     }).select().single()
     setSaving(false)
     if (error) { alert('저장 실패: ' + error.message); return }
-    if (inserted && form.cost_date >= periodStart && form.cost_date <= periodEnd) {
+    if (inserted && costDate >= periodStart && costDate <= periodEnd) {
       setCosts(prev => [inserted as CostRow, ...prev])
     }
     setForm(f => ({ ...f, amount: '', memo: '' }))
@@ -208,7 +215,10 @@ export default function EquipmentCostsPage() {
       <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm space-y-2">
         <p className="text-sm font-semibold text-gray-700">비용 입력</p>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-          <input type="date" value={form.cost_date} onChange={e => setForm(f => ({ ...f, cost_date: e.target.value }))} className={inp} />
+          <input type="text" inputMode="numeric" value={form.cost_date}
+            onChange={e => setForm(f => ({ ...f, cost_date: e.target.value }))}
+            onBlur={e => setForm(f => ({ ...f, cost_date: fmtDate(e.target.value) }))}
+            placeholder="20260717 → 자동변환" className={inp} />
           <select value={form.equipment_id} onChange={e => setForm(f => ({ ...f, equipment_id: e.target.value }))} className={inp}>
             {equipment.map(e => <option key={e.id} value={e.id}>{e.plate_no ?? '번호없음'}</option>)}
           </select>
