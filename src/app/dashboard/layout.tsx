@@ -54,6 +54,7 @@ const navItems: NavItem[] = [
   { href: '/dashboard/vat',              label: '부가세',              icon: 'vat' },
   { href: '/dashboard/bank',             label: '통장내역',            icon: 'bank' },
   { href: '/dashboard/expenses',         label: '관리비',              icon: 'expenses' },
+  { href: '/dashboard/equipment-costs',  label: '장비별 투입비용',      icon: 'expenses' },
 ]
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -168,7 +169,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   const currentItem = navItems.find(i => i.href === pathname) ?? navItems[1]
-  const mgmtHrefList = ['/dashboard/invoices', '/dashboard/purchase-invoices', '/dashboard/vat', '/dashboard/bank', '/dashboard/expenses']
+  const mgmtHrefList = ['/dashboard/invoices', '/dashboard/purchase-invoices', '/dashboard/vat', '/dashboard/bank', '/dashboard/expenses', '/dashboard/equipment-costs']
   const [mgmtOpen, setMgmtOpen] = useState(false)
   useEffect(() => {
     if (mgmtHrefList.includes(pathname)) setMgmtOpen(true)
@@ -180,6 +181,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     '/dashboard/vat',
     '/dashboard/bank',
     '/dashboard/expenses',
+    '/dashboard/equipment-costs',
   ]
   const canAccess = (href: string) => allowedPaths === null || allowedPaths.includes(href)
   const mainNavItems = navItems.filter(i => !managementHrefs.includes(i.href) && canAccess(i.href))

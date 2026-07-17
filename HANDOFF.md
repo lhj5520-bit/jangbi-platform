@@ -34,6 +34,21 @@ vercel --prod
 
 ## 📌 미완료 / 보류 항목
 
+- [ ] **장비별 투입비용 — Supabase SQL 실행 필요** (미실행 시 페이지 진입할 때 안내 알림 뜸):
+  ```sql
+  CREATE TABLE IF NOT EXISTS equipment_costs (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    equipment_id uuid REFERENCES equipment(id) ON DELETE CASCADE,
+    cost_date date NOT NULL,
+    category text NOT NULL,
+    amount numeric NOT NULL,
+    memo text,
+    receipt_url text,
+    created_at timestamptz DEFAULT now()
+  );
+  GRANT ALL ON TABLE equipment_costs TO anon, authenticated;
+  ```
+
 - [ ] **Supabase SQL 실행 필요 (도장 DB 저장 — 2026-07-07 추가)**:
   ```sql
   ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS stamp_data TEXT;
@@ -300,6 +315,21 @@ GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated;
 ### git 초기화
 - `git init` + remote 연결: https://github.com/lhj5520-bit/jangbi-platform
 - 이후 작업 완료 시: `git add -A && git commit -m "..." && git push`
+
+---
+
+## ✅ [2026-07-17] 완료 작업 — 장비별 투입비용 페이지 신설
+
+### 신규: src/app/dashboard/equipment-costs/page.tsx (관리자메뉴)
+- 자차 장비 대상. 연/월(또는 연간) + 장비 필터
+- 요약 카드: 배차 매출(자동) / 투입비용 / 순이익·이익률
+- 장비별 손익 표 + 비용 입력 폼(날짜·장비·항목·금액·메모) + 비용 내역(삭제 가능)
+- 항목: 주유비/수리·정비비/보험료/정기검사비/소모품/지입료/기타
+- 매출 자동 연동: dispatches+daily_logs 슬롯 계산 (dashboard 연간이윤 로직과 동일), equipment_id 또는 차량번호 텍스트 매칭
+- 타입 라벨에 truck/cargo 모두 '화물' 처리
+- **Supabase에 equipment_costs 테이블 생성 필요** (미완료 항목의 SQL — 실행 전엔 안내 알림)
+
+### 수정: layout.tsx(navItems+관리자메뉴 목록), settings/page.tsx(권한 경로 목록에 추가)
 
 ---
 

@@ -19,6 +19,7 @@ const ALL_MENUS = [
   { path: '/dashboard/vat', label: '부가세' },
   { path: '/dashboard/bank', label: '통장내역' },
   { path: '/dashboard/expenses', label: '관리비' },
+  { path: '/dashboard/equipment-costs', label: '장비별 투입비용' },
   { path: '/dashboard/sole-proprietor', label: '개인사업자관리' },
   { path: '/dashboard/export', label: '전체 내려받기' },
 ]
