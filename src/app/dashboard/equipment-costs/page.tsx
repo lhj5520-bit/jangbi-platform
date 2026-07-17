@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 
-const CATEGORIES = ['주유비', '수리·정비비', '보험료', '정기검사비', '소모품', '지입료', '기타']
+const CATEGORIES = ['주유비', '급여', '수리·정비비', '보험료', '정기검사비', '소모품', '지입료', '기타']
 const TYPE_LABEL: Record<string, string> = { excavator: '굴삭기', dump: '덤프', truck: '화물', cargo: '화물' }
 
 interface EquipRow { id: string; plate_no: string | null; type: string | null }
