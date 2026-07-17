@@ -131,6 +131,12 @@ export default function EquipmentCostsPage() {
     setForm({ cost_date: c.cost_date, equipment_id: c.equipment_id, category: c.category, amount: String(c.amount ?? ''), memo: c.memo ?? '' })
   }
 
+  function startCopy(c: CostRow) {
+    setEditingId(null)
+    setForm({ cost_date: c.cost_date, equipment_id: c.equipment_id, category: c.category, amount: String(c.amount ?? ''), memo: c.memo ?? '' })
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
   function cancelEdit() {
     setEditingId(null)
     setForm(f => ({ ...f, cost_date: todayStr(), amount: '', memo: '' }))
@@ -304,6 +310,7 @@ export default function EquipmentCostsPage() {
                 <td className="px-4 py-2 text-right whitespace-nowrap">{fmt(c.amount ?? 0)}원</td>
                 <td className="px-4 py-2 text-gray-500">{c.memo ?? ''}</td>
                 <td className="px-4 py-2 text-right whitespace-nowrap">
+                  <button onClick={() => startCopy(c)} className="text-xs text-emerald-600 hover:text-emerald-700 mr-2">복사</button>
                   <button onClick={() => startEdit(c)} className="text-xs text-blue-500 hover:text-blue-700 mr-2">수정</button>
                   <button onClick={() => handleDelete(c.id)} className="text-xs text-red-400 hover:text-red-600">삭제</button>
                 </td>
