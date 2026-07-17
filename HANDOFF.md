@@ -47,7 +47,9 @@ vercel --prod
     created_at timestamptz DEFAULT now()
   );
   GRANT ALL ON TABLE equipment_costs TO anon, authenticated;
+  ALTER TABLE equipment_costs DISABLE ROW LEVEL SECURITY;
   ```
+  ※ RLS를 안 끄면 "new row violates row-level security policy" 오류 발생. 이 프로젝트는 새 테이블마다 GRANT + RLS 해제가 모두 필요함.
 
 - [ ] **Supabase SQL 실행 필요 (도장 DB 저장 — 2026-07-07 추가)**:
   ```sql

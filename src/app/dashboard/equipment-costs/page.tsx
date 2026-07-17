@@ -37,6 +37,7 @@ export default function EquipmentCostsPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState({ cost_date: todayStr(), equipment_id: '', category: '주유비', amount: '', memo: '' })
+  const [editingId, setEditingId] = useState<string | null>(null)
 
   const periodStart = month ? `${year}-${String(month).padStart(2, '0')}-01` : `${year}-01-01`
   const periodEnd = month
@@ -99,19 +100,40 @@ export default function EquipmentCostsPage() {
     const costDate = fmtDate(form.cost_date)
     if (!/^\d{4}-\d{2}-\d{2}$/.test(costDate)) return alert('날짜를 YYYY-MM-DD 형식으로 입력해주세요. (예: 20260717)')
     setSaving(true)
-    const { data: inserted, error } = await supabase.from('equipment_costs').insert({
+    const payload = {
       equipment_id: form.equipment_id,
       cost_date: costDate,
       category: form.category,
       amount,
       memo: form.memo || null,
-    }).select().single()
+    }
+    if (editingId) {
+      const { data: updated, error } = await supabase.from('equipment_costs')
+        .update(payload).eq('id', editingId).select().single()
+      setSaving(false)
+      if (error) { alert('수정 실패: ' + error.message); return }
+      setCosts(prev => prev.map(c => c.id === editingId ? (updated as CostRow) : c))
+      setEditingId(null)
+      setForm(f => ({ ...f, amount: '', memo: '' }))
+      return
+    }
+    const { data: inserted, error } = await supabase.from('equipment_costs').insert(payload).select().single()
     setSaving(false)
     if (error) { alert('저장 실패: ' + error.message); return }
     if (inserted && costDate >= periodStart && costDate <= periodEnd) {
       setCosts(prev => [inserted as CostRow, ...prev])
     }
     setForm(f => ({ ...f, amount: '', memo: '' }))
+  }
+
+  function startEdit(c: CostRow) {
+    setEditingId(c.id)
+    setForm({ cost_date: c.cost_date, equipment_id: c.equipment_id, category: c.category, amount: String(c.amount ?? ''), memo: c.memo ?? '' })
+  }
+
+  function cancelEdit() {
+    setEditingId(null)
+    setForm(f => ({ ...f, cost_date: todayStr(), amount: '', memo: '' }))
   }
 
   async function handleDelete(id: string) {
@@ -124,10 +146,15 @@ export default function EquipmentCostsPage() {
   const visibleEquip = equipFilter ? equipment.filter(e => e.id === equipFilter) : equipment
   const visibleCosts = equipFilter ? costs.filter(c => c.equipment_id === equipFilter) : costs
   const costByEquip: Record<string, number> = {}
-  for (const c of costs) costByEquip[c.equipment_id] = (costByEquip[c.equipment_id] ?? 0) + (c.amount ?? 0)
+  const salaryByEquip: Record<string, number> = {}
+  for (const c of costs) {
+    if (c.category === '급여') salaryByEquip[c.equipment_id] = (salaryByEquip[c.equipment_id] ?? 0) + (c.amount ?? 0)
+    else costByEquip[c.equipment_id] = (costByEquip[c.equipment_id] ?? 0) + (c.amount ?? 0)
+  }
   const totalRevenue = visibleEquip.reduce((s, e) => s + (revenueByEquip[e.id] ?? 0), 0)
-  const totalCost = visibleCosts.reduce((s, c) => s + (c.amount ?? 0), 0)
-  const profit = totalRevenue - totalCost
+  const totalSalary = visibleCosts.reduce((s, c) => s + (c.category === '급여' ? (c.amount ?? 0) : 0), 0)
+  const totalCost = visibleCosts.reduce((s, c) => s + (c.category !== '급여' ? (c.amount ?? 0) : 0), 0)
+  const profit = totalRevenue - totalSalary - totalCost
   const plateOf = (id: string) => {
     const eq = equipment.find(e => e.id === id)
     return eq ? `${eq.plate_no ?? '번호없음'}` : '-'
@@ -157,13 +184,17 @@ export default function EquipmentCostsPage() {
       </div>
 
       {/* 요약 카드 */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
           <p className="text-xs text-gray-500 mb-1">배차 매출</p>
           <p className="text-xl font-bold text-gray-900">{loading ? '-' : fmt(totalRevenue) + '원'}</p>
         </div>
         <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-          <p className="text-xs text-gray-500 mb-1">투입비용</p>
+          <p className="text-xs text-gray-500 mb-1">급여</p>
+          <p className="text-xl font-bold text-amber-600">{loading ? '-' : fmt(totalSalary) + '원'}</p>
+        </div>
+        <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+          <p className="text-xs text-gray-500 mb-1">비용 (급여 제외)</p>
           <p className="text-xl font-bold text-red-600">{loading ? '-' : fmt(totalCost) + '원'}</p>
         </div>
         <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
@@ -182,6 +213,7 @@ export default function EquipmentCostsPage() {
             <tr className="border-b border-gray-200 text-xs text-gray-500">
               <th className="px-4 py-2.5 text-left font-medium">장비</th>
               <th className="px-4 py-2.5 text-right font-medium">매출</th>
+              <th className="px-4 py-2.5 text-right font-medium">급여</th>
               <th className="px-4 py-2.5 text-right font-medium">비용</th>
               <th className="px-4 py-2.5 text-right font-medium">순이익</th>
               <th className="px-4 py-2.5 text-right font-medium">이익률</th>
@@ -190,14 +222,16 @@ export default function EquipmentCostsPage() {
           <tbody>
             {visibleEquip.map(eq => {
               const rev = revenueByEquip[eq.id] ?? 0
+              const salary = salaryByEquip[eq.id] ?? 0
               const cost = costByEquip[eq.id] ?? 0
-              const p = rev - cost
+              const p = rev - salary - cost
               return (
                 <tr key={eq.id} className="border-b border-gray-100 last:border-0">
                   <td className="px-4 py-2.5 font-medium text-gray-900">
                     {eq.plate_no ?? '번호없음'} <span className="text-xs text-gray-400">{TYPE_LABEL[eq.type ?? ''] ?? eq.type ?? ''}</span>
                   </td>
                   <td className="px-4 py-2.5 text-right">{fmt(rev)}</td>
+                  <td className="px-4 py-2.5 text-right text-amber-600">{fmt(salary)}</td>
                   <td className="px-4 py-2.5 text-right text-red-600">{fmt(cost)}</td>
                   <td className="px-4 py-2.5 text-right font-semibold">{fmt(p)}</td>
                   <td className="px-4 py-2.5 text-right text-gray-500">{rev > 0 ? (p / rev * 100).toFixed(0) + '%' : '-'}</td>
@@ -205,7 +239,7 @@ export default function EquipmentCostsPage() {
               )
             })}
             {!loading && visibleEquip.length === 0 && (
-              <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-400">자차 장비가 없습니다</td></tr>
+              <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-400">자차 장비가 없습니다</td></tr>
             )}
           </tbody>
         </table>
@@ -213,7 +247,9 @@ export default function EquipmentCostsPage() {
 
       {/* 비용 입력 */}
       <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm space-y-2">
-        <p className="text-sm font-semibold text-gray-700">비용 입력</p>
+        <p className="text-sm font-semibold text-gray-700">
+          비용 입력 {editingId && <span className="text-blue-600 text-xs">(수정 중 — 저장하면 반영됩니다)</span>}
+        </p>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
           <input type="text" inputMode="numeric" value={form.cost_date}
             onChange={e => setForm(f => ({ ...f, cost_date: e.target.value }))}
@@ -233,9 +269,15 @@ export default function EquipmentCostsPage() {
           <input value={form.memo} placeholder="거래처·메모 (선택)"
             onChange={e => setForm(f => ({ ...f, memo: e.target.value }))}
             className={inp + ' flex-1'} />
+          {editingId && (
+            <button onClick={cancelEdit}
+              className="px-4 py-2 rounded-lg border border-gray-300 text-sm text-gray-600 hover:bg-gray-50">
+              취소
+            </button>
+          )}
           <button onClick={handleSave} disabled={saving}
             className="px-5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white text-sm font-medium">
-            {saving ? '저장 중...' : '저장'}
+            {saving ? '저장 중...' : editingId ? '수정 저장' : '저장'}
           </button>
         </div>
       </div>
@@ -255,13 +297,14 @@ export default function EquipmentCostsPage() {
           </thead>
           <tbody>
             {visibleCosts.map(c => (
-              <tr key={c.id} className="border-b border-gray-100 last:border-0">
+              <tr key={c.id} className={`border-b border-gray-100 last:border-0 ${editingId === c.id ? 'bg-blue-50' : ''}`}>
                 <td className="px-4 py-2 whitespace-nowrap">{c.cost_date}</td>
                 <td className="px-4 py-2 whitespace-nowrap font-medium">{plateOf(c.equipment_id)}</td>
                 <td className="px-4 py-2 whitespace-nowrap">{c.category}</td>
                 <td className="px-4 py-2 text-right whitespace-nowrap">{fmt(c.amount ?? 0)}원</td>
                 <td className="px-4 py-2 text-gray-500">{c.memo ?? ''}</td>
-                <td className="px-4 py-2 text-right">
+                <td className="px-4 py-2 text-right whitespace-nowrap">
+                  <button onClick={() => startEdit(c)} className="text-xs text-blue-500 hover:text-blue-700 mr-2">수정</button>
                   <button onClick={() => handleDelete(c.id)} className="text-xs text-red-400 hover:text-red-600">삭제</button>
                 </td>
               </tr>
