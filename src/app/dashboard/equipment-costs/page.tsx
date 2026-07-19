@@ -34,6 +34,7 @@ export default function EquipmentCostsPage() {
   const [equipment, setEquipment] = useState<EquipRow[]>([])
   const [costs, setCosts] = useState<CostRow[]>([])
   const [revenueByEquip, setRevenueByEquip] = useState<Record<string, number>>({})
+  const [fuelTotal, setFuelTotal] = useState(0)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState({ cost_date: todayStr(), equipment_id: '', category: '주유비', amount: '', memo: '' })
@@ -48,9 +49,10 @@ export default function EquipmentCostsPage() {
     let cancelled = false
     async function load() {
       setLoading(true)
-      const [{ data: eqData }, { data: costData, error: costErr }, { data: dispData }] = await Promise.all([
+      const [{ data: eqData }, { data: costData, error: costErr }, { data: fuelData }, { data: dispData }] = await Promise.all([
         supabase.from('equipment').select('id, plate_no, type').eq('ownership', 'own').order('plate_no'),
         supabase.from('equipment_costs').select('*').gte('cost_date', periodStart).lte('cost_date', periodEnd).order('cost_date', { ascending: false }),
+        supabase.from('expenses').select('amount, category').ilike('category', '%주유%').gte('expense_date', periodStart).lte('expense_date', periodEnd),
         supabase.from('dispatches')
           .select('equipment_id, client_unit_price, equipment:equipment(plate_no), equipment_text, daily_logs(quantity,work_price_1,work_price_2,work_price_3,work_time_1,work_time_2,work_time_3)')
           .gte('start_date', periodStart)
@@ -63,6 +65,7 @@ export default function EquipmentCostsPage() {
       const eqList: EquipRow[] = (eqData ?? []) as EquipRow[]
       setEquipment(eqList)
       setCosts((costData ?? []) as CostRow[])
+      setFuelTotal(((fuelData ?? []) as { amount: number | null }[]).reduce((sum, e) => sum + (e.amount ?? 0), 0))
       setForm(f => f.equipment_id ? f : { ...f, equipment_id: eqList[0]?.id ?? '' })
 
       // 장비별 배차 매출 (equipment_id 또는 차량번호 텍스트 매칭)
@@ -160,7 +163,7 @@ export default function EquipmentCostsPage() {
   const totalRevenue = visibleEquip.reduce((s, e) => s + (revenueByEquip[e.id] ?? 0), 0)
   const totalSalary = visibleCosts.reduce((s, c) => s + (c.category === '급여' ? (c.amount ?? 0) : 0), 0)
   const totalCost = visibleCosts.reduce((s, c) => s + (c.category !== '급여' ? (c.amount ?? 0) : 0), 0)
-  const profit = totalRevenue - totalSalary - totalCost
+  const profit = totalRevenue - totalSalary - totalCost - fuelTotal
   const plateOf = (id: string) => {
     const eq = equipment.find(e => e.id === id)
     return eq ? `${eq.plate_no ?? '번호없음'}` : '-'
@@ -190,7 +193,7 @@ export default function EquipmentCostsPage() {
       </div>
 
       {/* 요약 카드 */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
           <p className="text-xs text-gray-500 mb-1">배차 매출</p>
           <p className="text-xl font-bold text-gray-900">{loading ? '-' : fmt(totalRevenue) + '원'}</p>
@@ -198,6 +201,10 @@ export default function EquipmentCostsPage() {
         <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
           <p className="text-xs text-gray-500 mb-1">급여</p>
           <p className="text-xl font-bold text-amber-600">{loading ? '-' : fmt(totalSalary) + '원'}</p>
+        </div>
+        <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+          <p className="text-xs text-gray-500 mb-1">주유비 (관리비 연동)</p>
+          <p className="text-xl font-bold text-orange-600">{loading ? '-' : fmt(fuelTotal) + '원'}</p>
         </div>
         <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
           <p className="text-xs text-gray-500 mb-1">비용 (급여 제외)</p>
