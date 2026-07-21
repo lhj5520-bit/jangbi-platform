@@ -30,9 +30,9 @@ interface VatPayment {
 function getVatPeriods(year: number): VatPeriod[] {
   return [
     { label: `${year}년 1기 예정`, key: `${year}-1기예정`, start: `${year}-01-01`, end: `${year}-03-31`, deadline: `${year}-04-25` },
-    { label: `${year}년 1기 확정`, key: `${year}-1기확정`, start: `${year}-01-01`, end: `${year}-06-30`, deadline: `${year}-07-25` },
+    { label: `${year}년 1기 확정`, key: `${year}-1기확정`, start: `${year}-04-01`, end: `${year}-06-30`, deadline: `${year}-07-25` },
     { label: `${year}년 2기 예정`, key: `${year}-2기예정`, start: `${year}-07-01`, end: `${year}-09-30`, deadline: `${year}-10-25` },
-    { label: `${year}년 2기 확정`, key: `${year}-2기확정`, start: `${year}-07-01`, end: `${year}-12-31`, deadline: `${year + 1}-01-25` },
+    { label: `${year}년 2기 확정`, key: `${year}-2기확정`, start: `${year}-10-01`, end: `${year}-12-31`, deadline: `${year + 1}-01-25` },
   ]
 }
 
