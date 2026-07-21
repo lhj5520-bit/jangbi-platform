@@ -320,18 +320,33 @@ GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated;
 
 ---
 
-## ✅ [2026-07-17] 완료 작업 — 장비별 투입비용 페이지 신설
+## ✅ [2026-07-17] 완료 작업 — 장비별 투입비용 페이지 신설 + 고도화
 
-### 신규: src/app/dashboard/equipment-costs/page.tsx (관리자메뉴)
+### 신규: src/app/dashboard/equipment-costs/page.tsx (관리자메뉴, 관리비 아래)
 - 자차 장비 대상. 연/월(또는 연간) + 장비 필터
-- 요약 카드: 배차 매출(자동) / 투입비용 / 순이익·이익률
-- 장비별 손익 표 + 비용 입력 폼(날짜·장비·항목·금액·메모) + 비용 내역(삭제 가능)
-- 항목: 주유비/수리·정비비/보험료/정기검사비/소모품/지입료/기타
-- 매출 자동 연동: dispatches+daily_logs 슬롯 계산 (dashboard 연간이윤 로직과 동일), equipment_id 또는 차량번호 텍스트 매칭
-- 타입 라벨에 truck/cargo 모두 '화물' 처리
-- **Supabase에 equipment_costs 테이블 생성 필요** (미완료 항목의 SQL — 실행 전엔 안내 알림)
+- **요약 카드 5개**: 배차 매출(자동) / 급여 / 주유비(관리비 연동) / 비용(급여 제외) / 순이익·이익률
+- 장비별 손익 표: 장비 | 매출 | 급여 | 비용 | 순이익 | 이익률
+- 비용 입력 폼 + 비용 내역 목록 (행별 **복사 / 수정 / 삭제**)
+- 항목: 주유비/급여/수리·정비비/보험료/정기검사비/소모품/지입료/기타
 
-### 수정: layout.tsx(navItems+관리자메뉴 목록), settings/page.tsx(권한 경로 목록에 추가)
+### 계산 규칙 (중요 — 사용자와 합의된 사양)
+- **매출**: dispatches+daily_logs 슬롯 계산(대시보드 연간이윤 로직과 동일). equipment_id 또는 차량번호 텍스트 매칭
+- **급여는 비용과 분리 집계** — 표·카드 모두 별도 열/카드
+- **주유비는 직접 입력이 아니라 관리비(expenses)에서 자동 연동** — `category ILIKE '%주유%'` 기간 합계, 차량별 배분 없이 통으로
+- **전체 순이익 = 매출 − 급여 − 비용(급여 제외) − 주유비(통)** ← 요약 카드의 이익률 기준
+- 장비별 표의 순이익에는 주유비 미포함 (통 계산이므로), 장비 필터 선택 시에도 주유비는 전체 금액 차감
+- 타입 라벨 truck/cargo 모두 '화물'
+
+### UI 동작
+- 날짜는 직접 입력 (`20260717` / `260717` → onBlur에 YYYY-MM-DD 자동변환, fmtDate 패턴)
+- 복사: 행 값을 폼에 채우고 신규 저장 (기존 행 유지) / 수정: 파란 행 강조 + "수정 저장"·취소 버튼
+- 저장·수정·삭제 전부 Supabase error 확인 + alert
+
+### DB (실행 완료)
+- `equipment_costs` 테이블: id/equipment_id(FK)/cost_date/category/amount/memo/receipt_url/created_at
+- GRANT + **RLS DISABLE 필수** — RLS 안 끄면 "violates row-level security policy" 오류 (실제 발생 후 해결)
+
+### 수정 파일: equipment-costs/page.tsx(신규), layout.tsx(navItems+관리자메뉴 목록), settings/page.tsx(권한 경로 목록)
 
 ---
 

@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 
 interface Company { id: string; name: string; ceo_name: string; business_no: string; revenue_limit: number; sort_order: number }
-interface Rec { id?: string; sole_proprietor_id: string; year: number; month: number; invoice_amount: number; purchase_amount: number; paid_vat: number }
+interface Rec { id?: string; sole_proprietor_id: string; year: number; month: number; invoice_amount: number; purchase_amount: number; paid_vat: number; refund_vat?: number; card_vat?: number }
 
 const MONTHS = [1,2,3,4,5,6,7,8,9,10,11,12]
 
@@ -182,6 +182,8 @@ export default function SoleProprietorPage() {
   function getPrev(cid: string, f: 'invoice_amount' | 'purchase_amount' | 'paid_vat') { return getRec(cid, prevYear, 0)?.[f] ?? 0 }
   function getCurPurchase(cid: string) { return getRec(cid, year, 0)?.purchase_amount ?? 0 }
   function getCurPaidVat(cid: string) { return getRec(cid, year, 0)?.paid_vat ?? 0 }
+  function getCurRefundVat(cid: string) { return getRec(cid, year, 0)?.refund_vat ?? 0 }
+  function getCurCardVat(cid: string) { return getRec(cid, year, 0)?.card_vat ?? 0 }
 
   async function saveRec(cid: string, yr: number, m: number, field: 'invoice_amount' | 'purchase_amount' | 'paid_vat', val: number) {
     const existing = getRec(cid, yr, m)
@@ -245,6 +247,10 @@ export default function SoleProprietorPage() {
           <button onClick={() => setModal('add')}
             className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-2 py-1.5 text-xs font-medium shadow-sm">
             + 추가
+          </button>
+          <button onClick={() => { load() }}
+            className="flex items-center gap-1 bg-green-600 hover:bg-green-700 text-white rounded-lg px-2 py-1.5 text-xs font-medium shadow-sm">
+            💾 저장반영
           </button>
         </div>
       </div>
@@ -384,11 +390,35 @@ export default function SoleProprietorPage() {
                 ))}
               </tr>
 
+              {/* 환급부가세 */}
+              <tr className="hover:bg-gray-50">
+                <td className={lbl}>환급부가세</td>
+                {companies.map(c => (
+                  <td key={c.id} className={td}>
+                    <EditCell value={getCurRefundVat(c.id)}
+                      onSave={v => saveRec(c.id, year, 0, 'refund_vat' as any, v)}
+                      className="text-blue-600" />
+                  </td>
+                ))}
+              </tr>
+
+              {/* 카드매입부가세 */}
+              <tr className="hover:bg-gray-50">
+                <td className={lbl}>카드매입부가세</td>
+                {companies.map(c => (
+                  <td key={c.id} className={td}>
+                    <EditCell value={getCurCardVat(c.id)}
+                      onSave={v => saveRec(c.id, year, 0, 'card_vat' as any, v)}
+                      className="text-green-600" />
+                  </td>
+                ))}
+              </tr>
+
               {/* 예상부가세 */}
               <tr className="bg-[#fff8f0]">
                 <td className="border-b border-r border-gray-200 px-4 py-2.5 text-sm font-bold text-orange-700 bg-[#fff8f0] sticky left-0 z-10">예상부가세</td>
                 {companies.map(c => {
-                  const vat = Math.round((getSales(c.id) - getCurPurchase(c.id)) * 0.1)
+                  const vat = Math.round((getSales(c.id) - getCurPurchase(c.id)) * 0.1) - getCurRefundVat(c.id) - getCurCardVat(c.id)
                   return (
                     <td key={c.id} className="border-b border-r border-gray-200 px-4 py-2.5 text-sm text-right font-semibold text-orange-600">
                       {vat ? vat.toLocaleString() : <span className="text-gray-400">-</span>}
@@ -411,7 +441,7 @@ export default function SoleProprietorPage() {
               <tr className="bg-[#fff5f5]">
                 <td className="border-b border-r border-gray-200 px-4 py-3 text-sm font-bold text-gray-900 bg-[#fff5f5] sticky left-0 z-10">납부할 부가세</td>
                 {companies.map(c => {
-                  const vat = Math.round((getSales(c.id) - getCurPurchase(c.id)) * 0.1)
+                  const vat = Math.round((getSales(c.id) - getCurPurchase(c.id)) * 0.1) - getCurRefundVat(c.id) - getCurCardVat(c.id)
                   const final = vat - getCurPaidVat(c.id)
                   return (
                     <td key={c.id} className={`border-b border-r border-gray-200 px-4 py-3 text-sm font-bold text-right ${final > 0 ? 'text-red-500' : 'text-green-600'}`}>
