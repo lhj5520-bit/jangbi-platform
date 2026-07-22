@@ -398,16 +398,19 @@ export default function TradeStatementPage() {
     const file = e.target.files?.[0]
     if (!file) return
     const reader = new FileReader()
-    reader.onload = ev => {
+    reader.onload = async ev => {
       const result = ev.target?.result as string
       const name = prompt('도장 이름을 입력하세요', `도장${stampList.length + 1}`) || `도장${stampList.length + 1}`
       const newList = [...stampList, { name, data: result }]
       setStampList(newList)
       setStampImg(result)
-      localStorage.setItem('ts_stamp', result)
-      localStorage.setItem('ts_stamp_list', JSON.stringify(newList))
-      // 현재 선택된 업체에도 개별 저장
-      if (selectedSupId) localStorage.setItem(`ts_stamp_sup_${selectedSupId}`, result)
+      try { localStorage.setItem('ts_stamp', result) } catch {}
+      try { localStorage.setItem('ts_stamp_list', JSON.stringify(newList)) } catch {}
+      if (selectedSupId) {
+        try { localStorage.setItem(`ts_stamp_sup_${selectedSupId}`, result) } catch {}
+        // DB에도 저장 (크로스디바이스 유실 방지)
+        await supabase.from('suppliers').update({ stamp_data: result }).eq('id', selectedSupId)
+      }
     }
     reader.readAsDataURL(file)
     e.target.value = ''
@@ -779,9 +782,24 @@ export default function TradeStatementPage() {
               setSelectedSupId(activeSupId)
               localStorage.setItem('ts_last_sup_id', activeSupId)
             }
-            // 도장: 업체별 키만 사용 (글로벌 폴백 없음 — 업체 간 혼용 방지)
-            const freshStamp = activeSupId ? (localStorage.getItem(`ts_stamp_sup_${activeSupId}`) ?? '') : ''
-            setStampImg(freshStamp)
+            // 도장: localStorage 우선, 없으면 DB에서 로드
+            const localStamp = activeSupId ? (localStorage.getItem(`ts_stamp_sup_${activeSupId}`) ?? '') : ''
+            if (localStamp) {
+              setStampImg(localStamp)
+            } else if (activeSupId) {
+              supabase.from('suppliers').select('stamp_data').eq('id', activeSupId).single()
+                .then(({ data }: { data: { stamp_data?: string | null } | null }) => {
+                  const dbStamp = data?.stamp_data ?? ''
+                  if (dbStamp) {
+                    setStampImg(dbStamp)
+                    try { localStorage.setItem(`ts_stamp_sup_${activeSupId}`, dbStamp) } catch {}
+                  } else {
+                    setStampImg('')
+                  }
+                })
+            } else {
+              setStampImg('')
+            }
             try {
               const list = localStorage.getItem('ts_stamp_list')
               if (list) setStampList(JSON.parse(list))
