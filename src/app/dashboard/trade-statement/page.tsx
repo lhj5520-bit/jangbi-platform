@@ -147,17 +147,6 @@ export default function TradeStatementPage() {
         ? (localStorage.getItem(`ts_stamp_sup_${lastSupId}`) ?? localStorage.getItem('ts_stamp') ?? '')
         : (localStorage.getItem('ts_stamp') ?? '')
       if (stamp) setStampImg(stamp)
-      // DB에 저장된 업체 도장이 있으면 우선 사용 (localStorage 유실 대비)
-      if (lastSupId) {
-        supabase.from('suppliers').select('stamp_data').eq('id', lastSupId).single()
-          .then(({ data }: { data: { stamp_data?: string | null } | null }) => {
-            const dbStamp = data?.stamp_data ?? ''
-            if (dbStamp) {
-              setStampImg(dbStamp)
-              try { localStorage.setItem(`ts_stamp_sup_${lastSupId}`, dbStamp) } catch {}
-            }
-          })
-      }
       const list = localStorage.getItem('ts_stamp_list')
       if (list) setStampList(JSON.parse(list))
       else if (stamp) {
@@ -169,8 +158,28 @@ export default function TradeStatementPage() {
     } catch {
       setBankText(`입금계좌 : ${DEFAULT_COMPANY.bank}  예금주 : ${DEFAULT_COMPANY.name}(${DEFAULT_COMPANY.phone})`)
     }
+    // DB에서 업체 목록 + 도장 동시 로드 (localStorage 유실 대비)
     supabase.from('suppliers').select('*').eq('status', 'active')
-      .then(({ data }) => setSupplierList((data ?? []).sort((a, b) => a.name.localeCompare(b.name, 'ko'))))
+      .then(({ data }) => {
+        const sorted = (data ?? []).sort((a: any, b: any) => a.name.localeCompare(b.name, 'ko'))
+        setSupplierList(sorted)
+        const savedLastSupId = localStorage.getItem('ts_last_sup_id') ?? ''
+        // lastSupId가 있으면 해당 업체 도장 우선
+        const targetSup = savedLastSupId
+          ? sorted.find((s: any) => s.id === savedLastSupId)
+          : sorted[0]
+        if (targetSup?.stamp_data) {
+          setStampImg(targetSup.stamp_data)
+          if (savedLastSupId) {
+            try { localStorage.setItem(`ts_stamp_sup_${savedLastSupId}`, targetSup.stamp_data) } catch {}
+          } else {
+            // lastSupId가 없었으면 첫 업체로 자동 선택
+            setSelectedSupId(targetSup.id)
+            try { localStorage.setItem('ts_last_sup_id', targetSup.id) } catch {}
+            try { localStorage.setItem(`ts_stamp_sup_${targetSup.id}`, targetSup.stamp_data) } catch {}
+          }
+        }
+      })
   }, [])
 
   function saveCompany() {
