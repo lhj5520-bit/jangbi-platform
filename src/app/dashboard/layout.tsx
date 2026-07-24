@@ -118,7 +118,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       startY = touch.clientY
       lastX = touch.clientX
       lastY = touch.clientY
-      tracking = true
+      // 메뉴 열기는 왼쪽 가장자리(30px 이내)에서 시작한 스와이프만 허용
+      tracking = startX <= 30
     }
 
     function onTouchMove(e: TouchEvent) {

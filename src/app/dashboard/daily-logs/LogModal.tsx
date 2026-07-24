@@ -301,7 +301,7 @@ export default function LogModal({ log, dispatches, equipment = [], suppliers = 
     // 슬롯2 단가: 저장값 → 같은 장치면 슬롯1 단가 → 배차 단가 순
     work_price_2: (() => { const p2 = (log as any)?.work_price_2; if (p2) return String(p2); const wt1 = (log as any)?.work_type_1 ?? '버켓'; const wt2 = (log as any)?.work_type_2 ?? '버켓'; const p1 = (log as any)?.work_price_1; if (wt2 && wt2 === wt1 && p1) return String(p1); return preDispatch?.client_unit_price ? String(preDispatch.client_unit_price) : '' })(),
     use_slot1: true,
-    use_slot2: true,
+    use_slot2: log ? !!(log?.work_time_2) : true,
     use_slot3: !!(_wt3 || (log as any)?.work_time_3),
     time3_start: slot3.start || '17:00',
     time3_end: slot3.end || '24:00',
