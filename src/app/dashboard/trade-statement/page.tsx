@@ -454,11 +454,12 @@ export default function TradeStatementPage() {
       return Math.max(0, Math.round(mins / 60 * 10) / 10)
     }
     function mergeRows(rows: any[]): any[] {
-      // 날짜 + 차번호 + 작업종류 + 단가가 같은 행은 시간 합산
+      // 같은 배차(dispatch_id) 내에서 날짜 + 차번호 + 작업종류 + 단가가 같은 행은 시간 합산
+      // dispatch_id를 포함해 다른 배차끼리 합산되는 문제 방지
       const map = new Map<string, any>()
       const order: string[] = []
       for (const r of rows) {
-        const key = `${r.log_date}|${r.plate_no}|${r.work_content}|${r.unit_price}`
+        const key = `${r.dispatch_id ?? r._key}|${r.log_date}|${r.plate_no}|${r.work_content}|${r.unit_price}`
         if (map.has(key)) {
           const existing = map.get(key)!
           const sum = Math.round((Number(existing.quantity) + Number(r.quantity)) * 10) / 10
@@ -474,6 +475,7 @@ export default function TradeStatementPage() {
       const d = log.dispatch ?? {}
       const eq = d.equipment ?? {}
       const base = {
+        dispatch_id: log.dispatch_id ?? d.id ?? '',
         log_date: log.log_date ?? '',
         equipment_type: (() => {
           if (eq.plate_no) return [typeMap[eq.type] ?? eq.type, eq.spec].filter(Boolean).join(' ')
