@@ -641,7 +641,12 @@ export default function LogModal({ log, dispatches, equipment = [], suppliers = 
 
           <Row label="날짜">
             <input type="date" value={form.log_date}
-              onChange={e => setF('log_date', e.target.value)}
+              onChange={e => {
+                // 날짜 변경 시 기존 슬롯 체크 상태 유지 (리셋 방지)
+                const slot2 = form.use_slot2
+                const slot3 = form.use_slot3
+                setForm(f => ({ ...f, log_date: e.target.value, use_slot2: slot2, use_slot3: slot3 }))
+              }}
               className={inp} />
           </Row>
 

@@ -239,7 +239,10 @@ export default function DispatchLedgerPage() {
       const equipTypeLbl = equipTextParts.length >= 2 ? equipTextParts.slice(0, -1).join(' ') : ''
       const textEq = (!d.equipment_id && d.equipment_text) ? (equipByPlate.get(equipTextPlate) ?? {}) : {}
       const eq = Object.keys(joinedEq).length > 0 ? joinedEq : textEq
-      const log = (d.daily_logs ?? [])[0] ?? null
+      // daily_logs를 log_date 내림차순으로 정렬 후 첫 번째(최신) 사용
+      const sortedLogs = [...(d.daily_logs ?? [])].sort((a: any, b: any) =>
+        (b.log_date ?? '') < (a.log_date ?? '') ? -1 : (b.log_date ?? '') > (a.log_date ?? '') ? 1 : 0)
+      const log = sortedLogs[0] ?? null
       const qty = log?.quantity ?? 0
       const unitPrice = d.client_unit_price ?? 0
       const supplierPrice = d.supplier_unit_price ?? 0
@@ -468,19 +471,29 @@ export default function DispatchLedgerPage() {
   }
 
   async function openLogModal(row: LedgerRow) {
-    const { data: disp } = await supabase.from('dispatches')
-      .select('*, equipment:equipment(*, supplier:suppliers(*)), supplier:suppliers(*)')
-      .eq('id', row.dispatch_id).single()
     const logId = row.id !== row.dispatch_id ? row.id : null
+    const [{ data: disp }, { data: freshLog }] = await Promise.all([
+      supabase.from('dispatches').select('*, equipment:equipment(*, supplier:suppliers(*)), supplier:suppliers(*)').eq('id', row.dispatch_id).single(),
+      logId ? supabase.from('daily_logs').select('*').eq('id', logId).single() : Promise.resolve({ data: null }),
+    ])
+    // DB에서 가져온 최신 값 우선 사용 (row는 캐시일 수 있음)
     const log = {
       ...(logId ? { id: logId } : {}),
       dispatch_id: row.dispatch_id,
-      log_date: row.log_date,
-      quantity: row.operating_hours, driver_name: row.engineer_name,
-      work_type_1: row.work_type_1, work_time_1: row.work_time_1, work_price_1: row.work_price_1,
-      work_type_2: row.work_type_2, work_time_2: row.work_time_2, work_price_2: row.work_price_2,
-      work_type_3: (row as any).work_type_3, work_time_3: (row as any).work_time_3, work_price_3: (row as any).work_price_3,
-      engineer_daily_wage: row.engineer_daily_wage, created_at: '',
+      log_date: freshLog?.log_date ?? row.log_date,
+      quantity: freshLog?.quantity ?? row.operating_hours,
+      driver_name: freshLog?.driver_name ?? row.engineer_name,
+      work_type_1: freshLog?.work_type_1 ?? row.work_type_1,
+      work_time_1: freshLog?.work_time_1 ?? row.work_time_1,
+      work_price_1: freshLog?.work_price_1 ?? row.work_price_1,
+      work_type_2: freshLog?.work_type_2 ?? row.work_type_2,
+      work_time_2: freshLog?.work_time_2 ?? row.work_time_2,
+      work_price_2: freshLog?.work_price_2 ?? row.work_price_2,
+      work_type_3: freshLog?.work_type_3 ?? (row as any).work_type_3,
+      work_time_3: freshLog?.work_time_3 ?? (row as any).work_time_3,
+      work_price_3: freshLog?.work_price_3 ?? (row as any).work_price_3,
+      engineer_daily_wage: freshLog?.engineer_daily_wage ?? row.engineer_daily_wage,
+      created_at: '',
     }
     setLogModalData({ log, dispatches: disp ? [disp] : [] })
   }
