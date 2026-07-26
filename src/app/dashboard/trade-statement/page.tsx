@@ -182,7 +182,7 @@ export default function TradeStatementPage() {
       })
   }, [])
 
-  // 업체 변경 시 DB에서 해당 업체 정보 직접 로드 (localStorage 오염 방지)
+  // 업체 변경 시 DB에서 해당 업체 정보 + 도장 직접 로드 (localStorage 오염 방지)
   useEffect(() => {
     if (!selectedSupId) return
     supabase.from('suppliers').select('*').eq('id', selectedSupId).single()
@@ -206,6 +206,16 @@ export default function TradeStatementPage() {
         setBankText(`입금계좌 : ${bankStr}  예금주 : ${data.bank_holder ?? ''}(${data.contact ?? ''})`)
         // 업체별 로컬 캐시 갱신
         try { localStorage.setItem(`ts_company_sup_${selectedSupId}`, JSON.stringify(c)) } catch {}
+        // 도장: 로컬 캐시 우선, 없으면 DB stamp_data
+        const localStamp = localStorage.getItem(`ts_stamp_sup_${selectedSupId}`) ?? ''
+        if (localStamp) {
+          setStampImg(localStamp)
+        } else if (data.stamp_data) {
+          setStampImg(data.stamp_data)
+          try { localStorage.setItem(`ts_stamp_sup_${selectedSupId}`, data.stamp_data) } catch {}
+        } else {
+          setStampImg('')
+        }
       })
   }, [selectedSupId])
 
