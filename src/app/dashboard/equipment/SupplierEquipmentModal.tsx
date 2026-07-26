@@ -38,8 +38,7 @@ function loadCompanyFromStorage(supId?: string): CompanyInfo {
       const perSup = localStorage.getItem(`ts_company_sup_${supId}`)
       if (perSup) return JSON.parse(perSup)
     }
-    const saved = localStorage.getItem('ts_company')
-    if (saved) return JSON.parse(saved)
+    // 글로벌 ts_company 폴백 제거 — 업체 간 정보 오염 방지
   } catch {}
   return DEFAULT_COMPANY
 }
@@ -110,33 +109,14 @@ export default function SupplierEquipmentModal({
   }
 
   // ── 회사 정보 ──────────────────────────────────────────────
-  // 초기값: 업체별 저장 있으면 로드, 없으면 빈 상태 (다른 업체 정보 오염 방지)
+  // 초기값: 업체별 캐시 있으면 로드, 없으면 빈 상태 (useEffect에서 DB auto-fill)
+  // 글로벌 ts_company 폴백 제거 — 업체 간 정보 오염 방지
   const [company, setCompany] = useState<CompanyInfo>(() => {
     if (defaultSupplierId) {
-      // 1순위: 업체별 저장
+      // 업체별 저장된 캐시만 사용
       const perSup = localStorage.getItem(`ts_company_sup_${defaultSupplierId}`)
       if (perSup) try { return JSON.parse(perSup) } catch {}
-      // 2순위: ts_last_sup_id가 현재 업체면 ts_company 사용
-      const lastSupId = localStorage.getItem('ts_last_sup_id')
-      if (lastSupId === defaultSupplierId) {
-        const global = localStorage.getItem('ts_company')
-        if (global) try { return JSON.parse(global) } catch {}
-      }
-      // 3순위: ts_company의 업체명이 현재 업체와 같으면 사용 (거래명세서에서 저장한 경우)
-      const sup = suppliers.find(s => s.id === defaultSupplierId)
-      if (sup) {
-        const global = localStorage.getItem('ts_company')
-        if (global) {
-          try {
-            const parsed = JSON.parse(global)
-            if (parsed.name === sup.name) {
-              localStorage.setItem(`ts_company_sup_${defaultSupplierId}`, global)
-              return parsed
-            }
-          } catch {}
-        }
-      }
-      // 4순위: 빈 상태 (useEffect에서 DB auto-fill)
+      // 없으면 빈 상태 (useEffect에서 DB auto-fill)
       return { name: '', reg_no: '', ceo: '', address: '', biz_type: '', biz_item: '', bank: '', phone: '' }
     }
     // 신규 등록 모드면 빈 폼, 아니면(거래명세서 공급자 정보) 기본 회사정보
@@ -251,7 +231,7 @@ export default function SupplierEquipmentModal({
       })
   }, [selectedSupId, defaultSupplierId])
 
-  // 초기 회사정보 auto-fill: localStorage 있어도 빈 필드는 DB로 채움
+  // 초기 회사정보: 항상 DB(suppliers 테이블) 데이터를 우선 사용 (localStorage 오염 방지)
   useEffect(() => {
     if (!defaultSupplierId) return
     const sup = suppliers.find(s => s.id === defaultSupplierId)
@@ -259,49 +239,44 @@ export default function SupplierEquipmentModal({
     const bank = sup.bank_name && sup.bank_account
       ? `${sup.bank_name} ${sup.bank_account}${sup.bank_holder ? ` (${sup.bank_holder})` : ''}`
       : ''
-    setCompany(prev => {
-      const merged = {
-        name: prev.name || (sup.name ?? ''),
-        reg_no: prev.reg_no || (sup.business_no ?? ''),
-        ceo: prev.ceo || (sup.ceo_name ?? ''),
-        address: prev.address || (sup.address ?? ''),
-        phone: prev.phone || (sup.contact ?? ''),
-        bank: prev.bank || bank,
-        biz_type: prev.biz_type || ((sup as any).biz_type ?? ''),
-        biz_item: prev.biz_item || ((sup as any).biz_item ?? ''),
-      }
-      // DB auto-fill 결과를 캐시 저장 (다음번 로드 시 즉시 사용)
-      try { localStorage.setItem(`ts_company_sup_${defaultSupplierId}`, JSON.stringify(merged)) } catch {}
-      return merged
-    })
+    const fromDB = {
+      name: sup.name ?? '',
+      reg_no: sup.business_no ?? '',
+      ceo: sup.ceo_name ?? '',
+      address: sup.address ?? '',
+      phone: sup.contact ?? '',
+      bank,
+      biz_type: (sup as any).biz_type ?? '',
+      biz_item: (sup as any).biz_item ?? '',
+    }
+    setCompany(fromDB)
+    // 업체별 키에만 캐시 (글로벌 ts_company 건드리지 않음)
+    try { localStorage.setItem(`ts_company_sup_${defaultSupplierId}`, JSON.stringify(fromDB)) } catch {}
   }, [defaultSupplierId, suppliers])
 
-  // 업체 변경 시 자동입력
+  // 업체 변경 시 자동입력 — 항상 DB(suppliers 테이블) 데이터 사용 (localStorage 오염 방지)
   function handleSupplierChange(supId: string) {
     setF('supplier_id', supId)
     setSelectedSupId(supId)
 
     const sup = suppliers.find(s => s.id === supId)
     if (sup) {
-      // 업체별 저장된 회사정보 우선 로드, 없으면 suppliers DB 정보로 채움
-      const saved = supId ? localStorage.getItem(`ts_company_sup_${supId}`) : null
-      if (saved) {
-        try { setCompany(JSON.parse(saved)) } catch {}
-      } else {
-        const bank = sup.bank_name && sup.bank_account
-          ? `${sup.bank_name} ${sup.bank_account}${sup.bank_holder ? ` (${sup.bank_holder})` : ''}`
-          : ''
-        setCompany({
-          name: sup.name ?? '',
-          reg_no: sup.business_no ?? '',
-          ceo: sup.ceo_name ?? '',
-          address: sup.address ?? '',
-          phone: sup.contact ?? '',
-          bank,
-          biz_type: (sup as any).biz_type ?? '',
-          biz_item: (sup as any).biz_item ?? '',
-        })
+      const bank = sup.bank_name && sup.bank_account
+        ? `${sup.bank_name} ${sup.bank_account}${sup.bank_holder ? ` (${sup.bank_holder})` : ''}`
+        : ''
+      const fromDB = {
+        name: sup.name ?? '',
+        reg_no: sup.business_no ?? '',
+        ceo: sup.ceo_name ?? '',
+        address: sup.address ?? '',
+        phone: sup.contact ?? '',
+        bank,
+        biz_type: (sup as any).biz_type ?? '',
+        biz_item: (sup as any).biz_item ?? '',
       }
+      setCompany(fromDB)
+      // 업체별 키에만 캐시 (글로벌 ts_company 건드리지 않음)
+      try { localStorage.setItem(`ts_company_sup_${supId}`, JSON.stringify(fromDB)) } catch {}
 
       // 도장: 업체별 키만 사용 (글로벌 폴백 없음 — 업체 간 도장 혼용 방지)
       const perSup = localStorage.getItem(`ts_stamp_sup_${supId}`)
