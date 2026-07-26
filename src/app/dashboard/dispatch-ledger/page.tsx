@@ -610,6 +610,17 @@ export default function DispatchLedgerPage() {
     acc[key] = (acc[key] || 0) + 1
     return acc
   }, {} as Record<string, number>)
+  // 같은 날짜 + 같은 차량번호 중복 감지
+  const dupKeys = new Set<string>()
+  const _dupCount: Record<string, number> = {}
+  for (const r of rows) {
+    if (!r.plate_no) continue
+    const k = `${r.log_date}|${r.plate_no}`
+    _dupCount[k] = (_dupCount[k] || 0) + 1
+  }
+  for (const [k, cnt] of Object.entries(_dupCount)) {
+    if (cnt > 1) dupKeys.add(k)
+  }
   const sorted = [...filtered].sort((a, b) => {
     let av: any, bv: any
     if (sortKey === 'unpaid_calc') { av = paid[a.id] ? 0 : a.sales_amount; bv = paid[b.id] ? 0 : b.sales_amount }
@@ -638,7 +649,7 @@ export default function DispatchLedgerPage() {
   const thR = 'px-3 py-2 text-right text-xs font-semibold text-gray-600 whitespace-nowrap border-b border-gray-200 cursor-pointer select-none hover:bg-gray-100'
   const thC = 'px-3 py-2 text-center text-xs font-semibold text-gray-600 whitespace-nowrap border-b border-gray-200'
 
-  const rowProps = { editingDriver, paid, wages, commissions, invoiced, invoiceImages, clientOptions, equipOptions, setEditDispatch, openLogModal, setEditingDriver, setWages, saveDriverName, saveOwnerName, savePlateNo, togglePaid, toggleInvoiced, saveWage, saveCommission, saveMemo, selectedRows, toggleRowSelect, onDelete: setDeleteConfirm, onInvoiceUpload: uploadInvoiceImage, onInvoiceView: setViewingInvoice }
+  const rowProps = { editingDriver, paid, wages, commissions, invoiced, invoiceImages, clientOptions, equipOptions, setEditDispatch, openLogModal, setEditingDriver, setWages, saveDriverName, saveOwnerName, savePlateNo, togglePaid, toggleInvoiced, saveWage, saveCommission, saveMemo, selectedRows, toggleRowSelect, onDelete: setDeleteConfirm, onInvoiceUpload: uploadInvoiceImage, onInvoiceView: setViewingInvoice, dupKeys }
 
   if (view === 'match') {
     const isClient = matchType === 'client'
@@ -1187,7 +1198,7 @@ export default function DispatchLedgerPage() {
   )
 }
 
-function LedgerTableRow({ r, bg, hrs, unitP, sales, isFirstSlot, slotsTotalSales, dayCount, editingDriver, paid, wages, commissions, invoiced, invoiceImages, clientOptions, equipOptions, setEditDispatch, openLogModal, setEditingDriver, setWages, saveDriverName, saveOwnerName, savePlateNo, togglePaid, toggleInvoiced, saveWage, saveCommission, saveMemo, selectedRows, toggleRowSelect, onDelete, onInvoiceUpload, onInvoiceView }: {
+function LedgerTableRow({ r, bg, hrs, unitP, sales, isFirstSlot, slotsTotalSales, dayCount, editingDriver, paid, wages, commissions, invoiced, invoiceImages, clientOptions, equipOptions, setEditDispatch, openLogModal, setEditingDriver, setWages, saveDriverName, saveOwnerName, savePlateNo, togglePaid, toggleInvoiced, saveWage, saveCommission, saveMemo, selectedRows, toggleRowSelect, onDelete, onInvoiceUpload, onInvoiceView, dupKeys }: {
   r: LedgerRow; bg: string; hrs: number; unitP: number; sales: number; isFirstSlot: boolean; slotsTotalSales: number; dayCount: number
   editingDriver: string | null; paid: Record<string, boolean>; wages: Record<string, number>; commissions: Record<string, number>; invoiced: Record<string, boolean>; invoiceImages: Record<string, string>
   clientOptions: string[]; equipOptions: EquipOpt[]
@@ -1202,6 +1213,7 @@ function LedgerTableRow({ r, bg, hrs, unitP, sales, isFirstSlot, slotsTotalSales
   saveMemo: (dispatchId: string, val: string) => void
   selectedRows: Set<string>; toggleRowSelect: (id: string) => void; onDelete: (r: LedgerRow) => void
   onInvoiceUpload: (logId: string, file: File) => void; onInvoiceView: (logId: string) => void
+  dupKeys: Set<string>
 }) {
   const [editingPlateNo, setEditingPlateNo] = useState(false)
   const [editingPlateDriver, setEditingPlateDriver] = useState(false)
@@ -1210,19 +1222,25 @@ function LedgerTableRow({ r, bg, hrs, unitP, sales, isFirstSlot, slotsTotalSales
   const today = new Date()
   const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
   const isToday = r.log_date === todayStr
-  const rowClass = `${isToday ? 'bg-amber-50/80 hover:bg-amber-100/80 transition-colors' : bg}${selectedRows.has(r.id) ? ' bg-blue-50' : ''}`
+  const isDup = r.plate_no ? dupKeys.has(`${r.log_date}|${r.plate_no}`) : false
+  const rowClass = `${isDup ? 'bg-red-50 hover:bg-red-100/80 transition-colors' : isToday ? 'bg-amber-50/80 hover:bg-amber-100/80 transition-colors' : bg}${selectedRows.has(r.id) ? ' !bg-blue-50' : ''}`
   return (
     <tr className={rowClass}>
       <td className="px-3 py-2 text-center">
         <input type="checkbox" checked={selectedRows.has(r.id)} onChange={() => toggleRowSelect(r.id)} className="w-4 h-4 accent-blue-600 cursor-pointer" />
       </td>
       <td className={td}>
-        {isToday ? (
-          <span className="inline-flex items-center gap-1 rounded-md bg-amber-200 px-2 py-0.5 font-bold text-amber-950 ring-1 ring-amber-400">
-            {r.log_date}
-            <span className="text-[10px] font-black">오늘</span>
-          </span>
-        ) : r.log_date}
+        <div className="flex items-center gap-1">
+          {isDup && (
+            <span title="같은 날짜에 같은 차량번호가 중복됩니다. 확인하세요." className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-black leading-none cursor-help flex-shrink-0">!</span>
+          )}
+          {isToday ? (
+            <span className="inline-flex items-center gap-1 rounded-md bg-amber-200 px-2 py-0.5 font-bold text-amber-950 ring-1 ring-amber-400">
+              {r.log_date}
+              <span className="text-[10px] font-black">오늘</span>
+            </span>
+          ) : r.log_date}
+        </div>
       </td>
       <td className={td}>{r.equipment_type}</td>
       <td className={td}>
