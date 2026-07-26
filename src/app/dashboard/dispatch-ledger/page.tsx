@@ -265,6 +265,12 @@ export default function DispatchLedgerPage() {
     await supabase.from('dispatches').update({ driver_name: val || null }).eq('id', dispatchId)
   }
 
+  async function savePlateNo(dispatchId: string, val: string) {
+    setRows(rows => rows.map(r => r.dispatch_id === dispatchId ? { ...r, plate_no: val } : r))
+    // equipment_text 기반으로 저장 (equipment_id 연결 해제)
+    await supabase.from('dispatches').update({ equipment_text: val || null, equipment_id: null }).eq('id', dispatchId)
+  }
+
   async function saveWage(logId: string, val: number) {
     setWages(w => ({ ...w, [logId]: val }))
     await supabase.from('daily_logs').update({ engineer_daily_wage: val }).eq('id', logId)
@@ -603,7 +609,7 @@ export default function DispatchLedgerPage() {
   const thR = 'px-3 py-2 text-right text-xs font-semibold text-gray-600 whitespace-nowrap border-b border-gray-200 cursor-pointer select-none hover:bg-gray-100'
   const thC = 'px-3 py-2 text-center text-xs font-semibold text-gray-600 whitespace-nowrap border-b border-gray-200'
 
-  const rowProps = { editingDriver, paid, wages, commissions, invoiced, invoiceImages, clientOptions, equipOptions, setEditDispatch, openLogModal, setEditingDriver, setWages, saveDriverName, saveOwnerName, togglePaid, toggleInvoiced, saveWage, saveCommission, saveMemo, selectedRows, toggleRowSelect, onDelete: setDeleteConfirm, onInvoiceUpload: uploadInvoiceImage, onInvoiceView: setViewingInvoice }
+  const rowProps = { editingDriver, paid, wages, commissions, invoiced, invoiceImages, clientOptions, equipOptions, setEditDispatch, openLogModal, setEditingDriver, setWages, saveDriverName, saveOwnerName, savePlateNo, togglePaid, toggleInvoiced, saveWage, saveCommission, saveMemo, selectedRows, toggleRowSelect, onDelete: setDeleteConfirm, onInvoiceUpload: uploadInvoiceImage, onInvoiceView: setViewingInvoice }
 
   if (view === 'match') {
     const isClient = matchType === 'client'
@@ -1151,7 +1157,7 @@ export default function DispatchLedgerPage() {
   )
 }
 
-function LedgerTableRow({ r, bg, hrs, unitP, sales, isFirstSlot, slotsTotalSales, dayCount, editingDriver, paid, wages, commissions, invoiced, invoiceImages, clientOptions, equipOptions, setEditDispatch, openLogModal, setEditingDriver, setWages, saveDriverName, saveOwnerName, togglePaid, toggleInvoiced, saveWage, saveCommission, saveMemo, selectedRows, toggleRowSelect, onDelete, onInvoiceUpload, onInvoiceView }: {
+function LedgerTableRow({ r, bg, hrs, unitP, sales, isFirstSlot, slotsTotalSales, dayCount, editingDriver, paid, wages, commissions, invoiced, invoiceImages, clientOptions, equipOptions, setEditDispatch, openLogModal, setEditingDriver, setWages, saveDriverName, saveOwnerName, savePlateNo, togglePaid, toggleInvoiced, saveWage, saveCommission, saveMemo, selectedRows, toggleRowSelect, onDelete, onInvoiceUpload, onInvoiceView }: {
   r: LedgerRow; bg: string; hrs: number; unitP: number; sales: number; isFirstSlot: boolean; slotsTotalSales: number; dayCount: number
   editingDriver: string | null; paid: Record<string, boolean>; wages: Record<string, number>; commissions: Record<string, number>; invoiced: Record<string, boolean>; invoiceImages: Record<string, string>
   clientOptions: string[]; equipOptions: EquipOpt[]
@@ -1159,6 +1165,7 @@ function LedgerTableRow({ r, bg, hrs, unitP, sales, isFirstSlot, slotsTotalSales
   setWages: (fn: (w: Record<string, number>) => Record<string, number>) => void
   saveDriverName: (id: string, dispatchId: string, val: string) => void
   saveOwnerName: (dispatchId: string, val: string) => void
+  savePlateNo: (dispatchId: string, val: string) => void
   togglePaid: (id: string, checked: boolean) => void; toggleInvoiced: (id: string, val: boolean) => void
   saveWage: (id: string, val: number) => void
   saveCommission: (dispatchId: string, val: number) => void
@@ -1166,6 +1173,7 @@ function LedgerTableRow({ r, bg, hrs, unitP, sales, isFirstSlot, slotsTotalSales
   selectedRows: Set<string>; toggleRowSelect: (id: string) => void; onDelete: (r: LedgerRow) => void
   onInvoiceUpload: (logId: string, file: File) => void; onInvoiceView: (logId: string) => void
 }) {
+  const [editingPlateNo, setEditingPlateNo] = useState(false)
   const [editingPlateDriver, setEditingPlateDriver] = useState(false)
   const [editingMemo, setEditingMemo] = useState(false)
   const invoiceFileRef = useRef<HTMLInputElement>(null)
@@ -1188,9 +1196,19 @@ function LedgerTableRow({ r, bg, hrs, unitP, sales, isFirstSlot, slotsTotalSales
       </td>
       <td className={td}>{r.equipment_type}</td>
       <td className={td}>
-        <button onClick={() => openLogModal(r)} className="text-blue-600 hover:underline font-medium">
-          {r.plate_no || <span className="text-gray-300">+</span>}
-        </button>
+        {editingPlateNo ? (
+          <input autoFocus defaultValue={r.plate_no}
+            onBlur={e => { savePlateNo(r.dispatch_id, e.target.value); setEditingPlateNo(false) }}
+            onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); if (e.key === 'Escape') setEditingPlateNo(false) }}
+            className="w-20 border border-blue-400 rounded px-1 text-sm focus:outline-none" />
+        ) : (
+          <div className="flex items-center gap-1">
+            <button onClick={() => openLogModal(r)} className="text-blue-600 hover:underline font-medium">
+              {r.plate_no || <span className="text-gray-300">+</span>}
+            </button>
+            <button onClick={() => setEditingPlateNo(true)} className="no-print text-gray-300 hover:text-gray-500 text-xs leading-none">✏️</button>
+          </div>
+        )}
       </td>
       <td className={td}>{r.work_device}</td>
       <td className={tdr}>{hrs > 0 ? hrs + 'h' : r.operating_hours}</td>
