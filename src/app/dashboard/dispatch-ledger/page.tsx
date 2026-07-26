@@ -61,6 +61,35 @@ export default function DispatchLedgerPage() {
   const [exportVisible, setExportVisible] = useState(false)
   const exportRef = useRef<HTMLDivElement>(null)
   const exportPrintRef = useRef<HTMLDivElement>(null)
+  const tableScrollRef = useRef<HTMLDivElement>(null)
+
+  // 드래그로 테이블 가로 스크롤
+  useEffect(() => {
+    const el = tableScrollRef.current
+    if (!el) return
+    let isDown = false, startX = 0, scrollLeft = 0
+    const onDown = (e: MouseEvent) => {
+      if ((e.target as HTMLElement).closest('button,input,select,a')) return
+      isDown = true; startX = e.pageX - el.offsetLeft; scrollLeft = el.scrollLeft
+      el.style.cursor = 'grabbing'; el.style.userSelect = 'none'
+    }
+    const onUp = () => { isDown = false; el.style.cursor = 'grab'; el.style.userSelect = '' }
+    const onMove = (e: MouseEvent) => {
+      if (!isDown) return
+      e.preventDefault()
+      const x = e.pageX - el.offsetLeft
+      el.scrollLeft = scrollLeft - (x - startX)
+    }
+    el.style.cursor = 'grab'
+    el.addEventListener('mousedown', onDown)
+    window.addEventListener('mouseup', onUp)
+    el.addEventListener('mousemove', onMove)
+    return () => {
+      el.removeEventListener('mousedown', onDown)
+      window.removeEventListener('mouseup', onUp)
+      el.removeEventListener('mousemove', onMove)
+    }
+  }, [])
   const [deleteConfirm, setDeleteConfirm] = useState<LedgerRow | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [copyDate, setCopyDate] = useState(today)
@@ -749,7 +778,8 @@ export default function DispatchLedgerPage() {
     const addSlot = (wt?: string, wtime?: string, wp?: number) => {
       if (!wt || !wtime) return
       const h = parseLH(wtime); const p = Number(wp) || 0
-      const ex = rowSlots.find(s => s.type === wt)
+      // 단가가 같으면 작업유형 무관하게 합산 → 같은 행으로 표시
+      const ex = rowSlots.find(s => s.price === p)
       if (ex) ex.hrs = Math.round((ex.hrs + h) * 10) / 10
       else rowSlots.push({ type: wt, hrs: h, price: p })
     }
@@ -945,7 +975,7 @@ export default function DispatchLedgerPage() {
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white">
+      <div ref={tableScrollRef} className="overflow-x-auto rounded-xl border border-gray-200 bg-white">
         <table className="min-w-full text-sm">
           <thead className="bg-gray-50">
             <tr>
