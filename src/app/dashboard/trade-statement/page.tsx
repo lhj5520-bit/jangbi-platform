@@ -182,9 +182,40 @@ export default function TradeStatementPage() {
       })
   }, [])
 
+  // 업체 변경 시 DB에서 해당 업체 정보 직접 로드 (localStorage 오염 방지)
+  useEffect(() => {
+    if (!selectedSupId) return
+    supabase.from('suppliers').select('*').eq('id', selectedSupId).single()
+      .then(({ data }: { data: any }) => {
+        if (!data) return
+        const bankName = data.bank_name ?? ''
+        const bankAccount = data.bank_account ?? ''
+        const bankHolder = data.bank_holder ? `예금주 : ${data.bank_holder}` : ''
+        const bankStr = [bankName, bankAccount, bankHolder].filter(Boolean).join(' ')
+        const c = {
+          name: data.name ?? '',
+          reg_no: data.business_no ?? '',
+          ceo: data.ceo_name ?? '',
+          address: data.address ?? '',
+          biz_type: data.biz_type ?? '',
+          biz_item: data.biz_item ?? '',
+          bank: bankStr,
+          phone: data.contact ?? '',
+        }
+        setCompany(c)
+        setBankText(`입금계좌 : ${bankStr}  예금주 : ${data.bank_holder ?? ''}(${data.contact ?? ''})`)
+        // 업체별 로컬 캐시 갱신
+        try { localStorage.setItem(`ts_company_sup_${selectedSupId}`, JSON.stringify(c)) } catch {}
+      })
+  }, [selectedSupId])
+
   function saveCompany() {
     setCompany(companyDraft)
-    localStorage.setItem('ts_company', JSON.stringify(companyDraft))
+    if (selectedSupId) {
+      localStorage.setItem(`ts_company_sup_${selectedSupId}`, JSON.stringify(companyDraft))
+    } else {
+      localStorage.setItem('ts_company', JSON.stringify(companyDraft))
+    }
     setBankText(`입금계좌 : ${companyDraft.bank}  예금주 : ${companyDraft.name}(${companyDraft.phone})`)
     setEditingCompany(false)
   }
@@ -823,10 +854,11 @@ export default function TradeStatementPage() {
             const activeSupId = supplierId ?? selectedSupId
             if (companyInfo) {
               setCompany(companyInfo)
-              localStorage.setItem('ts_company', JSON.stringify(companyInfo))
-              // 업체별 키에도 저장 → 중기업체 모달에서 바로 읽을 수 있음
+              // 업체 선택된 경우 업체별 키에만 저장 (전역 ts_company 오염 방지)
               if (activeSupId) {
                 localStorage.setItem(`ts_company_sup_${activeSupId}`, JSON.stringify(companyInfo))
+              } else {
+                localStorage.setItem('ts_company', JSON.stringify(companyInfo))
               }
               setBankText(`입금계좌 : ${companyInfo.bank}  예금주 : ${companyInfo.name}(${companyInfo.phone})`)
             }
