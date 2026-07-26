@@ -227,6 +227,8 @@ export default function TradeStatementPage() {
       if (selectedSupId) {
         // 특정 업체용 키에만 저장 — 전역 ts_company를 덮어쓰면 다른 업체에 적용됨
         localStorage.setItem(`ts_company_sup_${selectedSupId}`, JSON.stringify(company))
+        // 발주처-공급자 매핑 저장 (발주처 변경 시 공급자 복원용)
+        if (selectedClient) localStorage.setItem(`ts_client_sup_${selectedClient}`, selectedSupId)
         const bankStr = company.bank ?? ''
         const spaceIdx = bankStr.indexOf(' ')
         const bankName = spaceIdx >= 0 ? bankStr.slice(0, spaceIdx) : bankStr
@@ -615,6 +617,11 @@ export default function TradeStatementPage() {
   function applyClientFilter(client: string) {
     setSelectedClient(client)
     setRecipientName(client)
+    // 발주처별 저장된 공급자 ID 복원 → useEffect([selectedSupId])가 DB에서 공급자 정보 로드
+    if (client) {
+      const savedSupForClient = localStorage.getItem(`ts_client_sup_${client}`)
+      if (savedSupForClient) setSelectedSupId(savedSupForClient)
+    }
     const filtered = allDateRows.filter((r: any) => !client || r.client_name === client)
     const uniqueSites = ([...new Set(filtered.map((r: any) => r.site_name).filter(Boolean))] as string[]).sort((a, b) => a.localeCompare(b, 'ko'))
     setSites(uniqueSites)
@@ -865,6 +872,8 @@ export default function TradeStatementPage() {
             if (activeSupId) {
               setSelectedSupId(activeSupId)
               localStorage.setItem('ts_last_sup_id', activeSupId)
+              // 발주처-공급자 매핑 저장 (발주처 변경 시 공급자 복원용)
+              if (selectedClient) localStorage.setItem(`ts_client_sup_${selectedClient}`, activeSupId)
             }
             // 도장: localStorage 우선, 없으면 DB에서 로드
             const localStamp = activeSupId ? (localStorage.getItem(`ts_stamp_sup_${activeSupId}`) ?? '') : ''
