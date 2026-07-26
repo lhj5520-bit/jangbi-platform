@@ -193,8 +193,8 @@ export default function TradeStatementPage() {
   async function handleSaveCompanyInline() {
     setSavingCompany(true)
     try {
-      localStorage.setItem('ts_company', JSON.stringify(company))
       if (selectedSupId) {
+        // 특정 업체용 키에만 저장 — 전역 ts_company를 덮어쓰면 다른 업체에 적용됨
         localStorage.setItem(`ts_company_sup_${selectedSupId}`, JSON.stringify(company))
         const bankStr = company.bank ?? ''
         const spaceIdx = bankStr.indexOf(' ')
@@ -215,6 +215,9 @@ export default function TradeStatementPage() {
           bank_account: bankAccount || null,
           bank_holder: bankHolder || null,
         }).eq('id', selectedSupId)
+      } else {
+        // 업체 선택 안 된 경우에만 전역 키 저장
+        localStorage.setItem('ts_company', JSON.stringify(company))
       }
       alert('저장되었습니다.')
     } catch {
