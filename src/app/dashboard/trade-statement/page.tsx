@@ -189,6 +189,40 @@ export default function TradeStatementPage() {
     setEditingCompany(false)
   }
 
+  const [savingCompany, setSavingCompany] = useState(false)
+  async function handleSaveCompanyInline() {
+    setSavingCompany(true)
+    try {
+      localStorage.setItem('ts_company', JSON.stringify(company))
+      if (selectedSupId) {
+        localStorage.setItem(`ts_company_sup_${selectedSupId}`, JSON.stringify(company))
+        const bankStr = company.bank ?? ''
+        const spaceIdx = bankStr.indexOf(' ')
+        const bankName = spaceIdx >= 0 ? bankStr.slice(0, spaceIdx) : bankStr
+        const rest = spaceIdx >= 0 ? bankStr.slice(spaceIdx + 1).trim() : ''
+        const holderMatch = rest.match(/예금주[:：]?\s*(.+)/)
+        const bankHolder = holderMatch ? holderMatch[1].trim() : ''
+        const bankAccount = holderMatch ? rest.slice(0, rest.indexOf(holderMatch[0])).trim() : rest
+        await supabase.from('suppliers').update({
+          name: company.name,
+          ceo_name: company.ceo,
+          business_no: company.reg_no,
+          address: company.address,
+          biz_type: company.biz_type,
+          biz_item: company.biz_item,
+          contact: company.phone,
+          bank_name: bankName || null,
+          bank_account: bankAccount || null,
+          bank_holder: bankHolder || null,
+        }).eq('id', selectedSupId)
+      }
+      alert('저장되었습니다.')
+    } catch {
+      alert('저장 중 오류가 발생했습니다.')
+    }
+    setSavingCompany(false)
+  }
+
   async function handleSaveJpg() {
     const el = printAreaRef.current
     if (!el) return
@@ -666,6 +700,10 @@ export default function TradeStatementPage() {
           <button onClick={() => setEditingCompany(true)}
             className="no-print text-sm font-semibold px-4 py-2 rounded-xl flex items-center gap-2 shadow bg-purple-600 hover:bg-purple-700 text-white">
             ✏️ 회사 정보 수정
+          </button>
+          <button onClick={handleSaveCompanyInline} disabled={savingCompany}
+            className="no-print text-sm font-semibold px-4 py-2 rounded-xl flex items-center gap-2 shadow bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white">
+            💾 {savingCompany ? '저장 중...' : '저장반영'}
           </button>
           <button onClick={handleSaveJpg}
             className="no-print bg-green-600 hover:bg-green-700 text-white text-sm font-semibold px-4 py-2 rounded-xl flex items-center gap-2 shadow">
