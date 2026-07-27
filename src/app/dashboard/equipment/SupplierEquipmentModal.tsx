@@ -126,20 +126,22 @@ export default function SupplierEquipmentModal({
   }, [docRefId])
 
   async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
+    const files = Array.from(e.target.files ?? [])
     const refId = equipment?.id ?? selectedSupId
-    if (!file || !refId) return
+    if (files.length === 0 || !refId) return
     setUploading(true)
-    const ext = file.name.split('.').pop()
-    const path = `${refId}/${Date.now()}.${ext}`
-    const { error } = await supabase.storage.from('documents').upload(path, file)
-    if (error) { alert('업로드 실패: ' + error.message); setUploading(false); return }
-    const { data: inserted } = await supabase.from('documents').insert({
-      ref_type: docRefType, ref_id: refId,
-      doc_type: docType, file_url: path, file_name: file.name,
-      expire_date: expireDate || null,
-    }).select().single()
-    if (inserted) setDocs(d => [inserted, ...d])
+    for (const file of files) {
+      const ext = file.name.split('.').pop()
+      const path = `${refId}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`
+      const { error } = await supabase.storage.from('documents').upload(path, file)
+      if (error) { alert('업로드 실패: ' + error.message); continue }
+      const { data: inserted } = await supabase.from('documents').insert({
+        ref_type: docRefType, ref_id: refId,
+        doc_type: '', file_url: path, file_name: file.name,
+        expire_date: null,
+      }).select().single()
+      if (inserted) setDocs(d => [inserted, ...d])
+    }
     setUploading(false)
     if (fileRef.current) fileRef.current.value = ''
   }
@@ -648,22 +650,10 @@ export default function SupplierEquipmentModal({
               <hr className="border-gray-100" />
               <div>
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">서류 업로드</p>
-                <div className="space-y-2">
-                  <div className="flex gap-2">
-                    <select value={docType} onChange={e => setDocType(e.target.value)} className={inp + ' flex-1'}>
-                      <option>건설기계등록증</option>
-                      <option>정기검사증</option>
-                      <option>보험증권</option>
-                      <option>기타</option>
-                    </select>
-                    <input type="date" value={expireDate} onChange={e => setExpireDate(e.target.value)}
-                      className={inp + ' flex-1'} placeholder="만료일" />
-                  </div>
-                  <label className="flex items-center justify-center gap-2 w-full py-2.5 border-2 border-dashed border-gray-300 rounded-lg text-sm text-gray-500 hover:border-blue-400 hover:text-blue-500 cursor-pointer transition-colors">
-                    {uploading ? '업로드 중...' : '사진/파일 선택'}
-                    <input ref={fileRef} type="file" accept="image/*,.pdf" onChange={handleFileUpload} className="hidden" disabled={uploading} />
-                  </label>
-                </div>
+                <label className="flex items-center justify-center gap-2 w-full py-3 border-2 border-dashed border-gray-300 rounded-lg text-sm text-gray-500 hover:border-blue-400 hover:text-blue-500 cursor-pointer transition-colors">
+                  {uploading ? '업로드 중...' : '📎 파일 선택 (여러 개 동시 선택 가능)'}
+                  <input ref={fileRef} type="file" accept="image/*,.pdf" multiple onChange={handleFileUpload} className="hidden" disabled={uploading} />
+                </label>
                 {docs.length > 0 && (
                   <div className="mt-3 space-y-2">
                     {/* 전체선택 + 공유 버튼 헤더 */}
