@@ -1007,9 +1007,8 @@ export default function DispatchLedgerPage() {
                 <input type="checkbox" checked={selectedRows.size > 0 && selectedRows.size === sorted.length} onChange={toggleSelectAll} className="w-4 h-4 accent-blue-600 cursor-pointer" />
               </th>
               <th className={th} onClick={() => handleSort('log_date')}>거래일{arrow('log_date')}</th>
-              <th className={th} onClick={() => handleSort('equipment_type')}>차종{arrow('equipment_type')}</th>
+              <th className={th} onClick={() => handleSort('equipment_type')}>작업내용{arrow('equipment_type')}</th>
               <th className={th} onClick={() => handleSort('plate_no')}>차량번호{arrow('plate_no')}</th>
-              <th className={th} onClick={() => handleSort('work_device')}>규격{arrow('work_device')}</th>
               <th className={thR} onClick={() => handleSort('operating_hours')}>가동시간{arrow('operating_hours')}</th>
               <th className={thR} onClick={() => handleSort('unit_price')}>단가{arrow('unit_price')}</th>
               <th className={thR} onClick={() => handleSort('sales_amount')}>매출액{arrow('sales_amount')}</th>
@@ -1025,15 +1024,15 @@ export default function DispatchLedgerPage() {
           </thead>
           <tbody className="divide-y divide-gray-100">
             {loading ? (
-              <tr><td colSpan={16} className="px-3 py-8 text-center text-gray-400">불러오는 중...</td></tr>
+              <tr><td colSpan={15} className="px-3 py-8 text-center text-gray-400">불러오는 중...</td></tr>
             ) : filtered.length === 0 ? (
-              <tr><td colSpan={16} className="px-3 py-8 text-center text-gray-400">데이터가 없습니다.</td></tr>
+              <tr><td colSpan={15} className="px-3 py-8 text-center text-gray-400">데이터가 없습니다.</td></tr>
             ) : tableRows}
             {!loading && filtered.length > 0 && (
               <tr className="bg-gray-50 font-semibold border-t-2 border-gray-300">
                 <td className={td}>합계{selectedRows.size > 0 ? ` (선택 ${selectedRows.size}건)` : ''}</td>
                 <td className={td + ' text-gray-500'}>{exportRows.length}일</td>
-                <td colSpan={5}></td>
+                <td colSpan={4}></td>
                 <td className={tdr + ' text-blue-700'}>{totalSales.toLocaleString()}</td>
                 <td colSpan={3}></td>
                 <td></td>
@@ -1255,7 +1254,7 @@ function LedgerTableRow({ r, bg, hrs, unitP, sales, isFirstSlot, slotsTotalSales
           ) : r.log_date}
         </div>
       </td>
-      <td className={td}>{r.equipment_type}</td>
+      <td className={td}>{[r.equipment_type, r.work_device].filter(Boolean).join(' ')}</td>
       <td className={td}>
         {editingPlateNo ? (
           <input autoFocus defaultValue={r.plate_no}
@@ -1271,7 +1270,6 @@ function LedgerTableRow({ r, bg, hrs, unitP, sales, isFirstSlot, slotsTotalSales
           </div>
         )}
       </td>
-      <td className={td}>{r.work_device}</td>
       <td className={tdr}>{hrs > 0 ? hrs + 'h' : r.operating_hours}</td>
       <td className={tdr}>{unitP > 0 ? unitP.toLocaleString() : r.unit_price.toLocaleString()}</td>
       <td className={tdr + ' font-medium text-blue-700'}>{(sales > 0 ? sales : (r.sales_amount || (wages[r.id] ?? 0))).toLocaleString()}</td>
