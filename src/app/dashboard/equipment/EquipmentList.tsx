@@ -26,10 +26,13 @@ export default function EquipmentList({ ownership }: Props) {
   const [sortKey, setSortKey] = useState<string>('plate_no')
   const [sortAsc, setSortAsc] = useState(true)
   const [sharingId, setSharingId] = useState<string | null>(null)
+  const [readyFiles, setReadyFiles] = useState<{ id: string; files: File[] } | null>(null)
   const supabase = createClient()
 
-  async function handleShareDocs(equipmentId: string) {
+  // 1단계: 파일 미리 로드
+  async function handlePrepareShare(equipmentId: string) {
     setSharingId(equipmentId)
+    setReadyFiles(null)
     try {
       const { data: docs } = await supabase.from('documents').select('*').eq('ref_id', equipmentId).order('created_at', { ascending: true })
       if (!docs || docs.length === 0) { alert('등록된 서류가 없습니다.'); setSharingId(null); return }
@@ -40,21 +43,30 @@ export default function EquipmentList({ ownership }: Props) {
         const blob = await resp.blob()
         files.push(new File([blob], doc.file_name ?? '서류', { type: blob.type }))
       }
-      if (typeof navigator.share === 'function' && navigator.canShare?.({ files })) {
-        await navigator.share({ files, title: '서류 전송' })
-      } else {
-        for (const file of files) {
-          const url = URL.createObjectURL(file)
-          const a = document.createElement('a')
-          a.href = url; a.download = file.name; a.click()
-          URL.revokeObjectURL(url)
-          await new Promise(r => setTimeout(r, 300))
-        }
-      }
+      setReadyFiles({ id: equipmentId, files })
     } catch (e: any) {
-      if (e?.name !== 'AbortError') alert('공유 중 오류: ' + String(e))
+      alert('파일 로드 오류: ' + String(e))
     }
     setSharingId(null)
+  }
+
+  // 2단계: 사용자 탭 → 즉시 공유 (새 제스처이므로 iOS 허용)
+  function handleExecuteShare() {
+    if (!readyFiles) return
+    const { files } = readyFiles
+    if (typeof navigator.share === 'function' && navigator.canShare?.({ files })) {
+      navigator.share({ files, title: '요청하신 장비서류 보내드립니다.' }).catch(e => {
+        if (e?.name !== 'AbortError') alert('공유 오류: ' + String(e))
+      })
+    } else {
+      files.forEach(file => {
+        const url = URL.createObjectURL(file)
+        const a = document.createElement('a')
+        a.href = url; a.download = file.name; a.click()
+        URL.revokeObjectURL(url)
+      })
+    }
+    setReadyFiles(null)
   }
 
   function toggleSort(key: string) {
@@ -205,10 +217,17 @@ export default function EquipmentList({ ownership }: Props) {
             <div className="mt-3 flex gap-2 pt-3 border-t border-gray-100">
               <button onClick={() => { setSelected(e); setModalOpen(true) }}
                 className="flex-1 py-1.5 rounded-lg bg-blue-50 text-blue-600 text-sm font-medium">수정</button>
-              <button onClick={() => handleShareDocs(e.id)} disabled={sharingId === e.id}
-                className="flex-1 py-1.5 rounded-lg bg-emerald-50 text-emerald-600 text-sm font-medium disabled:opacity-50">
-                {sharingId === e.id ? '전송중...' : '📤 서류공유'}
-              </button>
+              {readyFiles?.id === e.id ? (
+                <button onClick={handleExecuteShare}
+                  className="flex-1 py-1.5 rounded-lg bg-emerald-500 text-white text-sm font-medium animate-pulse">
+                  📤 탭하여 공유
+                </button>
+              ) : (
+                <button onClick={() => handlePrepareShare(e.id)} disabled={sharingId === e.id}
+                  className="flex-1 py-1.5 rounded-lg bg-emerald-50 text-emerald-600 text-sm font-medium disabled:opacity-50">
+                  {sharingId === e.id ? '준비중...' : '📤 서류공유'}
+                </button>
+              )}
               <button onClick={() => handleDelete(e.id)}
                 className="flex-1 py-1.5 rounded-lg bg-red-50 text-red-500 text-sm font-medium">삭제</button>
             </div>
@@ -260,9 +279,13 @@ export default function EquipmentList({ ownership }: Props) {
                 <td className="px-5 py-3">
                   <div className="flex gap-2 justify-end">
                     <button onClick={() => { setSelected(e); setModalOpen(true) }} className="text-xs text-blue-600 hover:underline">수정</button>
-                    <button onClick={() => handleShareDocs(e.id)} disabled={sharingId === e.id} className="text-xs text-emerald-600 hover:underline disabled:opacity-50">
-                      {sharingId === e.id ? '전송중...' : '📤 서류공유'}
-                    </button>
+                    {readyFiles?.id === e.id ? (
+                      <button onClick={handleExecuteShare} className="text-xs text-emerald-600 font-bold hover:underline animate-pulse">📤 탭하여 공유</button>
+                    ) : (
+                      <button onClick={() => handlePrepareShare(e.id)} disabled={sharingId === e.id} className="text-xs text-emerald-600 hover:underline disabled:opacity-50">
+                        {sharingId === e.id ? '준비중...' : '📤 서류공유'}
+                      </button>
+                    )}
                     <button onClick={() => handleDelete(e.id)} className="text-xs text-red-500 hover:underline">삭제</button>
                   </div>
                 </td>

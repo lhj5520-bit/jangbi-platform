@@ -110,7 +110,7 @@ export default function SupplierEquipmentModal({
         files.push(new File([blob], doc.file_name ?? '서류', { type: blob.type }))
       }
       if (typeof navigator.share === 'function' && navigator.canShare?.({ files })) {
-        await navigator.share({ files, title: '서류 전송' })
+        await navigator.share({ files, title: '요청하신 장비서류 보내드립니다.' })
       } else {
         // 공유 미지원 환경: 개별 다운로드
         for (const file of files) {
