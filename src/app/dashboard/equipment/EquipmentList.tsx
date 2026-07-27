@@ -10,6 +10,24 @@ const ExcavatorIcon = ({ size = 20 }: { size?: number }) => (
   <img src="/icons/excavator.svg" alt="굴삭기" width={size} height={size} style={{ display: 'inline-block', verticalAlign: 'middle' }} />
 )
 
+const DOC_SHARE_TITLE = '요청하신 장비서류 보내드립니다.'
+
+function toImageShareFile(blob: Blob, name?: string, path?: string) {
+  const fallbackName = path?.split('/').pop() || '서류'
+  const rawName = (name || fallbackName).split('?')[0]
+  const decodedName = decodeURIComponent(rawName)
+  const fallbackType = blob.type && blob.type !== 'application/octet-stream' ? blob.type : ''
+  const extType =
+    /\.(jpg|jpeg)$/i.test(decodedName) ? 'image/jpeg' :
+    /\.png$/i.test(decodedName) ? 'image/png' :
+    /\.webp$/i.test(decodedName) ? 'image/webp' :
+    fallbackType.startsWith('image/') ? fallbackType :
+    ''
+  if (!extType) return null
+  const fileName = /\.(jpg|jpeg|png|webp)$/i.test(decodedName) ? decodedName : `${decodedName}.jpg`
+  return new File([blob], fileName, { type: extType })
+}
+
 interface Props {
   ownership: 'own' | 'other'
 }
@@ -28,58 +46,56 @@ export default function EquipmentList({ ownership }: Props) {
   const [sharingId, setSharingId] = useState<string | null>(null)
   const [readyId, setReadyId] = useState<string | null>(null)
   // ref에 보관 → 클릭 핸들러에서 state 읽기 없이 즉시 접근 (iOS 제스처 컨텍스트 유지)
-  const readyFilesRef = useRef<File[]>([])
+  const readyFilesRef = useRef<{ files: File[]; urls: string[] }>({ files: [], urls: [] })
   const supabase = createClient()
 
-  // 1단계: 파일 미리 로드
+  // 1단계: 파일 + URL 미리 로드
   async function handlePrepareShare(equipmentId: string) {
     setSharingId(equipmentId)
     setReadyId(null)
-    readyFilesRef.current = []
+    readyFilesRef.current = { files: [], urls: [] }
     try {
       const { data: docs } = await supabase.from('documents').select('*').eq('ref_id', equipmentId).order('created_at', { ascending: true })
       if (!docs || docs.length === 0) { alert('등록된 서류가 없습니다.'); setSharingId(null); return }
       const files: File[] = []
+      const urls: string[] = []
       for (const doc of docs) {
         const { data: { publicUrl } } = supabase.storage.from('documents').getPublicUrl(doc.file_url)
-        const resp = await fetch(publicUrl)
-        const blob = await resp.blob()
-        files.push(new File([blob], doc.file_name ?? '서류', { type: blob.type }))
+        urls.push(publicUrl)
+        try {
+          const resp = await fetch(publicUrl)
+          const blob = await resp.blob()
+          const file = toImageShareFile(blob, doc.file_name, doc.file_url)
+          if (file) files.push(file)
+        } catch { /* 파일 로드 실패 시 URL만 유지 */ }
       }
-      readyFilesRef.current = files
+      readyFilesRef.current = { files, urls }
       setReadyId(equipmentId)
     } catch (e: any) {
-      alert('파일 로드 오류: ' + String(e))
+      alert('서류 로드 오류: ' + String(e))
     }
     setSharingId(null)
   }
 
-  // 2단계: ref에서 직접 꺼내 공유 → iOS 제스처 컨텍스트 보존
-  function handleExecuteShare() {
-    const files = readyFilesRef.current
-    readyFilesRef.current = []
+  // 2단계: ref에서 직접 꺼내 파일 첨부 공유
+  async function handleExecuteShare() {
+    const { files } = readyFilesRef.current
+    readyFilesRef.current = { files: [], urls: [] }
     setReadyId(null)
-    if (!files.length) return
-    if (typeof navigator.share === 'function') {
-      navigator.share({ files, title: '요청하신 장비서류 보내드립니다.' })
-        .catch(e => {
-          if (e?.name !== 'AbortError') {
-            // 공유 실패 시 개별 다운로드
-            files.forEach(file => {
-              const url = URL.createObjectURL(file)
-              const a = document.createElement('a')
-              a.href = url; a.download = file.name; a.click()
-              setTimeout(() => URL.revokeObjectURL(url), 1000)
-            })
-          }
-        })
-    } else {
-      files.forEach(file => {
-        const url = URL.createObjectURL(file)
-        const a = document.createElement('a')
-        a.href = url; a.download = file.name; a.click()
-        setTimeout(() => URL.revokeObjectURL(url), 1000)
-      })
+    if (!files.length) {
+      alert('문자로 공유할 그림파일이 없습니다. JPG/PNG 사진 서류만 문자로 바로 보낼 수 있습니다.')
+      return
+    }
+
+    if (typeof navigator.share !== 'function') {
+      alert('이 화면에서는 문자로 그림파일 공유를 지원하지 않습니다. 안드로이드 앱에서 다시 시도해 주세요.')
+      return
+    }
+
+    try {
+      await navigator.share({ files, title: DOC_SHARE_TITLE })
+    } catch (e: any) {
+      if (e?.name !== 'AbortError') alert('문자 앱으로 그림파일 공유를 열지 못했습니다. 다시 시도해 주세요.')
     }
   }
 

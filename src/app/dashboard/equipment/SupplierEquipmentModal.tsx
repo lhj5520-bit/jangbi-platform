@@ -53,6 +53,24 @@ function loadStampList(): StampItem[] {
   return []
 }
 
+const DOC_SHARE_TITLE = '요청하신 장비서류 보내드립니다.'
+
+function toImageShareFile(blob: Blob, name?: string, path?: string) {
+  const fallbackName = path?.split('/').pop() || '서류'
+  const rawName = (name || fallbackName).split('?')[0]
+  const decodedName = decodeURIComponent(rawName)
+  const fallbackType = blob.type && blob.type !== 'application/octet-stream' ? blob.type : ''
+  const extType =
+    /\.(jpg|jpeg)$/i.test(decodedName) ? 'image/jpeg' :
+    /\.png$/i.test(decodedName) ? 'image/png' :
+    /\.webp$/i.test(decodedName) ? 'image/webp' :
+    fallbackType.startsWith('image/') ? fallbackType :
+    ''
+  if (!extType) return null
+  const fileName = /\.(jpg|jpeg|png|webp)$/i.test(decodedName) ? decodedName : `${decodedName}.jpg`
+  return new File([blob], fileName, { type: extType })
+}
+
 export default function SupplierEquipmentModal({
   equipment, suppliers, onClose, onSaved,
   defaultSupplierId = '', ownership = 'other', allowCreate = false,
@@ -101,28 +119,29 @@ export default function SupplierEquipmentModal({
     const toShare = docs.filter(d => selectedDocIds.has(d.id))
     if (toShare.length === 0) { alert('공유할 서류를 선택하세요.'); return }
     setSharing(true)
+    let files: File[] = []
     try {
-      const files: File[] = []
+      files = []
       for (const doc of toShare) {
         const { data: { publicUrl } } = supabase.storage.from('documents').getPublicUrl(doc.file_url)
         const resp = await fetch(publicUrl)
         const blob = await resp.blob()
-        files.push(new File([blob], doc.file_name ?? '서류', { type: blob.type }))
+        const file = toImageShareFile(blob, doc.file_name, doc.file_url)
+        if (file) files.push(file)
       }
-      if (typeof navigator.share === 'function' && navigator.canShare?.({ files })) {
-        await navigator.share({ files, title: '요청하신 장비서류 보내드립니다.' })
-      } else {
-        // 공유 미지원 환경: 개별 다운로드
-        for (const file of files) {
-          const url = URL.createObjectURL(file)
-          const a = document.createElement('a')
-          a.href = url; a.download = file.name; a.click()
-          URL.revokeObjectURL(url)
-          await new Promise(r => setTimeout(r, 300))
-        }
+      if (!files.length) {
+        alert('문자로 공유할 그림파일이 없습니다. JPG/PNG 사진 서류만 문자로 바로 보낼 수 있습니다.')
+        setSharing(false)
+        return
       }
+      if (typeof navigator.share !== 'function') {
+        alert('이 화면에서는 문자로 그림파일 공유를 지원하지 않습니다. 안드로이드 앱에서 다시 시도해 주세요.')
+        setSharing(false)
+        return
+      }
+      await navigator.share({ files, title: DOC_SHARE_TITLE })
     } catch (e: any) {
-      if (e?.name !== 'AbortError') alert('공유 중 오류: ' + String(e))
+      if (e?.name !== 'AbortError') alert('문자 앱으로 그림파일 공유를 열지 못했습니다. 다시 시도해 주세요.')
     }
     setSharing(false)
   }

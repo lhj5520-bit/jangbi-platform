@@ -1009,7 +1009,7 @@ export default function DispatchLedgerPage() {
               <th className={th} onClick={() => handleSort('log_date')}>거래일{arrow('log_date')}</th>
               <th className={th} onClick={() => handleSort('equipment_type')}>차종{arrow('equipment_type')}</th>
               <th className={th} onClick={() => handleSort('plate_no')}>차량번호{arrow('plate_no')}</th>
-              <th className={th} onClick={() => handleSort('work_device')}>작업장치{arrow('work_device')}</th>
+              <th className={th} onClick={() => handleSort('work_device')}>규격{arrow('work_device')}</th>
               <th className={thR} onClick={() => handleSort('operating_hours')}>가동시간{arrow('operating_hours')}</th>
               <th className={thR} onClick={() => handleSort('unit_price')}>단가{arrow('unit_price')}</th>
               <th className={thR} onClick={() => handleSort('sales_amount')}>매출액{arrow('sales_amount')}</th>
