@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Equipment, Supplier } from '@/lib/types'
 import SupplierEquipmentModal from './SupplierEquipmentModal'
@@ -26,13 +26,16 @@ export default function EquipmentList({ ownership }: Props) {
   const [sortKey, setSortKey] = useState<string>('plate_no')
   const [sortAsc, setSortAsc] = useState(true)
   const [sharingId, setSharingId] = useState<string | null>(null)
-  const [readyFiles, setReadyFiles] = useState<{ id: string; files: File[] } | null>(null)
+  const [readyId, setReadyId] = useState<string | null>(null)
+  // ref에 보관 → 클릭 핸들러에서 state 읽기 없이 즉시 접근 (iOS 제스처 컨텍스트 유지)
+  const readyFilesRef = useRef<File[]>([])
   const supabase = createClient()
 
   // 1단계: 파일 미리 로드
   async function handlePrepareShare(equipmentId: string) {
     setSharingId(equipmentId)
-    setReadyFiles(null)
+    setReadyId(null)
+    readyFilesRef.current = []
     try {
       const { data: docs } = await supabase.from('documents').select('*').eq('ref_id', equipmentId).order('created_at', { ascending: true })
       if (!docs || docs.length === 0) { alert('등록된 서류가 없습니다.'); setSharingId(null); return }
@@ -43,30 +46,41 @@ export default function EquipmentList({ ownership }: Props) {
         const blob = await resp.blob()
         files.push(new File([blob], doc.file_name ?? '서류', { type: blob.type }))
       }
-      setReadyFiles({ id: equipmentId, files })
+      readyFilesRef.current = files
+      setReadyId(equipmentId)
     } catch (e: any) {
       alert('파일 로드 오류: ' + String(e))
     }
     setSharingId(null)
   }
 
-  // 2단계: 사용자 탭 → 즉시 공유 (새 제스처이므로 iOS 허용)
+  // 2단계: ref에서 직접 꺼내 공유 → iOS 제스처 컨텍스트 보존
   function handleExecuteShare() {
-    if (!readyFiles) return
-    const { files } = readyFiles
-    if (typeof navigator.share === 'function' && navigator.canShare?.({ files })) {
-      navigator.share({ files, title: '요청하신 장비서류 보내드립니다.' }).catch(e => {
-        if (e?.name !== 'AbortError') alert('공유 오류: ' + String(e))
-      })
+    const files = readyFilesRef.current
+    readyFilesRef.current = []
+    setReadyId(null)
+    if (!files.length) return
+    if (typeof navigator.share === 'function') {
+      navigator.share({ files, title: '요청하신 장비서류 보내드립니다.' })
+        .catch(e => {
+          if (e?.name !== 'AbortError') {
+            // 공유 실패 시 개별 다운로드
+            files.forEach(file => {
+              const url = URL.createObjectURL(file)
+              const a = document.createElement('a')
+              a.href = url; a.download = file.name; a.click()
+              setTimeout(() => URL.revokeObjectURL(url), 1000)
+            })
+          }
+        })
     } else {
       files.forEach(file => {
         const url = URL.createObjectURL(file)
         const a = document.createElement('a')
         a.href = url; a.download = file.name; a.click()
-        URL.revokeObjectURL(url)
+        setTimeout(() => URL.revokeObjectURL(url), 1000)
       })
     }
-    setReadyFiles(null)
   }
 
   function toggleSort(key: string) {
@@ -217,7 +231,7 @@ export default function EquipmentList({ ownership }: Props) {
             <div className="mt-3 flex gap-2 pt-3 border-t border-gray-100">
               <button onClick={() => { setSelected(e); setModalOpen(true) }}
                 className="flex-1 py-1.5 rounded-lg bg-blue-50 text-blue-600 text-sm font-medium">수정</button>
-              {readyFiles?.id === e.id ? (
+              {readyId === e.id ? (
                 <button onClick={handleExecuteShare}
                   className="flex-1 py-1.5 rounded-lg bg-emerald-500 text-white text-sm font-medium animate-pulse">
                   📤 탭하여 공유
@@ -279,7 +293,7 @@ export default function EquipmentList({ ownership }: Props) {
                 <td className="px-5 py-3">
                   <div className="flex gap-2 justify-end">
                     <button onClick={() => { setSelected(e); setModalOpen(true) }} className="text-xs text-blue-600 hover:underline">수정</button>
-                    {readyFiles?.id === e.id ? (
+                    {readyId === e.id ? (
                       <button onClick={handleExecuteShare} className="text-xs text-emerald-600 font-bold hover:underline animate-pulse">📤 탭하여 공유</button>
                     ) : (
                       <button onClick={() => handlePrepareShare(e.id)} disabled={sharingId === e.id} className="text-xs text-emerald-600 hover:underline disabled:opacity-50">
