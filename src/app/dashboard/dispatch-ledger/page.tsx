@@ -1007,7 +1007,7 @@ export default function DispatchLedgerPage() {
                 <input type="checkbox" checked={selectedRows.size > 0 && selectedRows.size === sorted.length} onChange={toggleSelectAll} className="w-4 h-4 accent-blue-600 cursor-pointer" />
               </th>
               <th className={th} onClick={() => handleSort('log_date')}>거래일{arrow('log_date')}</th>
-              <th className={th} onClick={() => handleSort('equipment_type')}>작업내용{arrow('equipment_type')}</th>
+              <th className={th} onClick={() => handleSort('equipment_type')}>차종{arrow('equipment_type')}</th>
               <th className={th} onClick={() => handleSort('plate_no')}>차량번호{arrow('plate_no')}</th>
               <th className={th} onClick={() => handleSort('work_type_1')}>작업{arrow('work_type_1')}</th>
               <th className={thR} onClick={() => handleSort('operating_hours')}>가동시간{arrow('operating_hours')}</th>
