@@ -71,56 +71,48 @@ export default function SupplierEquipmentModal({
   const [docType, setDocType] = useState('건설기계등록증')
   const [expireDate, setExpireDate] = useState('')
   const [uploading, setUploading] = useState(false)
-  const [collaging, setCollaging] = useState(false)
+  const [selectedDocIds, setSelectedDocIds] = useState<Set<string>>(new Set())
+  const [sharing, setSharing] = useState(false)
 
-  async function handleDocCollage() {
-    const imageDocs = docs.filter(d => /\.(jpg|jpeg|png|gif|webp)$/i.test(d.file_name ?? ''))
-    if (imageDocs.length === 0) { alert('이미지 서류가 없습니다. (PDF 제외)'); return }
-    setCollaging(true)
+  function toggleDoc(id: string) {
+    setSelectedDocIds(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+  function toggleAllDocs() {
+    setSelectedDocIds(prev => prev.size === docs.length ? new Set() : new Set(docs.map(d => d.id)))
+  }
+
+  async function handleShareDocs() {
+    const toShare = docs.filter(d => selectedDocIds.has(d.id))
+    if (toShare.length === 0) { alert('공유할 서류를 선택하세요.'); return }
+    setSharing(true)
     try {
-      // Blob으로 로드 (CORS 우회)
-      const loaded: { img: HTMLImageElement; label: string }[] = []
-      for (const doc of imageDocs) {
+      const files: File[] = []
+      for (const doc of toShare) {
         const { data: { publicUrl } } = supabase.storage.from('documents').getPublicUrl(doc.file_url)
         const resp = await fetch(publicUrl)
         const blob = await resp.blob()
-        const blobUrl = URL.createObjectURL(blob)
-        const img = new Image()
-        img.src = blobUrl
-        await new Promise(r => { img.onload = r; img.onerror = r })
-        loaded.push({ img, label: doc.doc_type ?? '' })
-        URL.revokeObjectURL(blobUrl)
+        files.push(new File([blob], doc.file_name ?? '서류', { type: blob.type }))
       }
-      // 캔버스 합성 (2열 그리드)
-      const COLS = 2, CELL_W = 540, CELL_H = 380, PAD = 12, LABEL_H = 28
-      const rows = Math.ceil(loaded.length / COLS)
-      const canvas = document.createElement('canvas')
-      canvas.width = COLS * (CELL_W + PAD) + PAD
-      canvas.height = rows * (CELL_H + LABEL_H + PAD) + PAD
-      const ctx = canvas.getContext('2d')!
-      ctx.fillStyle = '#f0f0f0'
-      ctx.fillRect(0, 0, canvas.width, canvas.height)
-      loaded.forEach(({ img, label }, i) => {
-        const col = i % COLS, row = Math.floor(i / COLS)
-        const x = PAD + col * (CELL_W + PAD)
-        const y = PAD + row * (CELL_H + LABEL_H + PAD)
-        ctx.fillStyle = '#fff'
-        ctx.fillRect(x, y, CELL_W, CELL_H)
-        const scale = Math.min(CELL_W / img.width, CELL_H / img.height)
-        const w = img.width * scale, h = img.height * scale
-        ctx.drawImage(img, x + (CELL_W - w) / 2, y + (CELL_H - h) / 2, w, h)
-        ctx.fillStyle = '#333'
-        ctx.font = 'bold 14px sans-serif'
-        ctx.fillText(label, x + 6, y + CELL_H + 20)
-      })
-      const link = document.createElement('a')
-      link.download = `서류취합_${new Date().toISOString().slice(0, 10)}.jpg`
-      link.href = canvas.toDataURL('image/jpeg', 0.92)
-      link.click()
-    } catch (e) {
-      alert('서류 취합 중 오류: ' + String(e))
+      if (typeof navigator.share === 'function' && navigator.canShare?.({ files })) {
+        await navigator.share({ files, title: '서류 전송' })
+      } else {
+        // 공유 미지원 환경: 개별 다운로드
+        for (const file of files) {
+          const url = URL.createObjectURL(file)
+          const a = document.createElement('a')
+          a.href = url; a.download = file.name; a.click()
+          URL.revokeObjectURL(url)
+          await new Promise(r => setTimeout(r, 300))
+        }
+      }
+    } catch (e: any) {
+      if (e?.name !== 'AbortError') alert('공유 중 오류: ' + String(e))
     }
-    setCollaging(false)
+    setSharing(false)
   }
 
   // 서류 ref: 장비 수정모드면 equipment.id, 업체 모드면 selectedSupId (동적)
@@ -674,32 +666,47 @@ export default function SupplierEquipmentModal({
                 </div>
                 {docs.length > 0 && (
                   <div className="mt-3 space-y-2">
+                    {/* 전체선택 + 공유 버튼 헤더 */}
+                    <div className="flex items-center justify-between px-1">
+                      <label className="flex items-center gap-1.5 text-xs text-gray-500 cursor-pointer select-none">
+                        <input type="checkbox"
+                          checked={selectedDocIds.size === docs.length && docs.length > 0}
+                          onChange={toggleAllDocs}
+                          className="w-3.5 h-3.5 accent-blue-600" />
+                        전체선택
+                      </label>
+                      {selectedDocIds.size > 0 && (
+                        <button onClick={handleShareDocs} disabled={sharing}
+                          className="flex items-center gap-1 text-xs font-medium px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white">
+                          {sharing ? '전송 중...' : `📤 공유 (${selectedDocIds.size}개)`}
+                        </button>
+                      )}
+                    </div>
                     {docs.map(doc => {
                       const { data: { publicUrl } } = supabase.storage.from('documents').getPublicUrl(doc.file_url)
                       const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(doc.file_name ?? '')
                       return (
-                        <div key={doc.id} className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
+                        <div key={doc.id} className={`flex items-center justify-between rounded-lg px-3 py-2 cursor-pointer transition-colors ${selectedDocIds.has(doc.id) ? 'bg-blue-50 border border-blue-200' : 'bg-gray-50'}`}
+                          onClick={() => toggleDoc(doc.id)}>
                           <div className="flex items-center gap-2 min-w-0">
-                            <span className="text-lg">{isImage ? 'img' : 'doc'}</span>
+                            <input type="checkbox" checked={selectedDocIds.has(doc.id)} onChange={() => toggleDoc(doc.id)}
+                              onClick={e => e.stopPropagation()}
+                              className="w-3.5 h-3.5 accent-blue-600 shrink-0" />
+                            <span className="text-sm">{isImage ? '🖼' : '📄'}</span>
                             <div className="min-w-0">
                               <a href={publicUrl} target="_blank" rel="noreferrer"
-                                className="text-xs font-medium text-blue-600 hover:underline truncate block max-w-[200px]">
+                                onClick={e => e.stopPropagation()}
+                                className="text-xs font-medium text-blue-600 hover:underline truncate block max-w-[180px]">
                                 {doc.file_name}
                               </a>
                               <p className="text-xs text-gray-400">{doc.doc_type}{doc.expire_date ? ` · 만료 ${doc.expire_date}` : ''}</p>
                             </div>
                           </div>
-                          <button onClick={() => handleDeleteDoc(doc.id, doc.file_url)}
+                          <button onClick={e => { e.stopPropagation(); handleDeleteDoc(doc.id, doc.file_url) }}
                             className="text-xs text-red-400 hover:text-red-600 shrink-0 ml-2">삭제</button>
                         </div>
                       )
                     })}
-                    {docs.some(d => /\.(jpg|jpeg|png|gif|webp)$/i.test(d.file_name ?? '')) && (
-                      <button onClick={handleDocCollage} disabled={collaging}
-                        className="w-full mt-1 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-sm font-medium">
-                        {collaging ? '취합 중...' : '📤 서류 취합 이미지 저장'}
-                      </button>
-                    )}
                   </div>
                 )}
               </div>
