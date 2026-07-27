@@ -71,6 +71,57 @@ export default function SupplierEquipmentModal({
   const [docType, setDocType] = useState('건설기계등록증')
   const [expireDate, setExpireDate] = useState('')
   const [uploading, setUploading] = useState(false)
+  const [collaging, setCollaging] = useState(false)
+
+  async function handleDocCollage() {
+    const imageDocs = docs.filter(d => /\.(jpg|jpeg|png|gif|webp)$/i.test(d.file_name ?? ''))
+    if (imageDocs.length === 0) { alert('이미지 서류가 없습니다. (PDF 제외)'); return }
+    setCollaging(true)
+    try {
+      // Blob으로 로드 (CORS 우회)
+      const loaded: { img: HTMLImageElement; label: string }[] = []
+      for (const doc of imageDocs) {
+        const { data: { publicUrl } } = supabase.storage.from('documents').getPublicUrl(doc.file_url)
+        const resp = await fetch(publicUrl)
+        const blob = await resp.blob()
+        const blobUrl = URL.createObjectURL(blob)
+        const img = new Image()
+        img.src = blobUrl
+        await new Promise(r => { img.onload = r; img.onerror = r })
+        loaded.push({ img, label: doc.doc_type ?? '' })
+        URL.revokeObjectURL(blobUrl)
+      }
+      // 캔버스 합성 (2열 그리드)
+      const COLS = 2, CELL_W = 540, CELL_H = 380, PAD = 12, LABEL_H = 28
+      const rows = Math.ceil(loaded.length / COLS)
+      const canvas = document.createElement('canvas')
+      canvas.width = COLS * (CELL_W + PAD) + PAD
+      canvas.height = rows * (CELL_H + LABEL_H + PAD) + PAD
+      const ctx = canvas.getContext('2d')!
+      ctx.fillStyle = '#f0f0f0'
+      ctx.fillRect(0, 0, canvas.width, canvas.height)
+      loaded.forEach(({ img, label }, i) => {
+        const col = i % COLS, row = Math.floor(i / COLS)
+        const x = PAD + col * (CELL_W + PAD)
+        const y = PAD + row * (CELL_H + LABEL_H + PAD)
+        ctx.fillStyle = '#fff'
+        ctx.fillRect(x, y, CELL_W, CELL_H)
+        const scale = Math.min(CELL_W / img.width, CELL_H / img.height)
+        const w = img.width * scale, h = img.height * scale
+        ctx.drawImage(img, x + (CELL_W - w) / 2, y + (CELL_H - h) / 2, w, h)
+        ctx.fillStyle = '#333'
+        ctx.font = 'bold 14px sans-serif'
+        ctx.fillText(label, x + 6, y + CELL_H + 20)
+      })
+      const link = document.createElement('a')
+      link.download = `서류취합_${new Date().toISOString().slice(0, 10)}.jpg`
+      link.href = canvas.toDataURL('image/jpeg', 0.92)
+      link.click()
+    } catch (e) {
+      alert('서류 취합 중 오류: ' + String(e))
+    }
+    setCollaging(false)
+  }
 
   // 서류 ref: 장비 수정모드면 equipment.id, 업체 모드면 selectedSupId (동적)
   const docRefId = equipment?.id ?? selectedSupId
@@ -643,6 +694,12 @@ export default function SupplierEquipmentModal({
                         </div>
                       )
                     })}
+                    {docs.some(d => /\.(jpg|jpeg|png|gif|webp)$/i.test(d.file_name ?? '')) && (
+                      <button onClick={handleDocCollage} disabled={collaging}
+                        className="w-full mt-1 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-sm font-medium">
+                        {collaging ? '취합 중...' : '📤 서류 취합 이미지 저장'}
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
