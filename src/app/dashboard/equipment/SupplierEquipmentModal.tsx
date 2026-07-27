@@ -85,6 +85,18 @@ export default function SupplierEquipmentModal({
     setSelectedDocIds(prev => prev.size === docs.length ? new Set() : new Set(docs.map(d => d.id)))
   }
 
+  async function handleDeleteSelectedDocs() {
+    if (selectedDocIds.size === 0) return
+    if (!confirm(`선택한 ${selectedDocIds.size}개의 서류를 삭제하시겠습니까?`)) return
+    const toDelete = docs.filter(d => selectedDocIds.has(d.id))
+    for (const doc of toDelete) {
+      await supabase.storage.from('documents').remove([doc.file_url])
+      await supabase.from('documents').delete().eq('id', doc.id)
+    }
+    setDocs(d => d.filter(doc => !selectedDocIds.has(doc.id)))
+    setSelectedDocIds(new Set())
+  }
+
   async function handleShareDocs() {
     const toShare = docs.filter(d => selectedDocIds.has(d.id))
     if (toShare.length === 0) { alert('공유할 서류를 선택하세요.'); return }
@@ -666,10 +678,16 @@ export default function SupplierEquipmentModal({
                         전체선택
                       </label>
                       {selectedDocIds.size > 0 && (
-                        <button onClick={handleShareDocs} disabled={sharing}
-                          className="flex items-center gap-1 text-xs font-medium px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white">
-                          {sharing ? '전송 중...' : `📤 공유 (${selectedDocIds.size}개)`}
-                        </button>
+                        <div className="flex gap-1.5">
+                          <button onClick={handleShareDocs} disabled={sharing}
+                            className="flex items-center gap-1 text-xs font-medium px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white">
+                            {sharing ? '전송 중...' : `📤 공유 (${selectedDocIds.size}개)`}
+                          </button>
+                          <button onClick={handleDeleteSelectedDocs}
+                            className="flex items-center gap-1 text-xs font-medium px-3 py-1 rounded-lg bg-red-500 hover:bg-red-600 text-white">
+                            🗑 삭제 ({selectedDocIds.size}개)
+                          </button>
+                        </div>
                       )}
                     </div>
                     {docs.map(doc => {
