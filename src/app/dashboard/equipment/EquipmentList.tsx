@@ -23,9 +23,39 @@ export default function EquipmentList({ ownership }: Props) {
   const [modalOpen, setModalOpen] = useState(false)
   const [selected, setSelected] = useState<Equipment | null>(null)
   const [excelOpen, setExcelOpen] = useState(false)
-  const [sortKey, setSortKey] = useState<string>('')
+  const [sortKey, setSortKey] = useState<string>('plate_no')
   const [sortAsc, setSortAsc] = useState(true)
+  const [sharingId, setSharingId] = useState<string | null>(null)
   const supabase = createClient()
+
+  async function handleShareDocs(equipmentId: string) {
+    setSharingId(equipmentId)
+    try {
+      const { data: docs } = await supabase.from('documents').select('*').eq('ref_id', equipmentId).order('created_at', { ascending: true })
+      if (!docs || docs.length === 0) { alert('등록된 서류가 없습니다.'); setSharingId(null); return }
+      const files: File[] = []
+      for (const doc of docs) {
+        const { data: { publicUrl } } = supabase.storage.from('documents').getPublicUrl(doc.file_url)
+        const resp = await fetch(publicUrl)
+        const blob = await resp.blob()
+        files.push(new File([blob], doc.file_name ?? '서류', { type: blob.type }))
+      }
+      if (typeof navigator.share === 'function' && navigator.canShare?.({ files })) {
+        await navigator.share({ files, title: '서류 전송' })
+      } else {
+        for (const file of files) {
+          const url = URL.createObjectURL(file)
+          const a = document.createElement('a')
+          a.href = url; a.download = file.name; a.click()
+          URL.revokeObjectURL(url)
+          await new Promise(r => setTimeout(r, 300))
+        }
+      }
+    } catch (e: any) {
+      if (e?.name !== 'AbortError') alert('공유 중 오류: ' + String(e))
+    }
+    setSharingId(null)
+  }
 
   function toggleSort(key: string) {
     if (sortKey === key) setSortAsc(a => !a)
@@ -172,9 +202,13 @@ export default function EquipmentList({ ownership }: Props) {
               <div className="text-gray-400">보험만기</div>
               <div>{(e as any).insurance_expire ? checkExpire((e as any).insurance_expire) : <span className="text-gray-300">-</span>}</div>
             </div>
-            <div className="mt-3 flex gap-3 pt-3 border-t border-gray-100">
+            <div className="mt-3 flex gap-2 pt-3 border-t border-gray-100">
               <button onClick={() => { setSelected(e); setModalOpen(true) }}
                 className="flex-1 py-1.5 rounded-lg bg-blue-50 text-blue-600 text-sm font-medium">수정</button>
+              <button onClick={() => handleShareDocs(e.id)} disabled={sharingId === e.id}
+                className="flex-1 py-1.5 rounded-lg bg-emerald-50 text-emerald-600 text-sm font-medium disabled:opacity-50">
+                {sharingId === e.id ? '전송중...' : '📤 서류공유'}
+              </button>
               <button onClick={() => handleDelete(e.id)}
                 className="flex-1 py-1.5 rounded-lg bg-red-50 text-red-500 text-sm font-medium">삭제</button>
             </div>
@@ -226,6 +260,9 @@ export default function EquipmentList({ ownership }: Props) {
                 <td className="px-5 py-3">
                   <div className="flex gap-2 justify-end">
                     <button onClick={() => { setSelected(e); setModalOpen(true) }} className="text-xs text-blue-600 hover:underline">수정</button>
+                    <button onClick={() => handleShareDocs(e.id)} disabled={sharingId === e.id} className="text-xs text-emerald-600 hover:underline disabled:opacity-50">
+                      {sharingId === e.id ? '전송중...' : '📤 서류공유'}
+                    </button>
                     <button onClick={() => handleDelete(e.id)} className="text-xs text-red-500 hover:underline">삭제</button>
                   </div>
                 </td>

@@ -270,6 +270,10 @@ export default function EquipmentPage() {
                   <div className="flex gap-2 justify-end">
                     <button onClick={() => { setSelected(e); setModalOpen(true) }}
                       className="text-xs text-blue-600 hover:underline">수정</button>
+                    <button onClick={() => handleShareDocs(e.id)} disabled={sharingId === e.id}
+                      className="text-xs text-emerald-600 hover:underline disabled:opacity-50">
+                      {sharingId === e.id ? '전송중...' : '📤 서류공유'}
+                    </button>
                     <button onClick={() => handleDelete(e.id)}
                       className="text-xs text-red-500 hover:underline">삭제</button>
                   </div>
