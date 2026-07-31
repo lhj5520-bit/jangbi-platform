@@ -560,7 +560,7 @@ export default function DispatchLedgerPage() {
 
   function handleCreateTradeStatement() {
     const selectedData = sorted.filter(r => selectedRows.has(r.id))
-    if (!selectedData.length) return
+    if (!selectedData.length) { alert('거래명세서에 넣을 행을 먼저 체크박스로 선택하세요.'); return }
     const editRows = selectedData.map(r => ({
       _key: Math.random().toString(36).slice(2),
       log_date: r.log_date,
@@ -982,9 +982,9 @@ export default function DispatchLedgerPage() {
             className="border border-gray-300 text-gray-600 text-sm font-medium px-3 py-1.5 rounded-lg hover:bg-gray-50">
             발행취소
           </button>
-          <button onClick={handleCreateTradeStatement}
-            className="bg-violet-600 hover:bg-violet-700 text-white text-sm font-medium px-4 py-1.5 rounded-lg">
-            📄 거래명세서 생성
+          <button onClick={() => { setClientMergeOpen(true); setMergeSelected(new Set()); setMergeTarget(''); setMergeSearch('') }}
+            className="bg-rose-500 hover:bg-rose-600 text-white text-sm font-medium px-4 py-1.5 rounded-lg">
+            🔀 발주처 정리
           </button>
           <button onClick={handleBulkDelete} disabled={deleting}
             className="bg-red-600 hover:bg-red-700 disabled:opacity-40 text-white text-sm font-medium px-4 py-1.5 rounded-lg">
@@ -1004,9 +1004,9 @@ export default function DispatchLedgerPage() {
             className="bg-gray-600 hover:bg-gray-700 text-white text-sm font-medium px-4 py-2 rounded-lg">
             🔄 저장반영
           </button>
-          <button onClick={() => { setClientMergeOpen(true); setMergeSelected(new Set()); setMergeTarget(''); setMergeSearch('') }}
-            className="bg-rose-500 hover:bg-rose-600 text-white text-sm font-medium px-4 py-2 rounded-lg">
-            🔀 발주처 정리
+          <button onClick={handleCreateTradeStatement}
+            className="bg-violet-600 hover:bg-violet-700 text-white text-sm font-medium px-4 py-2 rounded-lg">
+            📄 거래명세서 생성
           </button>
           <button onClick={() => setExcelOpen(true)}
             className="bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium px-4 py-2 rounded-lg">
