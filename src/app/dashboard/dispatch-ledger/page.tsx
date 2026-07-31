@@ -411,6 +411,18 @@ export default function DispatchLedgerPage() {
     if (!exportPrintRef.current) return
     setExporting(true)
     setExportVisible(true)
+
+    // 클립보드 write를 클릭 직후(제스처 컨텍스트 살아있을 때) 즉시 등록
+    // Promise<Blob>을 넘기면 Chrome이 제스처 연결을 유지한 채 blob 완성 시 복사함
+    const clipCtx: { resolve: ((b: Blob) => void) | null; reject: ((e: any) => void) | null; promise: Promise<void> | null } =
+      { resolve: null, reject: null, promise: null }
+    if (typeof navigator.clipboard?.write === 'function') {
+      const blobPromise = new Promise<Blob>((res, rej) => { clipCtx.resolve = res; clipCtx.reject = rej })
+      try {
+        clipCtx.promise = navigator.clipboard.write([new ClipboardItem({ 'image/png': blobPromise })])
+      } catch { /* ClipboardItem 미지원 */ }
+    }
+
     try {
       await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))
       const { toJpeg } = await import('html-to-image')
@@ -422,8 +434,30 @@ export default function DispatchLedgerPage() {
       const blob = await res.blob()
       const file = new File([blob], filename, { type: 'image/jpeg' })
 
-      // 1순위: Web Share API (모바일 → 카톡 선택창)
-      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+      // PNG blob 생성 → 클립보드 Promise 해제
+      let clipOk = false
+      if (clipCtx.resolve) {
+        try {
+          const canvas = document.createElement('canvas')
+          const img = new Image()
+          await new Promise<void>((resolve, reject) => { img.onload = () => resolve(); img.onerror = reject; img.src = dataUrl })
+          canvas.width = img.naturalWidth; canvas.height = img.naturalHeight
+          const ctx = canvas.getContext('2d')!
+          ctx.drawImage(img, 0, 0)
+          const pngBlob = await new Promise<Blob>((resolve, reject) =>
+            canvas.toBlob(b => b ? resolve(b) : reject(new Error('toBlob 실패')), 'image/png')
+          )
+          clipCtx.resolve(pngBlob)
+          await clipCtx.promise
+          clipOk = true
+        } catch (e) {
+          clipCtx.reject?.(e)
+          console.warn('클립보드 복사 실패:', e)
+        }
+      }
+
+      // 1순위: Web Share API (모바일)
+      if (!clipOk && navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
         setExportVisible(false)
         try {
           await navigator.share({ files: [file], title })
@@ -433,35 +467,17 @@ export default function DispatchLedgerPage() {
         }
       }
 
-      // 2순위: 클립보드 PNG 복사 (데스크탑 → 카톡 Ctrl+V)
-      let clipOk = false
-      try {
-        const canvas = document.createElement('canvas')
-        const img = new Image()
-        await new Promise<void>((resolve, reject) => { img.onload = () => resolve(); img.onerror = reject; img.src = dataUrl })
-        canvas.width = img.naturalWidth; canvas.height = img.naturalHeight
-        const ctx = canvas.getContext('2d')!
-        ctx.drawImage(img, 0, 0)
-        const pngBlob = await new Promise<Blob>((resolve, reject) =>
-          canvas.toBlob(b => b ? resolve(b) : reject(new Error('toBlob 실패')), 'image/png')
-        )
-        // Blob을 직접 전달 (Promise 래퍼 제거 — 호환성 향상)
-        await navigator.clipboard.write([new ClipboardItem({ 'image/png': pngBlob })])
-        clipOk = true
-      } catch (e) {
-        console.warn('클립보드 복사 실패:', e)
-      }
-
       setExportVisible(false)
 
       // 항상 파일 다운로드 + 클립보드 성공 여부에 따라 메시지 분기
       const a = document.createElement('a'); a.href = dataUrl; a.download = filename; a.click()
       if (clipOk) {
-        alert('✅ 클립보드에도 복사됐습니다!\n카카오톡 채팅창에서 Ctrl+V로 바로 붙여넣기 하거나,\n다운로드된 파일을 첨부하세요.')
+        alert('✅ 클립보드에 복사됐습니다!\n카카오톡 채팅창에서 Ctrl+V로 바로 붙여넣기 하세요.')
       } else {
         alert(`📥 "${filename}" 파일로 저장됩니다.\n카카오톡에 파일을 첨부하거나 드래그해서 보내세요.`)
       }
     } catch (e) {
+      clipCtx.reject?.(e)
       console.error(e)
       setExportVisible(false)
       alert('내보내기 오류: ' + String(e))
