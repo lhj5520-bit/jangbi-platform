@@ -27,6 +27,7 @@ export default function DispatchLedgerPage() {
   const [rows, setRows] = useState<LedgerRow[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  const [driverSearch, setDriverSearch] = useState('')
   const today = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}` })()
   const [dateFrom, setDateFrom] = useState(today.slice(0, 7) + '-01')
   const [dateTo, setDateTo] = useState(today)
@@ -607,11 +608,18 @@ export default function DispatchLedgerPage() {
   useEffect(() => { load() }, [dateFrom, dateTo])
 
   const filtered = rows.filter(r => {
-    if (!search) return true
-    const q = search.toLowerCase()
-    return r.log_date.includes(q) || r.plate_no.toLowerCase().includes(q) ||
-      r.driver_name.toLowerCase().includes(q) || r.client_name.toLowerCase().includes(q) ||
-      r.site_name.toLowerCase().includes(q) || r.engineer_name.toLowerCase().includes(q)
+    if (search) {
+      const q = search.toLowerCase()
+      const matchSearch = r.log_date.includes(q) || r.plate_no.toLowerCase().includes(q) ||
+        r.driver_name.toLowerCase().includes(q) || r.client_name.toLowerCase().includes(q) ||
+        r.site_name.toLowerCase().includes(q) || r.engineer_name.toLowerCase().includes(q)
+      if (!matchSearch) return false
+    }
+    if (driverSearch) {
+      const dq = driverSearch.toLowerCase()
+      if (!r.driver_name.toLowerCase().includes(dq) && !r.engineer_name.toLowerCase().includes(dq)) return false
+    }
+    return true
   })
   const exportRows = selectedRows.size > 0 ? filtered.filter(r => selectedRows.has(r.id)) : filtered
   const totalSales = exportRows.reduce((s, r) => s + (r.sales_amount || (wages[r.id] ?? 0)), 0)
@@ -983,8 +991,10 @@ export default function DispatchLedgerPage() {
             전체
           </button>
         </div>
-        <input type="text" placeholder="차량번호, 차주명, 발주처명..." value={search} onChange={e => setSearch(e.target.value)}
+        <input type="text" placeholder="발주처, 차량번호, 현장명..." value={search} onChange={e => setSearch(e.target.value)}
           className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 flex-1 min-w-48" />
+        <input type="text" placeholder="차주명 필터..." value={driverSearch} onChange={e => setDriverSearch(e.target.value)}
+          className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-36" />
       </div>
 
       <div className="grid grid-cols-2 gap-3 mb-4">
