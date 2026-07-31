@@ -563,16 +563,20 @@ export default function DispatchLedgerPage() {
   function handleCreateTradeStatement() {
     const selectedData = sorted.filter(r => selectedRows.has(r.id))
     if (!selectedData.length) { alert('거래명세서에 넣을 행을 먼저 체크박스로 선택하세요.'); return }
-    const editRows = selectedData.map(r => ({
-      _key: Math.random().toString(36).slice(2),
-      log_date: r.log_date,
-      equipment_type: [r.equipment_type, r.work_device].filter(Boolean).join(' '),
-      plate_no: r.plate_no,
-      work_content: r.work_type_1 ?? '',
-      quantity: r.operating_hours > 0 ? String(r.operating_hours) : '',
-      unit_price: r.unit_price > 0 ? String(r.unit_price) : '',
-      note: '',
-    }))
+    const editRows = selectedData.map(r => {
+      // 단가: client_unit_price → work_price_1 → 0 순으로 폴백
+      const unitPrice = r.unit_price > 0 ? r.unit_price : (r.work_price_1 ?? 0)
+      return {
+        _key: Math.random().toString(36).slice(2),
+        log_date: r.log_date,
+        equipment_type: [r.equipment_type, r.work_device].filter(Boolean).join(' '),
+        plate_no: r.plate_no,
+        work_content: r.work_type_1 ?? '',
+        quantity: r.operating_hours > 0 ? String(r.operating_hours) : '',
+        unit_price: unitPrice > 0 ? unitPrice.toLocaleString() : '',
+        note: '',
+      }
+    })
     // 선택 행 중 가장 많이 등장한 발주처 자동 선택
     const clientCounts = selectedData.reduce((acc, r) => {
       if (r.client_name) acc[r.client_name] = (acc[r.client_name] || 0) + 1
