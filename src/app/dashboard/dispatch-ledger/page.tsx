@@ -444,8 +444,8 @@ export default function DispatchLedgerPage() {
         const pngBlob = await new Promise<Blob>((resolve, reject) =>
           canvas.toBlob(b => b ? resolve(b) : reject(new Error('toBlob 실패')), 'image/png')
         )
-        // ClipboardItem을 Promise로 전달 (브라우저 제한 우회)
-        await navigator.clipboard.write([new ClipboardItem({ 'image/png': Promise.resolve(pngBlob) })])
+        // Blob을 직접 전달 (Promise 래퍼 제거 — 호환성 향상)
+        await navigator.clipboard.write([new ClipboardItem({ 'image/png': pngBlob })])
         clipOk = true
       } catch (e) {
         console.warn('클립보드 복사 실패:', e)
@@ -453,14 +453,13 @@ export default function DispatchLedgerPage() {
 
       setExportVisible(false)
 
-      if (clipOk) {
-        alert('✅ 클립보드에 복사됐습니다!\n카카오톡 채팅창에서 Ctrl+V로 붙여넣기 하세요.')
-        return
-      }
-
-      // 3순위: 다운로드
+      // 항상 파일 다운로드 + 클립보드 성공 여부에 따라 메시지 분기
       const a = document.createElement('a'); a.href = dataUrl; a.download = filename; a.click()
-      alert(`📥 "${filename}" 파일로 다운로드됩니다.\n(클립보드 복사가 지원되지 않는 브라우저)`)
+      if (clipOk) {
+        alert('✅ 클립보드에도 복사됐습니다!\n카카오톡 채팅창에서 Ctrl+V로 바로 붙여넣기 하거나,\n다운로드된 파일을 첨부하세요.')
+      } else {
+        alert(`📥 "${filename}" 파일로 저장됩니다.\n카카오톡에 파일을 첨부하거나 드래그해서 보내세요.`)
+      }
     } catch (e) {
       console.error(e)
       setExportVisible(false)
@@ -1310,6 +1309,7 @@ function LedgerTableRow({ r, bg, hrs, unitP, sales, isFirstSlot, slotsTotalSales
             value={wages[r.id] ?? 0}
             onChange={e => { const raw = Number(e.target.value); if (!isNaN(raw)) setWages(w => ({ ...w, [r.id]: raw })) }}
             onBlur={e => saveWage(r.id, Number(e.target.value))}
+            onWheel={e => e.currentTarget.blur()}
             className="w-24 text-right px-2 py-1 text-sm border border-transparent rounded hover:border-gray-300 focus:border-blue-500 focus:outline-none bg-transparent text-green-700 font-medium" />
         )}
       </td>

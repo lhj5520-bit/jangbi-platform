@@ -876,6 +876,7 @@ export default function LogModal({ log, dispatches, equipment = [], suppliers = 
                   <div className="relative flex-1">
                     <input type="number" value={form.work_price_1}
                       onChange={e => handleWorkPrice1Change(e.target.value)}
+                      onWheel={e => e.currentTarget.blur()}
                       className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 pr-8"
                       placeholder="개별단가" />
                     <span className="absolute right-2 top-1.5 text-xs text-gray-400">원</span>
@@ -925,6 +926,7 @@ export default function LogModal({ log, dispatches, equipment = [], suppliers = 
                   <div className="relative flex-1">
                     <input type="number" value={form.work_price_2}
                       onChange={e => setF('work_price_2', e.target.value)}
+                      onWheel={e => e.currentTarget.blur()}
                       className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 pr-8"
                       placeholder="개별단가" />
                     <span className="absolute right-2 top-1.5 text-xs text-gray-400">원</span>
@@ -974,6 +976,7 @@ export default function LogModal({ log, dispatches, equipment = [], suppliers = 
                   <div className="relative flex-1">
                     <input type="number" value={form.work_price_3}
                       onChange={e => setF('work_price_3', e.target.value)}
+                      onWheel={e => e.currentTarget.blur()}
                       className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 pr-8"
                       placeholder="개별단가" />
                     <span className="absolute right-2 top-1.5 text-xs text-gray-400">원</span>
@@ -1021,6 +1024,7 @@ export default function LogModal({ log, dispatches, equipment = [], suppliers = 
               <div className="relative">
                 <input type="number" value={dispatch.client_unit_price}
                   onChange={e => handlePriceChange('client_unit_price', e.target.value)}
+                  onWheel={e => e.currentTarget.blur()}
                   className={inp} placeholder="발주처 청구단가" />
                 <span className="absolute right-3 top-2 text-sm text-gray-400">원</span>
               </div>
@@ -1030,6 +1034,7 @@ export default function LogModal({ log, dispatches, equipment = [], suppliers = 
               <div className="relative">
                 <input type="number" value={dispatch.commission_amount}
                   onChange={e => handlePriceChange('commission_amount', e.target.value)}
+                  onWheel={e => e.currentTarget.blur()}
                   className={inp} placeholder="수수료" />
                 <span className="absolute right-3 top-2 text-sm text-gray-400">원</span>
               </div>
@@ -1067,6 +1072,7 @@ export default function LogModal({ log, dispatches, equipment = [], suppliers = 
             <div className="relative">
               <input type="number" value={dispatch.supplier_unit_price}
                 onChange={e => setD('supplier_unit_price', e.target.value)}
+                onWheel={e => e.currentTarget.blur()}
                 className={inp} placeholder="기사 지급 급여" />
               <span className="absolute right-3 top-2 text-sm text-gray-400">원</span>
             </div>
