@@ -558,6 +558,29 @@ export default function DispatchLedgerPage() {
     setMergeTarget(matchedName); setMergeSelected(new Set()); setMergeSearch(''); setClientMergeOpen(true)
   }
 
+  function handleCreateTradeStatement() {
+    const selectedData = sorted.filter(r => selectedRows.has(r.id))
+    if (!selectedData.length) return
+    const editRows = selectedData.map(r => ({
+      _key: Math.random().toString(36).slice(2),
+      log_date: r.log_date,
+      equipment_type: [r.equipment_type, r.work_device].filter(Boolean).join(' '),
+      plate_no: r.plate_no,
+      work_content: r.work_type_1 ?? '',
+      quantity: r.operating_hours > 0 ? String(r.operating_hours) : '',
+      unit_price: r.unit_price > 0 ? String(r.unit_price) : '',
+      note: '',
+    }))
+    // 선택 행 중 가장 많이 등장한 발주처 자동 선택
+    const clientCounts = selectedData.reduce((acc, r) => {
+      if (r.client_name) acc[r.client_name] = (acc[r.client_name] || 0) + 1
+      return acc
+    }, {} as Record<string, number>)
+    const client = Object.entries(clientCounts).sort(([, a], [, b]) => b - a)[0]?.[0] ?? ''
+    localStorage.setItem('ts_from_dispatch', JSON.stringify({ rows: editRows, client }))
+    window.location.href = '/dashboard/trade-statement'
+  }
+
   async function handleClientMerge() {
     if (!mergeTarget.trim() || mergeSelected.size === 0) return
     setMergeSaving(true)
@@ -958,6 +981,10 @@ export default function DispatchLedgerPage() {
           <button onClick={() => handleBulkInvoice(false)}
             className="border border-gray-300 text-gray-600 text-sm font-medium px-3 py-1.5 rounded-lg hover:bg-gray-50">
             발행취소
+          </button>
+          <button onClick={handleCreateTradeStatement}
+            className="bg-violet-600 hover:bg-violet-700 text-white text-sm font-medium px-4 py-1.5 rounded-lg">
+            📄 거래명세서 생성
           </button>
           <button onClick={handleBulkDelete} disabled={deleting}
             className="bg-red-600 hover:bg-red-700 disabled:opacity-40 text-white text-sm font-medium px-4 py-1.5 rounded-lg">

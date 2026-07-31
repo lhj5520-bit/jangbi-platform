@@ -155,6 +155,16 @@ export default function TradeStatementPage() {
         setStampList(migrated)
         localStorage.setItem('ts_stamp_list', JSON.stringify(migrated))
       }
+      // 배차내역서에서 넘어온 행 자동 채우기
+      const fromDispatch = localStorage.getItem('ts_from_dispatch')
+      if (fromDispatch) {
+        try {
+          const { rows, client } = JSON.parse(fromDispatch)
+          localStorage.removeItem('ts_from_dispatch')
+          setEditRows(rows)
+          if (client) { setSelectedClient(client); setRecipientName(client) }
+        } catch {}
+      }
     } catch {
       setBankText(`입금계좌 : ${DEFAULT_COMPANY.bank}  예금주 : ${DEFAULT_COMPANY.name}(${DEFAULT_COMPANY.phone})`)
     }
@@ -190,8 +200,9 @@ export default function TradeStatementPage() {
         if (!data) return
         const bankName = data.bank_name ?? ''
         const bankAccount = data.bank_account ?? ''
-        const bankHolder = data.bank_holder ? `예금주 : ${data.bank_holder}` : ''
-        const bankStr = [bankName, bankAccount, bankHolder].filter(Boolean).join(' ')
+        const bankHolder = data.bank_holder || data.name || ''
+        const bankBase = [bankName, bankAccount].filter(Boolean).join(' ')
+        const bankStr = [bankName, bankAccount, bankHolder ? `예금주 : ${bankHolder}` : ''].filter(Boolean).join(' ')
         const c = {
           name: data.name ?? '',
           reg_no: data.business_no ?? '',
@@ -203,7 +214,7 @@ export default function TradeStatementPage() {
           phone: data.contact ?? '',
         }
         setCompany(c)
-        setBankText(`입금계좌 : ${bankStr}  예금주 : ${data.bank_holder ?? ''}(${data.contact ?? ''})`)
+        setBankText(`입금계좌 : ${bankBase}  예금주 : ${bankHolder}(${data.contact ?? ''})`)
         // 업체별 로컬 캐시 갱신
         try { localStorage.setItem(`ts_company_sup_${selectedSupId}`, JSON.stringify(c)) } catch {}
         // 도장: 로컬 캐시 우선, 없으면 DB stamp_data
@@ -226,7 +237,8 @@ export default function TradeStatementPage() {
     } else {
       localStorage.setItem('ts_company', JSON.stringify(companyDraft))
     }
-    setBankText(`입금계좌 : ${companyDraft.bank}  예금주 : ${companyDraft.name}(${companyDraft.phone})`)
+    const _bankForDisplay = companyDraft.bank.replace(/예금주\s*[:：]?\s*.*/i, '').trim()
+    setBankText(`입금계좌 : ${_bankForDisplay}  예금주 : ${companyDraft.name}(${companyDraft.phone})`)
     setEditingCompany(false)
   }
 
