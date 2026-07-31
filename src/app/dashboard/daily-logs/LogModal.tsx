@@ -287,17 +287,22 @@ export default function LogModal({ log, dispatches, equipment = [], suppliers = 
 
   const WORK_TYPES = ['버켓', '뿌레카', '집게', '운반', '기타']
 
+  // 덤프인 경우 기본 작업명 '운반', 그 외 '버켓'
+  const _isDump = (preDispatch as any)?.equipment?.type === 'dump'
+    || _initEquipParsed.typeTxt?.includes('덤프')
+  const _defaultWork = _isDump ? '운반' : '버켓'
+
   const [form, setForm] = useState({
     log_date: log?.log_date ?? localDateStr(),
     quantity: log?.quantity ?? 0,
     note: log?.note ?? '',
     time1_start: slot1.start || '08:00',
     time1_end: slot1.end || '12:00',
-    work_type_1: (log as any)?.work_type_1 ?? '버켓',
+    work_type_1: (log as any)?.work_type_1 ?? _defaultWork,
     work_price_1: (log as any)?.work_price_1 ?? (preDispatch?.client_unit_price ? String(preDispatch.client_unit_price) : ''),
     time2_start: slot2.start || '13:00',
     time2_end: slot2.end || '17:00',
-    work_type_2: (log as any)?.work_type_2 ?? '버켓',
+    work_type_2: (log as any)?.work_type_2 ?? _defaultWork,
     // 슬롯2 단가: 저장값 → 같은 장치면 슬롯1 단가 → 배차 단가 순
     work_price_2: (() => { const p2 = (log as any)?.work_price_2; if (p2) return String(p2); const wt1 = (log as any)?.work_type_1 ?? '버켓'; const wt2 = (log as any)?.work_type_2 ?? '버켓'; const p1 = (log as any)?.work_price_1; if (wt2 && wt2 === wt1 && p1) return String(p1); return preDispatch?.client_unit_price ? String(preDispatch.client_unit_price) : '' })(),
     use_slot1: true,
@@ -305,7 +310,7 @@ export default function LogModal({ log, dispatches, equipment = [], suppliers = 
     use_slot3: !!(_wt3 || (log as any)?.work_time_3),
     time3_start: slot3.start || '17:00',
     time3_end: slot3.end || '24:00',
-    work_type_3: (log as any)?.work_type_3 ?? '버켓',
+    work_type_3: (log as any)?.work_type_3 ?? _defaultWork,
     // 슬롯3 단가: 저장값 → 같은 장치면 슬롯1/2 단가 순
     work_price_3: (() => { const p3 = (log as any)?.work_price_3; if (p3) return String(p3); const wt3 = (log as any)?.work_type_3 ?? '버켓'; const wt1 = (log as any)?.work_type_1 ?? '버켓'; const wt2 = (log as any)?.work_type_2 ?? '버켓'; const p1 = (log as any)?.work_price_1; const p2 = (log as any)?.work_price_2; if (wt3 && wt3 === wt1 && p1) return String(p1); if (wt3 && wt3 === wt2 && p2) return String(p2); return '' })(),
     work_content: log?.work_content ?? '',

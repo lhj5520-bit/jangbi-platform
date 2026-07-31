@@ -2,6 +2,7 @@
 export const dynamic = 'force-dynamic'
 
 import { useEffect, useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import LedgerExcelUploadModal from './LedgerExcelUploadModal'
 import LogModal from '../daily-logs/LogModal'
@@ -24,6 +25,7 @@ const td = 'px-3 py-2 text-sm text-gray-700 whitespace-nowrap'
 const tdr = 'px-3 py-2 text-sm text-gray-700 whitespace-nowrap text-right'
 export default function DispatchLedgerPage() {
   const supabase = createClient()
+  const router = useRouter()
   const [rows, setRows] = useState<LedgerRow[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -578,7 +580,7 @@ export default function DispatchLedgerPage() {
     }, {} as Record<string, number>)
     const client = Object.entries(clientCounts).sort(([, a], [, b]) => b - a)[0]?.[0] ?? ''
     localStorage.setItem('ts_from_dispatch', JSON.stringify({ rows: editRows, client }))
-    window.location.href = '/dashboard/trade-statement'
+    router.push('/dashboard/trade-statement')
   }
 
   async function handleClientMerge() {

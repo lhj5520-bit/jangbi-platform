@@ -95,6 +95,8 @@ export default function TradeStatementPage() {
   const [siteName, setSiteName] = useState('')
 
   const [editRows, setEditRows] = useState<EditRow[]>([])
+  // 배차내역서에서 넘어온 행 임시 보관 (load()가 덮어쓰기 전에 복원용)
+  const fromDispatchRef = useRef<{ rows: EditRow[]; client: string } | null>(null)
 
   const [company, setCompany] = useState(DEFAULT_COMPANY)
   const [editingCompany, setEditingCompany] = useState(false)
@@ -155,14 +157,13 @@ export default function TradeStatementPage() {
         setStampList(migrated)
         localStorage.setItem('ts_stamp_list', JSON.stringify(migrated))
       }
-      // 배차내역서에서 넘어온 행 자동 채우기
+      // 배차내역서에서 넘어온 행 — load()가 덮어쓰지 못하도록 ref에 보관
       const fromDispatch = localStorage.getItem('ts_from_dispatch')
       if (fromDispatch) {
         try {
-          const { rows, client } = JSON.parse(fromDispatch)
+          const parsed = JSON.parse(fromDispatch)
           localStorage.removeItem('ts_from_dispatch')
-          setEditRows(rows)
-          if (client) { setSelectedClient(client); setRecipientName(client) }
+          fromDispatchRef.current = parsed
         } catch {}
       }
     } catch {
@@ -626,10 +627,18 @@ export default function TradeStatementPage() {
     setSites(uniqueSites)
     setAllClientRows(filtered)
     setSelectedSite('')
-    setEditRows(filtered.map(({ client_name, site_name, ...rest }: any) => rest))
-    if (filtered.length > 0) {
-      if (!recipientName) setRecipientName(client)
-      if (!siteName) setSiteName((filtered[0] as any).site_name)
+    // 배차내역서에서 넘어온 데이터가 있으면 DB 행 대신 사용
+    if (fromDispatchRef.current) {
+      const { rows, client: dispClient } = fromDispatchRef.current
+      fromDispatchRef.current = null
+      setEditRows(rows)
+      if (dispClient) { setSelectedClient(dispClient); setRecipientName(dispClient) }
+    } else {
+      setEditRows(filtered.map(({ client_name, site_name, ...rest }: any) => rest))
+      if (filtered.length > 0) {
+        if (!recipientName) setRecipientName(client)
+        if (!siteName) setSiteName((filtered[0] as any).site_name)
+      }
     }
     setLoading(false)
   }
