@@ -469,11 +469,12 @@ export default function DispatchLedgerPage() {
 
       setExportVisible(false)
 
-      // 항상 파일 다운로드 + 클립보드 성공 여부에 따라 메시지 분기
-      const a = document.createElement('a'); a.href = dataUrl; a.download = filename; a.click()
       if (clipOk) {
+        // 클립보드 성공 → 다운로드 팝업 없이 안내만
         alert('✅ 클립보드에 복사됐습니다!\n카카오톡 채팅창에서 Ctrl+V로 바로 붙여넣기 하세요.')
       } else {
+        // 클립보드 실패 → 파일 다운로드
+        const a = document.createElement('a'); a.href = dataUrl; a.download = filename; a.click()
         alert(`📥 "${filename}" 파일로 저장됩니다.\n카카오톡에 파일을 첨부하거나 드래그해서 보내세요.`)
       }
     } catch (e) {
@@ -1165,6 +1166,7 @@ export default function DispatchLedgerPage() {
               <th style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 600 }}>날짜</th>
               <th style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 600 }}>차종</th>
               <th style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 600 }}>차량번호</th>
+              <th style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 600 }}>차주명</th>
               <th style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 600 }}>현장명</th>
               <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 600 }}>수량</th>
               <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 600 }}>단가</th>
@@ -1180,6 +1182,7 @@ export default function DispatchLedgerPage() {
                   <td style={{ padding: '9px 12px' }}>{r.log_date}</td>
                   <td style={{ padding: '9px 12px' }}>{r.equipment_type || '-'}</td>
                   <td style={{ padding: '9px 12px' }}>{r.plate_no || '-'}</td>
+                  <td style={{ padding: '9px 12px' }}>{r.driver_name || '-'}</td>
                   <td style={{ padding: '9px 12px' }}>{r.site_name || '-'}</td>
                   <td style={{ padding: '9px 12px', textAlign: 'right' }}>{r.operating_hours || '-'}</td>
                   <td style={{ padding: '9px 12px', textAlign: 'right' }}>{(r.unit_price || 0).toLocaleString()}</td>
@@ -1190,7 +1193,7 @@ export default function DispatchLedgerPage() {
           </tbody>
           <tfoot>
             <tr style={{ background: '#f0f4f8', borderTop: '2px solid #cbd5e1' }}>
-              <td colSpan={4} style={{ padding: '11px 12px', fontWeight: 700, textAlign: 'center' }}>합 계</td>
+              <td colSpan={5} style={{ padding: '11px 12px', fontWeight: 700, textAlign: 'center' }}>합 계</td>
               <td style={{ padding: '11px 12px', fontWeight: 700, textAlign: 'center', color: '#374151' }}>{exportRows.length}일</td>
               <td style={{ padding: '11px 12px', textAlign: 'right', fontWeight: 700 }}>{exportRows.reduce((s, r) => s + (r.operating_hours || 0), 0) > 0 ? exportRows.reduce((s, r) => s + (r.operating_hours || 0), 0) + '시간' : ''}</td>
               <td />
