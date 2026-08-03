@@ -1041,7 +1041,7 @@ export default function DispatchLedgerPage() {
             const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0')
             const last = new Date(y, d.getMonth()+1, 0).getDate()
             setDateFrom(`${y}-${m}-01`); setDateTo(`${y}-${m}-${String(last).padStart(2,'0')}`)
-          }} className="px-3 py-2 text-sm rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50 transition-colors">
+          }} className="px-3 py-2 text-sm rounded-lg border border-indigo-400 text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-colors font-medium">
             전월
           </button>
           <button onClick={() => { setDateFrom(''); setDateTo('') }}
