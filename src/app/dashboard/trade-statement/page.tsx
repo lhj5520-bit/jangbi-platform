@@ -141,8 +141,11 @@ export default function TradeStatementPage() {
       if (savedCompany) {
         try {
           const parsed = JSON.parse(savedCompany)
-          setCompany(parsed)
-          setBankText(`입금계좌 : ${parsed.bank.replace(/\s*예금주\s*[:：]?\s*.*/i, '').trim()}  예금주 : ${parsed.name}(${parsed.phone})`)
+          const cleanBank = (parsed.bank ?? '').replace(/\s*예금주\s*[:：]?\s*.*/i, '').trim()
+          const cleanedParsed = { ...parsed, bank: cleanBank }
+          setCompany(cleanedParsed)
+          try { localStorage.setItem(companyKey, JSON.stringify(cleanedParsed)) } catch {}
+          setBankText(`입금계좌 : ${cleanBank}  예금주 : ${parsed.name}(${parsed.phone})`)
         } catch {}
       }
       const stamp = lastSupId
