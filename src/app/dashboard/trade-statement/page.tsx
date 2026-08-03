@@ -1090,7 +1090,13 @@ export default function TradeStatementPage() {
                   <td className="no-print"></td>
                 </tr>
                 <tr style={{ background: '#f5f5f5', borderTop: '1px solid #000', fontWeight: 'bold' }}>
-                  <td colSpan={6} style={{ padding: '8px', textAlign: 'left', borderRight: '1px solid #ccc', fontSize: 12 }}>{bankText}</td>
+                  <td colSpan={6} style={{ padding: '4px 8px', textAlign: 'left', borderRight: '1px solid #ccc', fontSize: 12 }}>
+                    <input
+                      value={bankText}
+                      onChange={e => setBankText(e.target.value)}
+                      style={{ width: '100%', border: 'none', background: 'transparent', fontSize: 12, fontWeight: 'bold', outline: 'none' }}
+                    />
+                  </td>
                   <td colSpan={2} style={{ padding: '8px', textAlign: 'right', borderRight: '1px solid #ccc', fontWeight: 'bold', color: '#c00', fontSize: 14 }}>합계: ₩{totalAmount.toLocaleString()}</td>
                   <td></td>
                   <td className="no-print"></td>
