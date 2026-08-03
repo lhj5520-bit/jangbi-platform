@@ -753,6 +753,14 @@ export default function TradeStatementPage() {
           <span className="text-gray-400">~</span>
           <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
             className="px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+          <button onClick={() => {
+            const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - 1)
+            const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0')
+            const last = new Date(y, d.getMonth()+1, 0).getDate()
+            setDateFrom(`${y}-${m}-01`); setDateTo(`${y}-${m}-${String(last).padStart(2,'0')}`)
+          }} className="px-3 py-2 text-sm rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50 transition-colors">
+            전월
+          </button>
           <select value={selectedClient} onChange={e => applyClientFilter(e.target.value)}
             className="px-3 py-2 border border-gray-300 rounded-lg text-sm">
             <option value="">발주처 선택</option>

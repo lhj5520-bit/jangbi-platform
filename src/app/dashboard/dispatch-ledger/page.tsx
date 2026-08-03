@@ -1036,6 +1036,14 @@ export default function DispatchLedgerPage() {
           <span className="text-gray-400 text-sm">~</span>
           <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
             className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          <button onClick={() => {
+            const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - 1)
+            const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0')
+            const last = new Date(y, d.getMonth()+1, 0).getDate()
+            setDateFrom(`${y}-${m}-01`); setDateTo(`${y}-${m}-${String(last).padStart(2,'0')}`)
+          }} className="px-3 py-2 text-sm rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50 transition-colors">
+            전월
+          </button>
           <button onClick={() => { setDateFrom(''); setDateTo('') }}
             className={`px-3 py-2 text-sm rounded-lg border transition-colors ${!dateFrom && !dateTo ? 'bg-blue-600 text-white border-blue-600' : 'border-gray-300 text-gray-600 hover:bg-gray-50'}`}>
             전체
