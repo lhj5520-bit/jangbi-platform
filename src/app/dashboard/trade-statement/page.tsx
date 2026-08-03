@@ -132,7 +132,7 @@ export default function TradeStatementPage() {
     try {
       const c = DEFAULT_COMPANY
       setCompany(c)
-      setBankText(`입금계좌 : ${c.bank}  예금주 : ${c.name}(${c.phone})`)
+      setBankText(`입금계좌 : ${c.bank.replace(/\s*예금주\s*[:：]?\s*.*/i, '').trim()}  예금주 : ${c.name}(${c.phone})`)
       // 마지막 선택 업체 복원 (회사정보 + 도장)
       const lastSupId = localStorage.getItem('ts_last_sup_id') ?? ''
       if (lastSupId) setSelectedSupId(lastSupId)
@@ -142,7 +142,7 @@ export default function TradeStatementPage() {
         try {
           const parsed = JSON.parse(savedCompany)
           setCompany(parsed)
-          setBankText(`입금계좌 : ${parsed.bank}  예금주 : ${parsed.name}(${parsed.phone})`)
+          setBankText(`입금계좌 : ${parsed.bank.replace(/\s*예금주\s*[:：]?\s*.*/i, '').trim()}  예금주 : ${parsed.name}(${parsed.phone})`)
         } catch {}
       }
       const stamp = lastSupId
@@ -211,7 +211,7 @@ export default function TradeStatementPage() {
           address: data.address ?? '',
           biz_type: data.biz_type ?? '',
           biz_item: data.biz_item ?? '',
-          bank: bankStr,
+          bank: bankBase,
           phone: data.contact ?? '',
         }
         setCompany(c)
@@ -906,7 +906,7 @@ export default function TradeStatementPage() {
               } else {
                 localStorage.setItem('ts_company', JSON.stringify(companyInfo))
               }
-              setBankText(`입금계좌 : ${companyInfo.bank}  예금주 : ${companyInfo.name}(${companyInfo.phone})`)
+              setBankText(`입금계좌 : ${companyInfo.bank.replace(/\s*예금주\s*[:：]?\s*.*/i, '').trim()}  예금주 : ${companyInfo.name}(${companyInfo.phone})`)
             }
             if (activeSupId) {
               setSelectedSupId(activeSupId)
