@@ -292,7 +292,7 @@ export default function PurchaseInvoicesPage() {
           <thead>
             <tr className="bg-gray-50 border-b border-gray-200">
               <th className="text-left px-5 py-3 font-semibold text-gray-600">발행일</th>
-              <th className="text-left px-5 py-3 font-semibold text-gray-600">중기업체</th>
+              <th className="text-left px-5 py-3 font-semibold text-gray-600">업체명</th>
               <th className="text-left px-5 py-3 font-semibold text-gray-600">사업자번호</th>
               <th className="text-left px-5 py-3 font-semibold text-gray-600">대표자</th>
               <th className="text-left px-5 py-3 font-semibold text-gray-600">비고(계좌)</th>

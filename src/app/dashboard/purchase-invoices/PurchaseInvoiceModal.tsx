@@ -24,6 +24,7 @@ export default function PurchaseInvoiceModal({ invoice, suppliers, projects, onC
   }, [onClose])
   const [form, setForm] = useState({
     supplier_id: invoice?.supplier_id ?? '',
+    supplier_name: (invoice as any)?.supplier_name ?? (invoice as any)?.supplier?.name ?? '',
     project_id: invoice?.project_id ?? '',
     issue_date: invoice?.issue_date ?? new Date().toISOString().slice(0, 10),
     period_start: invoice?.period_start ?? '',
@@ -47,11 +48,12 @@ export default function PurchaseInvoiceModal({ invoice, suppliers, projects, onC
   }
 
   async function handleSave() {
-    if (!form.supplier_id) return alert('중기업체를 선택해주세요.')
+    if (!form.supplier_id && !form.supplier_name.trim()) return alert('업체명을 입력하거나 목록에서 선택해주세요.')
     if (!form.supply_amount) return alert('공급가액을 입력해주세요.')
     setSaving(true)
     const data = {
-      supplier_id: form.supplier_id,
+      supplier_id: form.supplier_id || null,
+      supplier_name: form.supplier_name.trim() || null,
       project_id: form.project_id || null,
       issue_date: form.issue_date,
       period_start: form.period_start || null,
@@ -80,12 +82,25 @@ export default function PurchaseInvoiceModal({ invoice, suppliers, projects, onC
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
         </div>
         <div className="px-6 py-5 space-y-4">
-          <div className="flex items-center gap-3">
-            <label className="w-24 text-sm text-gray-500 shrink-0">중기업체 *</label>
-            <select value={form.supplier_id} onChange={e => set('supplier_id', e.target.value)} className={inp}>
-              <option value="">선택</option>
-              {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-            </select>
+          <div className="flex items-start gap-3">
+            <label className="w-24 text-sm text-gray-500 shrink-0 pt-2">업체명 *</label>
+            <div className="flex-1 space-y-2">
+              <input
+                type="text"
+                value={form.supplier_name}
+                onChange={e => set('supplier_name', e.target.value)}
+                placeholder="업체명 직접 입력"
+                className={inp}
+              />
+              <select value={form.supplier_id} onChange={e => {
+                const sid = e.target.value
+                const sup = suppliers.find(s => s.id === sid)
+                setForm(f => ({ ...f, supplier_id: sid, supplier_name: sup?.name ?? f.supplier_name }))
+              }} className={`${inp} text-gray-500 text-xs`}>
+                <option value="">— 목록에서 선택 (자동완성) —</option>
+                {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+              </select>
+            </div>
           </div>
           <div className="flex items-center gap-3">
             <label className="w-24 text-sm text-gray-500 shrink-0">현장</label>
