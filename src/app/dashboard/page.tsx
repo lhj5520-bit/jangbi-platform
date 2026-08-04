@@ -153,6 +153,8 @@ export default function DashboardPage() {
   const [vat, setVat] = useState<any>(null)
   const [vatKey, setVatKey] = useState<string>('')
   const [unpaidInvoiceAmt, setUnpaidInvoiceAmt] = useState<number>(0)
+  const [monthSales, setMonthSales] = useState<{supply:number;vat:number;total:number}>({supply:0,vat:0,total:0})
+  const [monthPurchase, setMonthPurchase] = useState<{supply:number;vat:number;total:number}>({supply:0,vat:0,total:0})
   const [profitYear, setProfitYear] = useState<number>(new Date().getFullYear())
   const [profitData, setProfitData] = useState<{totalDispatch:number,totalExpenses:number,profit:number,profitRate:number,plate002Amt:number,jeiaAmt:number,fuelAmt:number,fuelRate:number,categoryBreakdown:{category:string,amount:number}[]}|null>(null)
   const [weather, setWeather] = useState<{temp:number,code:number,wind:number}|null>(null)
@@ -200,8 +202,8 @@ export default function DashboardPage() {
         supabase.from('daily_logs').select('*,dispatch:dispatches(site_name,client_name,driver_name,equipment_text,equipment:equipment(type,plate_no))').order('log_date',{ascending:false}).limit(5),
         supabase.from('equipment').select('plate_no,type,inspection_expire').not('inspection_expire','is',null),
         supabase.from('vat_payments').select('*').in('period', [curPeriod, prevPeriod]),
-        supabase.from('invoices').select('issue_date,vat_amount,total_amount,status'),
-        supabase.from('purchase_invoices').select('issue_date,vat_amount'),
+        supabase.from('invoices').select('issue_date,vat_amount,total_amount,status,supply_amount'),
+        supabase.from('purchase_invoices').select('issue_date,vat_amount,supply_amount'),
         supabase.from('daily_logs').select('invoice_issued,quantity,work_price_1,work_price_2,work_time_1,work_time_2,dispatch:dispatches(client_unit_price)').gte('log_date',prevMonthStart).lte('log_date',prevMonthEnd),
         supabase.from('bank_transactions').select('balance,transaction_at').order('transaction_at',{ascending:false}).limit(1),
         supabase.from('expenses').select('amount').gte('expense_date',monthStart).lte('expense_date',today),
@@ -214,6 +216,15 @@ export default function DashboardPage() {
       const invoicedAmt = (prevMonthInvoiceLogs??[]).filter((l:any)=>l.invoice_issued).reduce((s:number,l:any)=>s+calcLogAmt(l),0)
       const unpaidInvoiceAmt = (salesInvoices??[]).filter((r:any)=>r.status==='issued').reduce((s:number,r:any)=>s+(r.total_amount??0),0)
       setUnpaidInvoiceAmt(unpaidInvoiceAmt)
+      // 이번 달 매출/매입 계산서 합계
+      const mSales = (salesInvoices??[]).filter((r:any)=>r.issue_date>=monthStart&&r.issue_date<=today)
+      const mPurch = (purchaseInvoices??[]).filter((r:any)=>r.issue_date>=monthStart&&r.issue_date<=today)
+      const sSupply = mSales.reduce((s:number,r:any)=>s+(r.supply_amount??r.total_amount??0),0)
+      const sVat    = mSales.reduce((s:number,r:any)=>s+(r.vat_amount??0),0)
+      const pSupply = mPurch.reduce((s:number,r:any)=>s+(r.supply_amount??0),0)
+      const pVat    = mPurch.reduce((s:number,r:any)=>s+(r.vat_amount??0),0)
+      setMonthSales({supply:sSupply, vat:sVat, total:sSupply+sVat})
+      setMonthPurchase({supply:pSupply, vat:pVat, total:pSupply+pVat})
       const notInvoicedAmt = (prevMonthInvoiceLogs??[]).filter((l:any)=>!l.invoice_issued).reduce((s:number,l:any)=>s+calcLogAmt(l),0)
       setKpi({ todayCount:todayLogs?.length??0, yesterdayCount:yesterdayLogs?.length??0, monthRevenue:rev(monthLogs??[]), prevMonthRevenue:rev(prevMonthLogs??[]), unpaid:unpaidAmt, invoiced:invoicedAmt, notInvoiced:notInvoicedAmt })
 
@@ -413,6 +424,52 @@ export default function DashboardPage() {
             </div>
           )}
           <span className="rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 font-medium text-zinc-100">{today}</span>
+        </div>
+      </div>
+
+      {/* 이번 달 매출/매입 계산서 합계 */}
+      <div className="mb-5 grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div className="rounded-lg border border-blue-200 bg-white shadow-sm overflow-hidden">
+          <div className="flex items-center gap-2 bg-blue-50 border-b border-blue-100 px-4 py-3">
+            <span className="text-base">📄</span>
+            <span className="text-sm font-bold text-blue-800">이번 달 매출계산서</span>
+            <span className="ml-auto text-xs text-blue-400">{monthStart.slice(0,7)}</span>
+          </div>
+          <div className="px-4 py-4 grid grid-cols-3 gap-2 text-center">
+            <div>
+              <p className="text-xs text-gray-400 mb-1">공급가액</p>
+              <p className="text-sm font-bold text-gray-800">{monthSales.supply.toLocaleString()}원</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-400 mb-1">부가세</p>
+              <p className="text-sm font-bold text-gray-500">{monthSales.vat.toLocaleString()}원</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-400 mb-1">합계</p>
+              <p className="text-base font-bold text-blue-700">{monthSales.total.toLocaleString()}원</p>
+            </div>
+          </div>
+        </div>
+        <div className="rounded-lg border border-rose-200 bg-white shadow-sm overflow-hidden">
+          <div className="flex items-center gap-2 bg-rose-50 border-b border-rose-100 px-4 py-3">
+            <span className="text-base">📦</span>
+            <span className="text-sm font-bold text-rose-800">이번 달 매입계산서</span>
+            <span className="ml-auto text-xs text-rose-400">{monthStart.slice(0,7)}</span>
+          </div>
+          <div className="px-4 py-4 grid grid-cols-3 gap-2 text-center">
+            <div>
+              <p className="text-xs text-gray-400 mb-1">공급가액</p>
+              <p className="text-sm font-bold text-gray-800">{monthPurchase.supply.toLocaleString()}원</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-400 mb-1">부가세</p>
+              <p className="text-sm font-bold text-gray-500">{monthPurchase.vat.toLocaleString()}원</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-400 mb-1">합계</p>
+              <p className="text-base font-bold text-rose-700">{monthPurchase.total.toLocaleString()}원</p>
+            </div>
+          </div>
         </div>
       </div>
 
