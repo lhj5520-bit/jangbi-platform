@@ -16,7 +16,7 @@ interface Expense {
   created_at: string
 }
 
-const DEFAULT_CATEGORIES = ['급여', '주유비', '수리비', '기타수수료', '대출이자', '세금', '카드대금', '세무비용']
+const DEFAULT_CATEGORIES = ['급여', '주유비', '수리비', '기타수수료', '대출이자', '세금', '카드대금', '세무비용', '차량유지비', '식대&집자재']
 
 const CATEGORY_COLORS: Record<string, { badge: string; bar: string; card: string; hex: string }> = {
   '급여':       { badge: 'bg-indigo-100 text-indigo-700',  bar: 'bg-indigo-400',  card: 'bg-indigo-50 border-indigo-200',  hex: '#818cf8' },
@@ -27,6 +27,8 @@ const CATEGORY_COLORS: Record<string, { badge: string; bar: string; card: string
   '세금':       { badge: 'bg-amber-100 text-amber-700',    bar: 'bg-amber-400',   card: 'bg-amber-50 border-amber-200',    hex: '#fbbf24' },
   '카드대금':   { badge: 'bg-orange-100 text-orange-700',  bar: 'bg-orange-400',  card: 'bg-orange-50 border-orange-200',  hex: '#fb923c' },
   '세무비용':   { badge: 'bg-emerald-100 text-emerald-700',bar: 'bg-emerald-400', card: 'bg-emerald-50 border-emerald-200',hex: '#34d399' },
+  '차량유지비': { badge: 'bg-cyan-100 text-cyan-700',      bar: 'bg-cyan-400',    card: 'bg-cyan-50 border-cyan-200',      hex: '#22d3ee' },
+  '식대&집자재':{ badge: 'bg-pink-100 text-pink-700',      bar: 'bg-pink-400',    card: 'bg-pink-50 border-pink-200',      hex: '#f472b6' },
 }
 
 const COLOR_POOL = [
