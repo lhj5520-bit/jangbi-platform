@@ -250,8 +250,16 @@ export default function ExpensesPage() {
           </button>
         </div>
         {viewMode === 'month' && (
-          <input type="month" value={month} onChange={e => setMonth(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          <>
+            <input type="month" value={month} onChange={e => setMonth(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            <button onClick={() => {
+              const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - 1)
+              setMonth(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`)
+            }} className="px-3 py-2 text-sm rounded-lg border border-indigo-400 text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-colors font-medium">
+              전월
+            </button>
+          </>
         )}
         {viewMode === 'year' && (
           <select value={selYear} onChange={e => setSelYear(e.target.value)}
