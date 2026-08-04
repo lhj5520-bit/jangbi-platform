@@ -427,52 +427,6 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* 이번 달 매출/매입 계산서 합계 */}
-      <div className="mb-5 grid grid-cols-1 gap-4 md:grid-cols-2">
-        <div className="rounded-lg border border-blue-200 bg-white shadow-sm overflow-hidden">
-          <div className="flex items-center gap-2 bg-blue-50 border-b border-blue-100 px-4 py-3">
-            <span className="text-base">📄</span>
-            <span className="text-sm font-bold text-blue-800">이번 달 매출계산서</span>
-            <span className="ml-auto text-xs text-blue-400">{monthStart.slice(0,7)}</span>
-          </div>
-          <div className="px-4 py-4 grid grid-cols-3 gap-2 text-center">
-            <div>
-              <p className="text-xs text-gray-400 mb-1">공급가액</p>
-              <p className="text-sm font-bold text-gray-800">{monthSales.supply.toLocaleString()}원</p>
-            </div>
-            <div>
-              <p className="text-xs text-gray-400 mb-1">부가세</p>
-              <p className="text-sm font-bold text-gray-500">{monthSales.vat.toLocaleString()}원</p>
-            </div>
-            <div>
-              <p className="text-xs text-gray-400 mb-1">합계</p>
-              <p className="text-base font-bold text-blue-700">{monthSales.total.toLocaleString()}원</p>
-            </div>
-          </div>
-        </div>
-        <div className="rounded-lg border border-rose-200 bg-white shadow-sm overflow-hidden">
-          <div className="flex items-center gap-2 bg-rose-50 border-b border-rose-100 px-4 py-3">
-            <span className="text-base">📦</span>
-            <span className="text-sm font-bold text-rose-800">이번 달 매입계산서</span>
-            <span className="ml-auto text-xs text-rose-400">{monthStart.slice(0,7)}</span>
-          </div>
-          <div className="px-4 py-4 grid grid-cols-3 gap-2 text-center">
-            <div>
-              <p className="text-xs text-gray-400 mb-1">공급가액</p>
-              <p className="text-sm font-bold text-gray-800">{monthPurchase.supply.toLocaleString()}원</p>
-            </div>
-            <div>
-              <p className="text-xs text-gray-400 mb-1">부가세</p>
-              <p className="text-sm font-bold text-gray-500">{monthPurchase.vat.toLocaleString()}원</p>
-            </div>
-            <div>
-              <p className="text-xs text-gray-400 mb-1">합계</p>
-              <p className="text-base font-bold text-rose-700">{monthPurchase.total.toLocaleString()}원</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* 메모장 */}
       <MemoWidget />
 

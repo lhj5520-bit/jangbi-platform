@@ -159,6 +159,18 @@ export default function InvoicesPage() {
   // 발주처 목록 (필터용)
   const clientNames = Array.from(new Set(invoices.map(i => i.client?.name ?? (i as any).client_name ?? '').filter(Boolean)))
 
+  // 월별 합계 (전체 데이터 기준, 연도별)
+  const selYear = month ? month.slice(0, 4) : new Date().getFullYear().toString()
+  const monthlyTotals = Array.from({ length: 12 }, (_, idx) => {
+    const m = String(idx + 1).padStart(2, '0')
+    const prefix = `${selYear}-${m}`
+    const rows = invoices.filter(i => (i.issue_date ?? '').startsWith(prefix))
+    const supply = rows.reduce((s, i) => s + (i.supply_amount ?? 0), 0)
+    const vat = rows.reduce((s, i) => s + (i.vat_amount ?? 0), 0)
+    const total = rows.reduce((s, i) => s + (i.total_amount ?? 0), 0)
+    return { month: `${idx + 1}월`, supply, vat, total }
+  }).filter(r => r.total > 0)
+
   return (
     <div className="p-4 md:p-8">
       <div className="flex items-center justify-between mb-6">
@@ -227,6 +239,43 @@ export default function InvoicesPage() {
               <p className="text-lg font-bold text-red-600">{unpaidAmount.toLocaleString()}원</p>
             </div>
           </div>
+
+          {/* 월별 합계 */}
+          {monthlyTotals.length > 0 && (
+            <div className="mt-4 bg-white border border-gray-200 rounded-xl overflow-hidden">
+              <div className="px-4 py-3 border-b border-gray-100 bg-gray-50">
+                <span className="text-sm font-semibold text-gray-700">{selYear}년 월별 발행 합계</span>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-xs text-gray-400 border-b border-gray-100">
+                      <th className="px-4 py-2 text-left font-medium">월</th>
+                      <th className="px-4 py-2 text-right font-medium">공급가액</th>
+                      <th className="px-4 py-2 text-right font-medium">부가세</th>
+                      <th className="px-4 py-2 text-right font-medium">합계</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {monthlyTotals.map(r => (
+                      <tr key={r.month} className="hover:bg-gray-50">
+                        <td className="px-4 py-2.5 font-medium text-gray-700">{r.month}</td>
+                        <td className="px-4 py-2.5 text-right text-gray-600">{r.supply.toLocaleString()}원</td>
+                        <td className="px-4 py-2.5 text-right text-gray-500">{r.vat.toLocaleString()}원</td>
+                        <td className="px-4 py-2.5 text-right font-bold text-blue-700">{r.total.toLocaleString()}원</td>
+                      </tr>
+                    ))}
+                    <tr className="bg-blue-50 font-bold border-t border-blue-200">
+                      <td className="px-4 py-2.5 text-blue-800">합계</td>
+                      <td className="px-4 py-2.5 text-right text-blue-700">{monthlyTotals.reduce((s,r)=>s+r.supply,0).toLocaleString()}원</td>
+                      <td className="px-4 py-2.5 text-right text-blue-600">{monthlyTotals.reduce((s,r)=>s+r.vat,0).toLocaleString()}원</td>
+                      <td className="px-4 py-2.5 text-right text-blue-800">{monthlyTotals.reduce((s,r)=>s+r.total,0).toLocaleString()}원</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
