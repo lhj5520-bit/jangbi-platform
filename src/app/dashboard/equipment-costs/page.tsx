@@ -184,6 +184,12 @@ export default function EquipmentCostsPage() {
           <option value={0}>연간</option>
           {Array.from({ length: 12 }, (_, i) => i + 1).map(m => <option key={m} value={m}>{m}월</option>)}
         </select>
+        <button onClick={() => {
+          const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - 1)
+          setYear(d.getFullYear()); setMonth(d.getMonth() + 1)
+        }} className="px-3 py-2 text-sm rounded-lg border border-indigo-400 text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-colors font-medium">
+          전월
+        </button>
         <select value={equipFilter} onChange={e => setEquipFilter(e.target.value)} className={inp + ' min-w-[160px]'}>
           <option value="">전체 장비</option>
           {equipment.map(e => (

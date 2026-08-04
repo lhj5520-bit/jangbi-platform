@@ -37,6 +37,8 @@ export default function ExpensesExcelUploadModal({ categories, onClose, onSaved 
   const [saving, setSaving] = useState(false)
   const [step, setStep] = useState<'upload' | 'preview'>('upload')
   const [errors, setErrors] = useState<string[]>([])
+  const [filterFrom, setFilterFrom] = useState('')
+  const [filterTo, setFilterTo] = useState('')
 
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -103,10 +105,10 @@ export default function ExpensesExcelUploadModal({ categories, onClose, onSaved 
     setStep('preview')
   }
 
-  async function handleSave() {
+  async function handleSave(rows: any[]) {
     setSaving(true)
     const { error } = await supabase.from('expenses').insert(
-      preview.map(r => ({
+      rows.map(r => ({
         expense_date: r.expense_date,
         category: r.category,
         amount: r.amount,
@@ -146,41 +148,77 @@ export default function ExpensesExcelUploadModal({ categories, onClose, onSaved 
 
           {step === 'preview' && (
             <div>
-              <p className="text-sm text-gray-600 mb-3">총 <strong>{preview.length}건</strong> 인식됨.</p>
+              <div className="flex flex-wrap items-center gap-2 mb-3">
+                <span className="text-sm text-gray-600">기간 필터:</span>
+                <input type="date" value={filterFrom} onChange={e => setFilterFrom(e.target.value)}
+                  className="px-2 py-1 border border-gray-300 rounded text-sm" />
+                <span className="text-gray-400 text-sm">~</span>
+                <input type="date" value={filterTo} onChange={e => setFilterTo(e.target.value)}
+                  className="px-2 py-1 border border-gray-300 rounded text-sm" />
+                <button onClick={() => {
+                  const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - 1)
+                  const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0')
+                  const last = new Date(y, d.getMonth()+1, 0).getDate()
+                  setFilterFrom(`${y}-${m}-01`); setFilterTo(`${y}-${m}-${String(last).padStart(2,'0')}`)
+                }} className="px-2 py-1 text-sm rounded border border-indigo-400 text-indigo-600 bg-indigo-50 hover:bg-indigo-100 font-medium">
+                  전월
+                </button>
+                {(filterFrom || filterTo) && (
+                  <button onClick={() => { setFilterFrom(''); setFilterTo('') }}
+                    className="px-2 py-1 text-sm rounded border border-gray-300 text-gray-500 hover:bg-gray-50">
+                    초기화
+                  </button>
+                )}
+              </div>
+              {(() => {
+                const filtered = preview.filter(r =>
+                  (!filterFrom || r.expense_date >= filterFrom) &&
+                  (!filterTo || r.expense_date <= filterTo)
+                )
+                return <p className="text-sm text-gray-600 mb-3">총 <strong>{preview.length}건</strong> 인식됨{filtered.length !== preview.length ? ` → 필터 후 <strong>${filtered.length}건</strong>` : ''}.</p>
+              })()}
               {errors.length > 0 && (
                 <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-3 text-xs text-red-700">
                   {errors.map((e, i) => <div key={i}>{e}</div>)}
                 </div>
               )}
-              <div className="overflow-x-auto">
-                <table className="w-full text-xs border-collapse">
-                  <thead>
-                    <tr className="bg-gray-50">
-                      {['날짜', '항목', '금액', '메모'].map(h => (
-                        <th key={h} className="px-3 py-1.5 text-left font-semibold text-gray-600 border border-gray-200">{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {preview.map((r, i) => (
-                      <tr key={i} className="hover:bg-gray-50">
-                        <td className="px-3 py-1.5 border border-gray-100">{r.expense_date}</td>
-                        <td className="px-3 py-1.5 border border-gray-100">{r.category}</td>
-                        <td className="px-3 py-1.5 border border-gray-100 text-right">{r.amount.toLocaleString()}</td>
-                        <td className="px-3 py-1.5 border border-gray-100 text-gray-500">{r.memo ?? ''}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <div className="flex gap-3 mt-5">
-                <button onClick={() => { setStep('upload'); setPreview([]); setErrors([]) }}
-                  className="flex-1 py-2.5 border border-gray-300 rounded-xl text-sm text-gray-700 hover:bg-gray-50">다시 선택</button>
-                <button onClick={handleSave} disabled={saving}
-                  className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-medium disabled:opacity-50">
-                  {saving ? '저장 중...' : `${preview.length}건 저장`}
-                </button>
-              </div>
+              {(() => {
+                const filtered = preview.filter(r =>
+                  (!filterFrom || r.expense_date >= filterFrom) &&
+                  (!filterTo || r.expense_date <= filterTo)
+                )
+                return <>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs border-collapse">
+                      <thead>
+                        <tr className="bg-gray-50">
+                          {['날짜', '항목', '금액', '메모'].map(h => (
+                            <th key={h} className="px-3 py-1.5 text-left font-semibold text-gray-600 border border-gray-200">{h}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filtered.map((r, i) => (
+                          <tr key={i} className="hover:bg-gray-50">
+                            <td className="px-3 py-1.5 border border-gray-100">{r.expense_date}</td>
+                            <td className="px-3 py-1.5 border border-gray-100">{r.category}</td>
+                            <td className="px-3 py-1.5 border border-gray-100 text-right">{r.amount.toLocaleString()}</td>
+                            <td className="px-3 py-1.5 border border-gray-100 text-gray-500">{r.memo ?? ''}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <div className="flex gap-3 mt-5">
+                    <button onClick={() => { setStep('upload'); setPreview([]); setErrors([]) }}
+                      className="flex-1 py-2.5 border border-gray-300 rounded-xl text-sm text-gray-700 hover:bg-gray-50">다시 선택</button>
+                    <button onClick={() => handleSave(filtered)} disabled={saving || filtered.length === 0}
+                      className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-medium disabled:opacity-50">
+                      {saving ? '저장 중...' : `${filtered.length}건 저장`}
+                    </button>
+                  </div>
+                </>
+              })()}
             </div>
           )}
         </div>

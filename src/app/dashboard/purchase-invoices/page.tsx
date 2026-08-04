@@ -113,8 +113,10 @@ export default function PurchaseInvoicesPage() {
     load()
   }
 
-  async function handleMarkPaid(id: string) {
-    await supabase.from('purchase_invoices').update({ status: 'paid', paid_at: new Date().toISOString() }).eq('id', id)
+  async function handleMarkPaid(id: string, currentStatus: string) {
+    const newStatus = currentStatus === 'paid' ? 'received' : 'paid'
+    const extra = newStatus === 'paid' ? { paid_at: new Date().toISOString() } : { paid_at: null }
+    await supabase.from('purchase_invoices').update({ status: newStatus, ...extra }).eq('id', id)
     load()
   }
 
@@ -222,9 +224,9 @@ export default function PurchaseInvoicesPage() {
             {(inv as any).memo && <div className="text-xs text-gray-400 mb-2">{(inv as any).memo}</div>}
             <div className="flex gap-2">
               <button
-                onClick={() => { if (invoiceImages[inv.id]) { setViewingInvoice(inv.id) } else { uploadingForRef.current = inv.id; invoiceInputRef.current?.click() } }}
+                onClick={() => handleMarkPaid(inv.id, inv.status)}
                 className={`flex-1 py-1.5 rounded-lg text-sm font-medium ${inv.status === 'paid' ? 'bg-green-50 text-green-700' : 'bg-gray-50 text-gray-500 border border-gray-200'}`}>
-                {invoiceImages[inv.id] ? '지급완료📄' : inv.status === 'paid' ? '지급완료✓' : '지급완료'}
+                {inv.status === 'paid' ? '지급완료✓' : '지급완료'}
               </button>
               <button onClick={() => { setSelected(inv); setModalOpen(true) }}
                 className="flex-1 py-1.5 rounded-lg bg-blue-50 text-blue-600 text-sm font-medium">수정</button>
@@ -281,9 +283,9 @@ export default function PurchaseInvoicesPage() {
                 <td className="px-5 py-3">
                   <div className="flex gap-1.5 justify-end">
                     <button
-                      onClick={() => { if (invoiceImages[inv.id]) { setViewingInvoice(inv.id) } else { uploadingForRef.current = inv.id; invoiceInputRef.current?.click() } }}
+                      onClick={() => handleMarkPaid(inv.id, inv.status)}
                       className={`text-xs px-2 py-1 rounded border transition-colors ${inv.status === 'paid' ? 'bg-green-100 text-green-700 border-green-300 font-medium' : 'text-gray-400 border-gray-200 hover:border-green-300 hover:text-green-600'}`}>
-                      {invoiceImages[inv.id] ? '지급완료📄' : inv.status === 'paid' ? '지급완료✓' : '지급완료'}
+                      {inv.status === 'paid' ? '지급완료✓' : '지급완료'}
                     </button>
                     <button onClick={() => { setSelected(inv); setModalOpen(true) }} className="text-xs px-2 py-1 rounded bg-gray-100 text-gray-600 hover:bg-gray-200">수정</button>
                     <button onClick={() => handleDelete(inv.id)} className="text-xs px-2 py-1 rounded bg-red-100 text-red-600 hover:bg-red-200">삭제</button>

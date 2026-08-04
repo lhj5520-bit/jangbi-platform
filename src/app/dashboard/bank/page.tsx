@@ -551,11 +551,11 @@ export default function BankPage() {
           {/* 서브탭 */}
           <div className="flex gap-1 flex-wrap mb-5">
             {([
+              ['uninvoice',  `📄 매출미수금 ${unmatchedInvoices.length}`],
+              ['unpurchase', `📦 매입미지급 ${unmatchedPurchases.length}`],
               ['matched',    `✅ 매칭완료 ${matchedTxs.length}`],
               ['undeposit',  `🔵 입금미매칭 ${unmatchedDeposits.length}`],
               ['unwithdraw', `🔴 출금미매칭 ${unmatchedWithdrawals.length}`],
-              ['uninvoice',  `📄 매출미수금 ${unmatchedInvoices.length}`],
-              ['unpurchase', `📦 매입미지급 ${unmatchedPurchases.length}`],
             ] as const).map(([key, label]) => (
               <button key={key} onClick={() => { setMatchTab(key); setMatchSearch('') }}
                 className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
