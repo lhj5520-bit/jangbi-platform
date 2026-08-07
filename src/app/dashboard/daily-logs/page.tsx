@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Dispatch, Equipment, Supplier, Client } from '@/lib/types'
 import DispatchModal from '../dispatches/DispatchModal'
+import PageHeader from '@/components/PageHeader'
 import LogModal from './LogModal'
 
 export default function WorkConfirmPage() {
@@ -267,19 +268,11 @@ export default function WorkConfirmPage() {
 
   return (
     <div className="p-4 md:p-8">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">작업확인서</h1>
-        <div className="flex gap-2">
-          <button onClick={() => load()}
-            className="border border-gray-300 hover:bg-gray-50 text-gray-600 text-sm font-medium px-3 py-2 rounded-lg transition-colors">
-            🔄 새로고침
-          </button>
-          <button onClick={() => setNewLogOpen(true)}
-            className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
-            + 배차 등록
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        title="작업확인서"
+        primary={{ label: '+ 배차 등록', onClick: () => setNewLogOpen(true) }}
+        secondary={[{ label: '새로고침', onClick: () => load() }]}
+      />
 
       <div className="grid grid-cols-2 gap-3 mb-4">
         <div className="bg-white rounded-xl border border-gray-200 p-4">
@@ -311,7 +304,7 @@ export default function WorkConfirmPage() {
         />
       </div>
 
-      <div className="md:hidden space-y-3">
+      <div className="touch-list md:hidden space-y-3">
         {loading ? (
           <div className="text-center py-8 text-gray-400">불러오는 중...</div>
         ) : filtered.length === 0 ? (
@@ -337,25 +330,28 @@ export default function WorkConfirmPage() {
                 <div className="text-gray-400">날짜</div>
                 <div className="text-gray-700 text-xs">{(d as any).start_date}</div>
               </div>
-              <div className="mt-3 flex gap-2 pt-3 border-t border-gray-100">
+              {/* 주요 행동(확인서 출력 / 일보 작성)을 한 줄 전체로, 부수 행동은 아래 줄로 분리 */}
+              <div className="mt-3 space-y-2 pt-3 border-t border-gray-100">
                 {logMap[d.id] ? (
                   <button onClick={() => window.open('/sign/' + logMap[d.id], '_blank')}
-                    className="flex-1 py-1.5 rounded-lg bg-green-50 text-green-700 text-sm font-medium">📄 작업확인서</button>
+                    className="w-full rounded-lg bg-green-600 py-3 text-sm font-bold text-white">작업확인서 열기</button>
                 ) : (
                   <button onClick={() => setLogDispatchId(d.id)}
-                    className="flex-1 py-1.5 rounded-lg bg-gray-50 text-gray-600 text-sm font-medium">일보 작성</button>
+                    className="w-full rounded-lg bg-blue-600 py-3 text-sm font-bold text-white">일보 작성</button>
                 )}
-                <button onClick={() => { setEditLog(logDetailMap[d.id] ?? { dispatch_id: d.id }); setLogDispatchId(d.id) }}
-                  className="flex-1 py-1.5 rounded-lg bg-blue-50 text-blue-600 text-sm font-medium">수정</button>
-                <button onClick={() => handleDelete(d.id)}
-                  className="flex-1 py-1.5 rounded-lg bg-red-50 text-red-500 text-sm font-medium">삭제</button>
+                <div className="flex gap-2">
+                  <button onClick={() => { setEditLog(logDetailMap[d.id] ?? { dispatch_id: d.id }); setLogDispatchId(d.id) }}
+                    className="flex-1 rounded-lg border border-gray-200 py-2.5 text-sm font-medium text-gray-600">수정</button>
+                  <button onClick={() => handleDelete(d.id)}
+                    className="flex-1 rounded-lg border border-gray-200 py-2.5 text-sm font-medium text-gray-500">삭제</button>
+                </div>
               </div>
             </div>
           )
         })}
       </div>
 
-      <div className="hidden md:block bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <div className="hidden md:block bg-white rounded-xl border border-gray-200 overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             {(() => {

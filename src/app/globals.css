@@ -19,3 +19,31 @@ input[type="number"] {
 }
 input::placeholder { color: #9ca3af; }
 input[type="checkbox"] { background-color: transparent; }
+
+/* 가로 스크롤 영역에서 스크롤바 숨김 (모바일 액션 칩 등) */
+.no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+
+/*
+ * 모바일 터치 타겟 보정.
+ * 목록 카드 액션 버튼이 py-1.5(약 30px)라 손가락으로 누르기 어려웠음.
+ * 문서형 화면(거래명세서/계약서 등)은 셀 높이가 밀리면 안 되므로,
+ * 전역이 아니라 목록 카드 컨테이너(.touch-list)에만 적용한다.
+ */
+@media (max-width: 767px) {
+  .touch-list button,
+  .touch-list a[role="button"] { min-height: 44px; }
+  .touch-list input[type="checkbox"] { min-width: 20px; min-height: 20px; }
+}
+
+/* 노치/제스처바 대응 */
+.safe-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }
+
+/*
+ * 모바일에서 마지막 목록 항목이 우하단 FAB에 가리지 않도록 스크롤 영역 하단 여백 확보.
+ * 데스크탑은 FAB이 없으므로 여백 없음.
+ */
+.main-scroll { padding-bottom: calc(6rem + env(safe-area-inset-bottom, 0px)); }
+@media (min-width: 768px) {
+  .main-scroll { padding-bottom: 0; }
+}

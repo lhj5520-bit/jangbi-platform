@@ -120,7 +120,7 @@ export default function SettingsPage() {
 
   return (
     <div className="p-6 max-w-2xl mx-auto space-y-8">
-      <h1 className="text-2xl font-bold text-gray-900">계정 설정</h1>
+      <h1 className="hidden md:block text-2xl font-bold text-gray-900">계정 설정</h1>
 
       {/* 계정 추가 */}
       <div className="bg-white rounded-2xl border border-gray-200 p-6">

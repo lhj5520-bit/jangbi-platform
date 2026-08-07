@@ -4,10 +4,13 @@ export const dynamic = 'force-dynamic'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import LogModal from './daily-logs/LogModal'
+// 메모는 참고용이라 접힌 상태를 기본으로 두고, 접힌 줄에 첫 줄 미리보기만 보여준다.
+// (기존에는 항상 펼친 4줄 textarea가 오늘 배차·자금 카드를 화면 밖으로 밀어냈음)
 function MemoWidget() {
   const supabase = createClient()
   const [text, setText] = useState('')
   const [saved, setSaved] = useState(false)
+  const [open, setOpen] = useState(false)
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }: any) => {
       const meta = user?.user_metadata?.dashboard_memo
@@ -22,25 +25,39 @@ function MemoWidget() {
     setSaved(true)
     setTimeout(() => setSaved(false), 1500)
   }
+  const preview = text.trim().split('\n')[0]
   return (
-    <div className="mb-5 rounded-lg border-2 border-red-400 bg-white shadow-sm">
-      <div className="flex items-center justify-between px-4 py-2.5 border-b border-zinc-100">
-        <span className="text-sm font-semibold text-red-600">📝 메모장</span>
-        <button onClick={save}
-          className={`text-xs px-3 py-1 rounded-lg font-medium transition-colors ${
-            saved ? 'bg-green-500 text-white' : 'bg-zinc-800 hover:bg-zinc-700 text-white'
-          }`}>
-          {saved ? '✅ 저장됨' : '저장'}
-        </button>
-      </div>
-      <textarea
-        value={text}
-        onChange={e => setText(e.target.value)}
-        onKeyDown={e => { if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); save() } }}
-        placeholder="여기에 메모를 입력하세요... (Ctrl+S 로 저장)"
-        className="w-full px-4 py-3 text-sm text-zinc-700 resize-none focus:outline-none rounded-b-lg"
-        rows={4}
-      />
+    <div className="mb-5 rounded-lg border border-red-300 bg-white shadow-sm">
+      <button onClick={() => setOpen(o => !o)}
+        className="flex w-full items-center gap-2 px-4 py-3 text-left">
+        <span className="shrink-0 text-sm font-semibold text-red-600">메모장</span>
+        {!open && (
+          <span className="min-w-0 flex-1 truncate text-sm text-zinc-500">
+            {preview || '메모 없음'}
+          </span>
+        )}
+        <span className="ml-auto shrink-0 text-xs text-zinc-400">{open ? '접기 ▲' : '펼치기 ▼'}</span>
+      </button>
+      {open && (
+        <div className="border-t border-zinc-100">
+          <textarea
+            value={text}
+            onChange={e => setText(e.target.value)}
+            onKeyDown={e => { if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); save() } }}
+            placeholder="여기에 메모를 입력하세요... (Ctrl+S 로 저장)"
+            className="w-full resize-none px-4 py-3 text-sm text-zinc-700 focus:outline-none"
+            rows={5}
+          />
+          <div className="border-t border-zinc-100 px-4 py-2 text-right">
+            <button onClick={save}
+              className={`rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
+                saved ? 'bg-green-600 text-white' : 'bg-zinc-900 text-white hover:bg-zinc-700'
+              }`}>
+              {saved ? '저장됨' : '저장'}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -98,14 +115,22 @@ function TaxScheduleWidget({ today }: { today: string }) {
   })
 
   const monthLabel = `${year}년 ${month}월`
+  const soonCount = sorted.filter(i => status(i.day) === 'soon').length
+  // 마감 임박 건이 있을 때만 자동으로 펼쳐, 평소에는 목록 전체가 화면을 차지하지 않게 한다.
+  const [open, setOpen] = useState(false)
+  useEffect(() => { if (soonCount > 0) setOpen(true) }, [soonCount])
 
   return (
     <div className="mb-5 rounded-lg border border-blue-100 bg-white shadow-sm overflow-hidden">
-      <div className="flex items-center gap-2 border-b border-blue-100 bg-blue-50 px-4 py-3">
-        <span className="text-base">📅</span>
+      <button onClick={() => setOpen(o => !o)}
+        className="flex w-full items-center gap-2 border-b border-blue-100 bg-blue-50 px-4 py-3 text-left">
         <span className="text-sm font-bold text-blue-800">{monthLabel} 세무일정</span>
-      </div>
-      <div className="divide-y divide-gray-50 px-4 py-1">
+        {soonCount > 0 && (
+          <span className="rounded-full bg-red-500 px-2 py-0.5 text-xs font-bold text-white">임박 {soonCount}</span>
+        )}
+        <span className="ml-auto text-xs text-blue-500">{open ? '접기 ▲' : `${sorted.length}건 ▼`}</span>
+      </button>
+      <div className={`divide-y divide-gray-50 px-4 py-1 ${open ? '' : 'hidden'}`}>
         {sorted.map((item, i) => {
           const s = status(item.day)
           const dayLabel = item.day === 'last' ? '말일' : `${item.day}일`
@@ -199,7 +224,7 @@ export default function DashboardPage() {
         supabase.from('daily_logs').select('log_date,is_paid,quantity,dispatch:dispatches(client_unit_price)').gte('log_date',last7[0]).lte('log_date',today),
         supabase.from('equipment').select('type,status,plate_no,ownership'),
         supabase.from('dispatches').select('*,equipment:equipment(type,plate_no,ownership),supplier:suppliers(name)').gte('start_date',today).lte('start_date',today),
-        supabase.from('daily_logs').select('*,dispatch:dispatches(site_name,client_name,driver_name,equipment_text,equipment:equipment(type,plate_no))').order('log_date',{ascending:false}).limit(5),
+        supabase.from('daily_logs').select('*,dispatch:dispatches(site_name,client_name,driver_name,equipment_text,equipment:equipment(type,plate_no))').order('log_date',{ascending:false}).limit(10),
         supabase.from('equipment').select('plate_no,type,inspection_expire').not('inspection_expire','is',null),
         supabase.from('vat_payments').select('*').in('period', [curPeriod, prevPeriod]),
         supabase.from('invoices').select('issue_date,vat_amount,total_amount,status,supply_amount'),
@@ -405,13 +430,15 @@ export default function DashboardPage() {
   return (
     <div className="min-h-full bg-[#f3f0ea] p-3 md:p-5">
       <div className="mb-5 flex flex-col gap-5 overflow-hidden rounded-lg border border-zinc-800 bg-zinc-950 p-5 text-white shadow-xl md:flex-row md:items-end md:justify-between md:p-6">
-        <div>
+        <div className="w-full md:w-auto">
           <p className="text-xs font-semibold uppercase text-amber-300">Operations Dashboard</p>
-          <div className="mt-1 flex items-center gap-4 flex-wrap">
-            <h1 className="text-3xl font-bold text-white">안녕하세요, 관리자님!</h1>
-            <button onClick={() => setDispatchModalOpen(true)} className="rounded-xl bg-amber-400 px-5 py-2.5 text-base font-bold text-zinc-950 hover:bg-amber-300 transition-colors">+ 배차 등록</button>
-          </div>
-          <p className="mt-2 text-sm text-zinc-300">오늘 배차, 자금, 세금 상태를 한 화면에서 확인하세요.</p>
+          <h1 className="mt-1 text-2xl font-bold text-white">오늘 {kpi.todayCount}건 배차중</h1>
+          <p className="mt-1 text-sm text-zinc-300">자차 {ownTodayDispatches.length}건 · 타사 {otherTodayDispatchCount}건</p>
+          {/* 이 화면에서 가장 자주 하는 행동 — 모바일에서는 한 줄 전체 폭으로 크게 */}
+          <button onClick={() => setDispatchModalOpen(true)}
+            className="mt-4 w-full rounded-xl bg-amber-400 px-5 py-3.5 text-base font-bold text-zinc-950 transition-colors hover:bg-amber-300 md:w-auto">
+            + 배차 등록
+          </button>
         </div>
         <div className="flex items-center gap-2 text-xs text-zinc-300 flex-wrap">
           {weather && (
@@ -427,78 +454,8 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* 메모장 */}
+      {/* 메모장 (접기 가능) */}
       <MemoWidget />
-
-      {/* 세무일정 */}
-      <TaxScheduleWidget today={today} />
-
-
-      {/* 연간 이윤 분석 */}
-      <Card className="mb-5 overflow-hidden border-zinc-800 bg-zinc-950 text-white shadow-xl">
-        <div className="border-b border-zinc-800 bg-zinc-900 px-5 py-4">
-        <div className="flex items-center justify-between">
-          <p className="text-sm font-semibold text-white">연간 이윤 분석</p>
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-zinc-300">기준 연도</span>
-            <select value={profitYear} onChange={e => setProfitYear(Number(e.target.value))}
-              className="rounded-lg border border-zinc-700 bg-zinc-950 px-2 py-1.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-amber-300">
-              {[2023,2024,2025,2026,2027].map(y=>(
-                <option key={y} value={y}>{y}년</option>
-              ))}
-            </select>
-          </div>
-        </div>
-        </div>
-        <div className="grid grid-cols-2 gap-3 p-5 md:grid-cols-4">
-          <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-4">
-            <p className="mb-2 text-xs font-semibold text-zinc-200">총 매출금액</p>
-            <p className="text-lg font-bold text-white">{profitData ? profitData.totalDispatch.toLocaleString()+' 원' : '-'}</p>
-            {profitData && profitData.fuelAmt > 0 && (
-              <div className="mt-2 border-t border-zinc-800 pt-2">
-                <p className="text-xs text-zinc-300">유류비 {profitData.fuelAmt.toLocaleString()}원</p>
-                <p className="text-xs font-semibold text-amber-300">매출 대비 {profitData.fuelRate.toFixed(1)}%</p>
-              </div>
-            )}
-          </div>
-          <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-4">
-            <p className="mb-2 text-xs font-semibold text-zinc-200">법인관리비</p>
-            <p className="text-lg font-bold text-red-400">{profitData ? '-'+profitData.totalExpenses.toLocaleString()+' 원' : '-'}</p>
-            {profitData && profitData.categoryBreakdown.length > 0 && (
-              <div className="mt-2 border-t border-zinc-800 pt-2 space-y-1">
-                {profitData.categoryBreakdown.map(c=>(
-                  <div key={c.category} className="flex justify-between text-xs font-medium">
-                    <span className="text-zinc-300">{c.category}</span>
-                    <span className="text-zinc-100">{c.amount.toLocaleString()}원</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-          <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-4">
-            <p className="mb-2 text-xs font-semibold text-zinc-200">현재 이윤 (관리비 포함)</p>
-            <p className={`text-lg font-bold ${profitData&&profitData.profit>=0?'text-emerald-400':'text-red-400'}`}>
-              {profitData ? (profitData.profit>=0?'+':'')+profitData.profit.toLocaleString()+' 원' : '-'}
-            </p>
-          </div>
-          <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-4">
-            <p className="mb-2 text-xs font-semibold text-zinc-200">평균 이윤율</p>
-            <p className={`text-2xl font-bold ${profitData&&profitData.profitRate>=0?'text-emerald-400':'text-red-400'}`}>
-              {profitData ? profitData.profitRate.toFixed(1)+'%' : '-'}
-            </p>
-          </div>
-        </div>
-        <div className="grid grid-cols-1 gap-3 px-5 pb-5 md:grid-cols-2">
-          <div className="rounded-lg border border-amber-300 bg-amber-100 p-4">
-            <p className="mb-2 text-xs font-semibold text-zinc-700">002어6110 배차 합계</p>
-            <p className="text-lg font-bold text-zinc-950">{profitData ? profitData.plate002Amt.toLocaleString()+' 원' : '-'}</p>
-          </div>
-          <div className="rounded-lg border border-amber-300 bg-amber-100 p-4">
-            <p className="mb-2 text-xs font-semibold text-zinc-700">(주)제이에이건설 배차 합계</p>
-            <p className="text-lg font-bold text-zinc-950">{profitData ? profitData.jeiaAmt.toLocaleString()+' 원' : '-'}</p>
-          </div>
-        </div>
-      </Card>
 
       {/* KPI */}
       <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
@@ -611,7 +568,10 @@ export default function DashboardPage() {
                 </div>
                 <div className="text-right">
                   <p className="text-xs text-zinc-500">{l.log_date}</p>
-                  <span className="rounded-lg bg-green-100 px-1.5 py-0.5 text-xs font-semibold text-green-700">완료</span>
+                  {l.invoice_issued
+                    ? <span className="rounded-lg bg-blue-100 px-1.5 py-0.5 text-xs font-semibold text-blue-700">청구완료</span>
+                    : <span className="rounded-lg bg-orange-100 px-1.5 py-0.5 text-xs font-semibold text-orange-600">미청구</span>
+                  }
                 </div>
               </div>
             ))}
@@ -653,6 +613,72 @@ export default function DashboardPage() {
         </Card>
       </div>
 
+      {/* 연간 이윤 분석 */}
+      <Card className="mb-5 overflow-hidden border-zinc-800 bg-zinc-950 text-white shadow-xl">
+        <div className="border-b border-zinc-800 bg-zinc-900 px-5 py-4">
+        <div className="flex items-center justify-between">
+          <p className="text-sm font-semibold text-white">연간 이윤 분석</p>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-zinc-300">기준 연도</span>
+            <select value={profitYear} onChange={e => setProfitYear(Number(e.target.value))}
+              className="rounded-lg border border-zinc-700 bg-zinc-950 px-2 py-1.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-amber-300">
+              {[2023,2024,2025,2026,2027].map(y=>(
+                <option key={y} value={y}>{y}년</option>
+              ))}
+            </select>
+          </div>
+        </div>
+        </div>
+        <div className="grid grid-cols-2 gap-3 p-5 md:grid-cols-4">
+          <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-4">
+            <p className="mb-2 text-xs font-semibold text-zinc-200">총 매출금액</p>
+            <p className="text-lg font-bold text-white">{profitData ? profitData.totalDispatch.toLocaleString()+' 원' : '-'}</p>
+            {profitData && profitData.fuelAmt > 0 && (
+              <div className="mt-2 border-t border-zinc-800 pt-2">
+                <p className="text-xs text-zinc-300">유류비 {profitData.fuelAmt.toLocaleString()}원</p>
+                <p className="text-xs font-semibold text-amber-300">매출 대비 {profitData.fuelRate.toFixed(1)}%</p>
+              </div>
+            )}
+          </div>
+          <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-4">
+            <p className="mb-2 text-xs font-semibold text-zinc-200">법인관리비</p>
+            <p className="text-lg font-bold text-red-400">{profitData ? '-'+profitData.totalExpenses.toLocaleString()+' 원' : '-'}</p>
+            {profitData && profitData.categoryBreakdown.length > 0 && (
+              <div className="mt-2 border-t border-zinc-800 pt-2 space-y-1">
+                {profitData.categoryBreakdown.map(c=>(
+                  <div key={c.category} className="flex justify-between text-xs font-medium">
+                    <span className="text-zinc-300">{c.category}</span>
+                    <span className="text-zinc-100">{c.amount.toLocaleString()}원</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-4">
+            <p className="mb-2 text-xs font-semibold text-zinc-200">현재 이윤 (관리비 포함)</p>
+            <p className={`text-lg font-bold ${profitData&&profitData.profit>=0?'text-emerald-400':'text-red-400'}`}>
+              {profitData ? (profitData.profit>=0?'+':'')+profitData.profit.toLocaleString()+' 원' : '-'}
+            </p>
+          </div>
+          <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-4">
+            <p className="mb-2 text-xs font-semibold text-zinc-200">평균 이윤율</p>
+            <p className={`text-2xl font-bold ${profitData&&profitData.profitRate>=0?'text-emerald-400':'text-red-400'}`}>
+              {profitData ? profitData.profitRate.toFixed(1)+'%' : '-'}
+            </p>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 gap-3 px-5 pb-5 md:grid-cols-2">
+          <div className="rounded-lg border border-amber-300 bg-amber-100 p-4">
+            <p className="mb-2 text-xs font-semibold text-zinc-700">002어6110 배차 합계</p>
+            <p className="text-lg font-bold text-zinc-950">{profitData ? profitData.plate002Amt.toLocaleString()+' 원' : '-'}</p>
+          </div>
+          <div className="rounded-lg border border-amber-300 bg-amber-100 p-4">
+            <p className="mb-2 text-xs font-semibold text-zinc-700">(주)제이에이건설 배차 합계</p>
+            <p className="text-lg font-bold text-zinc-950">{profitData ? profitData.jeiaAmt.toLocaleString()+' 원' : '-'}</p>
+          </div>
+        </div>
+      </Card>
+
       {/* 부가세 */}
       {!loading && vat && (() => {
         const vy = parseInt(vatKey.slice(0,4))
@@ -693,50 +719,42 @@ export default function DashboardPage() {
           </Card>
         )
       })()}
-      {/* 이번 달 매출/매입 계산서 합계 */}
-      <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
-        <div className="rounded-lg border border-blue-200 bg-white shadow-sm overflow-hidden">
-          <div className="flex items-center gap-2 bg-blue-50 border-b border-blue-100 px-4 py-3">
-            <span className="text-base">📄</span>
-            <span className="text-sm font-bold text-blue-800">이번 달 매출계산서</span>
-            <span className="ml-auto text-xs text-blue-400">{monthStart.slice(0,7)}</span>
-          </div>
-          <div className="px-4 py-4 grid grid-cols-3 gap-2 text-center">
-            <div>
-              <p className="text-xs text-gray-400 mb-1">공급가액</p>
-              <p className="text-sm font-bold text-gray-800">{monthSales.supply.toLocaleString()}원</p>
-            </div>
-            <div>
-              <p className="text-xs text-gray-400 mb-1">부가세</p>
-              <p className="text-sm font-bold text-gray-500">{monthSales.vat.toLocaleString()}원</p>
-            </div>
-            <div>
-              <p className="text-xs text-gray-400 mb-1">합계</p>
-              <p className="text-base font-bold text-blue-700">{monthSales.total.toLocaleString()}원</p>
-            </div>
-          </div>
+      {/* 이번 달 계산서 — 매출/매입을 카드 2개로 나누면 같은 표가 두 번 반복돼 한 표로 합침 */}
+      <Card className="mt-4 overflow-hidden">
+        <div className="flex items-center gap-2 border-b border-zinc-100 bg-zinc-50 px-4 py-3">
+          <span className="text-sm font-bold text-zinc-800">이번 달 계산서</span>
+          <span className="ml-auto text-xs text-zinc-400">{monthStart.slice(0,7)}</span>
         </div>
-        <div className="rounded-lg border border-rose-200 bg-white shadow-sm overflow-hidden">
-          <div className="flex items-center gap-2 bg-rose-50 border-b border-rose-100 px-4 py-3">
-            <span className="text-base">📦</span>
-            <span className="text-sm font-bold text-rose-800">이번 달 매입계산서</span>
-            <span className="ml-auto text-xs text-rose-400">{monthStart.slice(0,7)}</span>
-          </div>
-          <div className="px-4 py-4 grid grid-cols-3 gap-2 text-center">
-            <div>
-              <p className="text-xs text-gray-400 mb-1">공급가액</p>
-              <p className="text-sm font-bold text-gray-800">{monthPurchase.supply.toLocaleString()}원</p>
-            </div>
-            <div>
-              <p className="text-xs text-gray-400 mb-1">부가세</p>
-              <p className="text-sm font-bold text-gray-500">{monthPurchase.vat.toLocaleString()}원</p>
-            </div>
-            <div>
-              <p className="text-xs text-gray-400 mb-1">합계</p>
-              <p className="text-base font-bold text-rose-700">{monthPurchase.total.toLocaleString()}원</p>
-            </div>
-          </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-zinc-100 text-xs text-gray-400">
+                <th className="px-4 py-2 text-left font-medium">구분</th>
+                <th className="px-4 py-2 text-right font-medium">공급가액</th>
+                <th className="px-4 py-2 text-right font-medium">부가세</th>
+                <th className="px-4 py-2 text-right font-medium">합계</th>
+              </tr>
+            </thead>
+            <tbody>
+              {([
+                { label: '매출', v: monthSales, color: 'text-blue-700' },
+                { label: '매입', v: monthPurchase, color: 'text-rose-700' },
+              ] as const).map(r => (
+                <tr key={r.label} className="border-b border-zinc-50 last:border-0">
+                  <td className="px-4 py-3 font-semibold text-gray-800">{r.label}</td>
+                  <td className="px-4 py-3 text-right text-gray-700">{r.v.supply.toLocaleString()}원</td>
+                  <td className="px-4 py-3 text-right text-gray-500">{r.v.vat.toLocaleString()}원</td>
+                  <td className={`px-4 py-3 text-right font-bold ${r.color}`}>{r.v.total.toLocaleString()}원</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
+      </Card>
+
+      {/* 세무일정 (참고 정보라 하단에 배치, 임박 건 있으면 자동 펼침) */}
+      <div className="mt-5">
+        <TaxScheduleWidget today={today} />
       </div>
 
       {dispatchModalOpen && (

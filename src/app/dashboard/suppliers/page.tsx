@@ -5,6 +5,7 @@ export const dynamic = 'force-dynamic'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Supplier } from '@/lib/types'
+import PageHeader from '@/components/PageHeader'
 import SupplierModal from './SupplierModal'
 import CsvUploadModal from './CsvUploadModal'
 import SupplierEquipmentModal from '../equipment/SupplierEquipmentModal'
@@ -66,27 +67,20 @@ export default function SuppliersPage() {
 
   return (
     <div className="p-4 md:p-8">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">중기업체</h1>
-        <div className="flex gap-2">
-          <button onClick={() => setCsvOpen(true)}
-            className="bg-green-600 hover:bg-green-700 text-white text-sm font-medium px-4 py-2 rounded-lg">
-            CSV
-          </button>
-          <button onClick={openNew}
-            className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg">
-            + 등록
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        title="중기업체"
+        subtitle={`${filtered.length}곳`}
+        primary={{ label: '+ 업체 등록', onClick: openNew }}
+        secondary={[{ label: 'CSV 업로드', onClick: () => setCsvOpen(true) }]}
+      />
 
-      <div className="mb-4">
+      <div className="sticky top-0 z-10 -mx-4 mb-4 bg-[#f3f0ea] px-4 py-2 md:static md:mx-0 md:bg-transparent md:p-0 md:pb-4">
         <input type="text" placeholder="업체명, 대표자, 연락처 검색..."
           value={search} onChange={e => setSearch(e.target.value)}
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          className="w-full rounded-lg border border-gray-300 px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 md:py-2 md:text-sm" />
       </div>
 
-      <div className="md:hidden space-y-3">
+      <div className="touch-list md:hidden space-y-3">
         {loading ? (
           <div className="text-center py-8 text-gray-400">불러오는 중...</div>
         ) : filtered.length === 0 ? (
@@ -111,17 +105,17 @@ export default function SuppliersPage() {
               {s.business_no && <div>사업자번호: {s.business_no}</div>}
               {s.bank_name && <div>계좌: {s.bank_name} {s.bank_account}</div>}
             </div>
-            <div className="mt-3 flex gap-3 pt-3 border-t border-gray-100">
+            <div className="mt-3 flex gap-2 pt-3 border-t border-gray-100">
               <button onClick={() => openEdit(s)}
-                className="flex-1 py-1.5 rounded-lg bg-blue-50 text-blue-600 text-sm font-medium">수정</button>
+                className="flex-[2] rounded-lg bg-blue-600 py-2.5 text-sm font-bold text-white">수정</button>
               <button onClick={() => handleDelete(s.id)}
-                className="flex-1 py-1.5 rounded-lg bg-red-50 text-red-500 text-sm font-medium">삭제</button>
+                className="flex-1 rounded-lg border border-gray-200 py-2.5 text-sm font-medium text-gray-500">삭제</button>
             </div>
           </div>
         ))}
       </div>
 
-      <div className="hidden md:block bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <div className="hidden md:block bg-white rounded-xl border border-gray-200 overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-gray-50 border-b border-gray-200">

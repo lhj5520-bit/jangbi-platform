@@ -128,7 +128,7 @@ export default function VatPage() {
   return (
     <div className="p-4 md:p-8">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">부가세 관리</h1>
+        <h1 className="hidden md:block text-2xl font-bold text-gray-900">부가세 관리</h1>
         <select value={year} onChange={e => setYear(Number(e.target.value))}
           className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
           {yearOptions.map(y => <option key={y} value={y}>{y}년</option>)}

@@ -5,6 +5,7 @@ export const dynamic = 'force-dynamic'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import ExpensesExcelUploadModal from './ExpensesExcelUploadModal'
+import PageHeader from '@/components/PageHeader'
 
 interface Expense {
   id: string
@@ -218,27 +219,15 @@ export default function ExpensesPage() {
       .print-only { display: none; }
     `}</style>
     <div className="p-4 md:p-8 no-print">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">관리비</h1>
-        <div className="flex gap-2">
-          <button onClick={() => setAddCatOpen(true)}
-            className="bg-purple-100 hover:bg-purple-200 text-purple-700 text-sm font-medium px-3 py-2 rounded-lg">
-            + 항목
-          </button>
-          <button onClick={() => setExcelOpen(true)}
-            className="bg-green-600 hover:bg-green-700 text-white text-sm font-medium px-4 py-2 rounded-lg">
-            📂 엑셀 업로드
-          </button>
-          <button onClick={() => window.print()}
-            className="no-print bg-gray-700 hover:bg-gray-800 text-white text-sm font-medium px-4 py-2 rounded-lg">
-            🖨️ 인쇄 / PDF
-          </button>
-          <button onClick={openNew}
-            className="no-print bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg">
-            + 등록
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        title="관리비"
+        primary={{ label: '+ 지출 등록', onClick: openNew }}
+        secondary={[
+          { label: '항목 추가', onClick: () => setAddCatOpen(true) },
+          { label: '엑셀 업로드', onClick: () => setExcelOpen(true) },
+          { label: '인쇄 / PDF', onClick: () => window.print(), desktopOnly: true },
+        ]}
+      />
 
       <div className="flex flex-wrap gap-2 mb-4 items-center">
         <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
@@ -335,7 +324,7 @@ export default function ExpensesPage() {
         </div>
       )}
 
-      <div className="md:hidden space-y-3">
+      <div className="touch-list md:hidden space-y-3">
         {loading ? (
           <div className="text-center py-8 text-gray-400">불러오는 중...</div>
         ) : filtered.length === 0 ? (
@@ -352,15 +341,15 @@ export default function ExpensesPage() {
             </div>
             <div className="mt-3 flex gap-3 pt-3 border-t border-gray-100">
               <button onClick={() => openEdit(e)}
-                className="flex-1 py-1.5 rounded-lg bg-blue-50 text-blue-600 text-sm font-medium">수정</button>
+                className="flex-[2] rounded-lg bg-blue-600 py-2.5 text-sm font-bold text-white">수정</button>
               <button onClick={() => handleDelete(e.id)}
-                className="flex-1 py-1.5 rounded-lg bg-red-50 text-red-500 text-sm font-medium">삭제</button>
+                className="flex-1 rounded-lg border border-gray-200 py-2.5 text-sm font-medium text-gray-500">삭제</button>
             </div>
           </div>
         ))}
       </div>
 
-      <div className="hidden md:block bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <div className="hidden md:block bg-white rounded-xl border border-gray-200 overflow-x-auto">
         <table className="w-full text-sm table-fixed">
           <colgroup>
             <col style={{width: '110px'}} />{/* 날짜 */}

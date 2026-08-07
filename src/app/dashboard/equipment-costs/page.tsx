@@ -173,7 +173,7 @@ export default function EquipmentCostsPage() {
 
   return (
     <div className="p-4 md:p-6 space-y-4">
-      <h1 className="text-xl font-bold text-gray-900">장비별 투입비용 (자차)</h1>
+      <h1 className="hidden md:block text-xl font-bold text-gray-900">장비별 투입비용 (자차)</h1>
 
       {/* 필터 */}
       <div className="flex flex-wrap gap-2 items-center">

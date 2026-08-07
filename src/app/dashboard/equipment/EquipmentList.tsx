@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { Equipment, Supplier } from '@/lib/types'
 import SupplierEquipmentModal from './SupplierEquipmentModal'
 import EquipmentExcelUploadModal from './ExcelUploadModal'
+import PageHeader from '@/components/PageHeader'
 
 const ExcavatorIcon = ({ size = 20 }: { size?: number }) => (
   <img src="/icons/excavator.svg" alt="굴삭기" width={size} height={size} style={{ display: 'inline-block', verticalAlign: 'middle' }} />
@@ -183,25 +184,18 @@ export default function EquipmentList({ ownership }: Props) {
 
   return (
     <div className="p-4 md:p-8">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
-        <div className="flex gap-2">
-          <button onClick={() => setExcelOpen(true)}
-            className="bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
-            📂 엑셀 업로드
-          </button>
-          <button onClick={() => { setSelected(null); setModalOpen(true) }}
-            className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
-            + 장비 등록
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        title={title}
+        subtitle={`${filtered.length}대`}
+        primary={{ label: '+ 장비 등록', onClick: () => { setSelected(null); setModalOpen(true) } }}
+        secondary={[{ label: '엑셀 업로드', onClick: () => setExcelOpen(true) }]}
+      />
 
-      <div className="flex gap-3 mb-4 flex-wrap">
+      <div className="sticky top-0 z-10 -mx-4 mb-4 space-y-2 bg-[#f3f0ea] px-4 py-2 md:static md:mx-0 md:flex md:gap-3 md:space-y-0 md:bg-transparent md:p-0 md:pb-4">
         <input type="text" placeholder="차량번호, 모델명, 업체명 검색..."
           value={search} onChange={e => setSearch(e.target.value)}
-          className="flex-1 min-w-[160px] px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-        <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
+          className="w-full rounded-lg border border-gray-300 px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 md:min-w-[160px] md:flex-1 md:py-2 md:text-sm" />
+        <div className="no-scrollbar flex gap-1 overflow-x-auto rounded-lg bg-gray-100 p-1">
           {([
             { value: 'all', label: '전체' },
             { value: 'excavator', label: '굴삭기' },
@@ -209,7 +203,7 @@ export default function EquipmentList({ ownership }: Props) {
             { value: 'truck', label: '🚚 화물차' },
           ] as const).map(t => (
             <button key={t.value} onClick={() => setTypeFilter(t.value)}
-              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center gap-1 ${
+              className={`flex shrink-0 items-center gap-1 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
                 typeFilter === t.value ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
               }`}>
               {t.value === 'excavator' && <ExcavatorIcon size={16} />}
@@ -220,7 +214,7 @@ export default function EquipmentList({ ownership }: Props) {
       </div>
 
       {/* 모바일 카드 */}
-      <div className="md:hidden space-y-3">
+      <div className="touch-list md:hidden space-y-3">
         {loading ? (
           <div className="text-center py-8 text-gray-400">불러오는 중...</div>
         ) : filtered.length === 0 ? (
@@ -244,29 +238,32 @@ export default function EquipmentList({ ownership }: Props) {
               <div className="text-gray-400">보험만기</div>
               <div>{(e as any).insurance_expire ? checkExpire((e as any).insurance_expire) : <span className="text-gray-300">-</span>}</div>
             </div>
-            <div className="mt-3 flex gap-2 pt-3 border-t border-gray-100">
-              <button onClick={() => { setSelected(e); setModalOpen(true) }}
-                className="flex-1 py-1.5 rounded-lg bg-blue-50 text-blue-600 text-sm font-medium">수정</button>
+            {/* 서류공유가 현장에서 가장 자주 쓰는 행동이라 한 줄 전체로 올림 */}
+            <div className="mt-3 space-y-2 pt-3 border-t border-gray-100">
               {readyId === e.id ? (
                 <button onClick={handleExecuteShare}
-                  className="flex-1 py-1.5 rounded-lg bg-emerald-500 text-white text-sm font-medium animate-pulse">
-                  📤 탭하여 공유
+                  className="w-full animate-pulse rounded-lg bg-emerald-500 py-3 text-sm font-bold text-white">
+                  탭하여 공유
                 </button>
               ) : (
                 <button onClick={() => handlePrepareShare(e.id)} disabled={sharingId === e.id}
-                  className="flex-1 py-1.5 rounded-lg bg-emerald-50 text-emerald-600 text-sm font-medium disabled:opacity-50">
-                  {sharingId === e.id ? '준비중...' : '📤 서류공유'}
+                  className="w-full rounded-lg bg-emerald-600 py-3 text-sm font-bold text-white disabled:opacity-50">
+                  {sharingId === e.id ? '준비중...' : '서류 공유'}
                 </button>
               )}
-              <button onClick={() => handleDelete(e.id)}
-                className="flex-1 py-1.5 rounded-lg bg-red-50 text-red-500 text-sm font-medium">삭제</button>
+              <div className="flex gap-2">
+                <button onClick={() => { setSelected(e); setModalOpen(true) }}
+                  className="flex-1 rounded-lg border border-gray-200 py-2.5 text-sm font-medium text-gray-600">수정</button>
+                <button onClick={() => handleDelete(e.id)}
+                  className="flex-1 rounded-lg border border-gray-200 py-2.5 text-sm font-medium text-gray-500">삭제</button>
+              </div>
             </div>
           </div>
         ))}
       </div>
 
       {/* 데스크탑 테이블 */}
-      <div className="hidden md:block bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <div className="hidden md:block bg-white rounded-xl border border-gray-200 overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-gray-50 border-b border-gray-200">

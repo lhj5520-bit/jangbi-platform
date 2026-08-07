@@ -37,25 +37,36 @@ const Icons: Record<string, () => React.ReactElement> = {
   expenses:  () => <I><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1z"/><line x1="8" y1="9" x2="16" y2="9"/><line x1="8" y1="13" x2="14" y2="13"/></I>,
 }
 
-type NavItem = { href: string; label: string; icon: string | null; customIcon?: () => React.ReactElement }
+type NavItem = { href: string; label: string; icon: string | null; customIcon?: () => React.ReactElement; group: string }
+
+// group 순서 = 사이드바 표시 순서. 매일 쓰는 배차 업무를 맨 위에 둔다.
+const GROUP_ORDER = ['배차 업무', '문서 발행', '기준 정보'] as const
+
 const navItems: NavItem[] = [
-  { href: '/dashboard',                  label: '대시보드',           icon: 'dashboard' },
-  { href: '/dashboard/clients',          label: '발주처',             icon: 'clients' },
-  { href: '/dashboard/suppliers',        label: '중기업체',           icon: 'suppliers' },
-  { href: '/dashboard/equipment-own',    label: '장비(자차)',          icon: null, customIcon: ExcavatorIcon },
-  { href: '/dashboard/equipment-other',  label: '장비(타사)',          icon: null, customIcon: ExcavatorIcon },
-  { href: '/dashboard/dispatch-ledger',  label: '배차내역서',          icon: 'statement' },
-  { href: '/dashboard/daily-logs',       label: '작업확인서출력',      icon: 'ledger' },
-  { href: '/dashboard/trade-statement',  label: '거래명세서',          icon: 'invoice' },
-  { href: '/dashboard/estimate',         label: '견적서',              icon: 'invoice' },
-  { href: '/dashboard/rental-contract', label: '임대차계약서',         icon: 'ledger' },
-  { href: '/dashboard/invoices',         label: '매출계산서',          icon: 'invoice' },
-  { href: '/dashboard/purchase-invoices',label: '매입계산서',          icon: 'purchase' },
-  { href: '/dashboard/vat',              label: '부가세',              icon: 'vat' },
-  { href: '/dashboard/bank',             label: '통장내역',            icon: 'bank' },
-  { href: '/dashboard/expenses',         label: '관리비',              icon: 'expenses' },
-  { href: '/dashboard/equipment-costs',  label: '장비별 투입비용',      icon: 'expenses' },
+  { href: '/dashboard',                  label: '대시보드',        icon: 'dashboard',  group: '배차 업무' },
+  // 배차등록 목록(/dashboard/dispatches)은 2026-07-08 LogModal 통합 때 의도적으로 메뉴에서 내림.
+  // 작업확인서출력과 기능이 겹쳐서이며, 페이지 자체는 남아 있음 (계정 설정의 권한 목록에도 존재).
+  { href: '/dashboard/dispatch-ledger',  label: '배차내역서',      icon: 'statement',  group: '배차 업무' },
+  { href: '/dashboard/daily-logs',       label: '작업확인서출력',  icon: 'ledger',     group: '배차 업무' },
+
+  { href: '/dashboard/trade-statement',  label: '거래명세서',      icon: 'invoice',    group: '문서 발행' },
+  { href: '/dashboard/estimate',         label: '견적서',          icon: 'invoice',    group: '문서 발행' },
+  { href: '/dashboard/rental-contract',  label: '임대차계약서',    icon: 'ledger',     group: '문서 발행' },
+
+  { href: '/dashboard/clients',          label: '발주처',          icon: 'clients',    group: '기준 정보' },
+  { href: '/dashboard/suppliers',        label: '중기업체',        icon: 'suppliers',  group: '기준 정보' },
+  { href: '/dashboard/equipment-own',    label: '장비(자차)',      icon: null, customIcon: ExcavatorIcon, group: '기준 정보' },
+  { href: '/dashboard/equipment-other',  label: '장비(타사)',      icon: null, customIcon: ExcavatorIcon, group: '기준 정보' },
+
+  { href: '/dashboard/invoices',         label: '매출계산서',      icon: 'invoice',    group: '관리' },
+  { href: '/dashboard/purchase-invoices',label: '매입계산서',      icon: 'purchase',   group: '관리' },
+  { href: '/dashboard/vat',              label: '부가세',          icon: 'vat',        group: '관리' },
+  { href: '/dashboard/bank',             label: '통장내역',        icon: 'bank',       group: '관리' },
+  { href: '/dashboard/expenses',         label: '관리비',          icon: 'expenses',   group: '관리' },
+  { href: '/dashboard/equipment-costs',  label: '장비별 투입비용', icon: 'expenses',   group: '관리' },
 ]
+
+const managementHrefs = navItems.filter(i => i.group === '관리').map(i => i.href)
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
@@ -169,24 +180,26 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     router.push('/login')
   }
 
-  const currentItem = navItems.find(i => i.href === pathname) ?? navItems[1]
-  const mgmtHrefList = ['/dashboard/invoices', '/dashboard/purchase-invoices', '/dashboard/vat', '/dashboard/bank', '/dashboard/expenses', '/dashboard/equipment-costs']
+  // 메뉴에 없는 경로(개인사업자관리/설정 등)에서 엉뚱한 메뉴명이 뜨지 않도록 폴백을 분리
+  const EXTRA_LABELS: Record<string, string> = {
+    '/dashboard/sole-proprietor': '개인사업자관리',
+    '/dashboard/export': '전체 내려받기',
+    '/dashboard/settings': '계정 설정',
+    '/dashboard/dispatches': '배차등록',
+    '/dashboard/equipment': '장비',
+    '/dashboard/projects': '현장 / 수주',
+    '/dashboard/settlements': '정산',
+  }
+  const matchedItem = navItems.find(i => i.href === pathname)
+  const currentLabel = matchedItem?.label ?? EXTRA_LABELS[pathname] ?? '가온건설중기'
   const [mgmtOpen, setMgmtOpen] = useState(false)
   useEffect(() => {
-    if (mgmtHrefList.includes(pathname)) setMgmtOpen(true)
+    if (managementHrefs.includes(pathname)) setMgmtOpen(true)
   }, [pathname])
 
-  const managementHrefs = [
-    '/dashboard/invoices',
-    '/dashboard/purchase-invoices',
-    '/dashboard/vat',
-    '/dashboard/bank',
-    '/dashboard/expenses',
-    '/dashboard/equipment-costs',
-  ]
   const canAccess = (href: string) => allowedPaths === null || allowedPaths.includes(href)
-  const mainNavItems = navItems.filter(i => !managementHrefs.includes(i.href) && canAccess(i.href))
-  const mgmtNavItems = navItems.filter(i => managementHrefs.includes(i.href) && canAccess(i.href))
+  const mainNavItems = navItems.filter(i => i.group !== '관리' && canAccess(i.href))
+  const mgmtNavItems = navItems.filter(i => i.group === '관리' && canAccess(i.href))
 
   const renderNavIcon = (item: NavItem) => {
     if (item.customIcon) return <item.customIcon />
@@ -196,30 +209,38 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const renderNavLinks = (onNavigate?: () => void) => (
     <>
-      <div className="px-3 pb-2 pt-1 text-[11px] font-semibold uppercase tracking-wide text-zinc-500">업무 메뉴</div>
-      {mainNavItems.map(item => {
-        const isActive = pathname === item.href
+      {GROUP_ORDER.map(groupName => {
+        const items = mainNavItems.filter(i => i.group === groupName)
+        if (items.length === 0) return null
         return (
-          <Link
-            key={item.href}
-            href={item.href}
-            onClick={onNavigate}
-            className={`group relative flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-semibold transition-colors ${
-              isActive
-                ? 'bg-zinc-900 text-amber-200 ring-1 ring-amber-400/30'
-                : 'text-zinc-300 hover:bg-zinc-900 hover:text-white'
-            }`}
-          >
-            {isActive && <span className="absolute left-0 top-2 bottom-2 w-1 rounded-r-full bg-amber-400" />}
-            <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md transition-colors ${
-              isActive
-                ? 'bg-amber-400 text-zinc-950'
-                : 'bg-zinc-900 text-zinc-400 group-hover:bg-zinc-800 group-hover:text-amber-200'
-            }`}>
-              {renderNavIcon(item)}
-            </span>
-            <span className="truncate">{item.label}</span>
-          </Link>
+          <div key={groupName} className="mb-3">
+            <div className="px-3 pb-1.5 pt-1 text-[11px] font-semibold tracking-wide text-zinc-500">{groupName}</div>
+            {items.map(item => {
+              const isActive = pathname === item.href
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={onNavigate}
+                  className={`group relative flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-semibold transition-colors ${
+                    isActive
+                      ? 'bg-zinc-900 text-amber-200 ring-1 ring-amber-400/30'
+                      : 'text-zinc-300 hover:bg-zinc-900 hover:text-white'
+                  }`}
+                >
+                  {isActive && <span className="absolute left-0 top-2 bottom-2 w-1 rounded-r-full bg-amber-400" />}
+                  <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md transition-colors ${
+                    isActive
+                      ? 'bg-amber-400 text-zinc-950'
+                      : 'bg-zinc-900 text-zinc-400 group-hover:bg-zinc-800 group-hover:text-amber-200'
+                  }`}>
+                    {renderNavIcon(item)}
+                  </span>
+                  <span className="truncate">{item.label}</span>
+                </Link>
+              )
+            })}
+          </div>
         )
       })}
 
@@ -324,7 +345,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   <div className="text-xs text-zinc-400">장비 중개 관리</div>
                 </div>
               </div>
-              <button onClick={() => setDrawerOpen(false)} className="text-2xl leading-none text-zinc-400">X</button>
+              <button onClick={() => setDrawerOpen(false)} aria-label="메뉴 닫기"
+                className="-mr-2 flex h-11 w-11 items-center justify-center rounded-lg text-zinc-400 active:bg-zinc-900">
+                <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
+                  <line x1="6" y1="6" x2="18" y2="18" /><line x1="18" y1="6" x2="6" y2="18" />
+                </svg>
+              </button>
             </div>
             <nav className="flex-1 overflow-y-auto px-2 py-3">
               {renderNavLinks(() => setDrawerOpen(false))}
@@ -342,23 +368,26 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* 메인 영역 */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* 모바일 상단 헤더 */}
-        <header className="flex shrink-0 items-center gap-3 border-b border-zinc-800 bg-zinc-950 px-4 py-3 md:hidden">
-          <button onClick={() => setDrawerOpen(true)}
-            className="p-1 text-2xl leading-none text-white">
-            <span style={{display:'flex',flexDirection:'column',gap:'4px',width:'18px'}}>
+        <header className="sticky top-0 z-20 flex shrink-0 items-center gap-3 border-b border-zinc-800 bg-zinc-950 px-4 py-2 md:hidden"
+          style={{ paddingTop: 'calc(0.5rem + env(safe-area-inset-top))' }}>
+          <button onClick={() => setDrawerOpen(true)} aria-label="메뉴 열기"
+            className="-ml-2 flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-white active:bg-zinc-800">
+            <span style={{display:'flex',flexDirection:'column',gap:'4px',width:'20px'}}>
               <span style={{height:'2px',background:'#ffffff',borderRadius:'1px',display:'block'}} />
               <span style={{height:'2px',background:'#ffffff',borderRadius:'1px',display:'block'}} />
               <span style={{height:'2px',background:'#ffffff',borderRadius:'1px',display:'block'}} />
             </span>
           </button>
           <Image src="/icons/icon-192.png" alt="로고" width={28} height={28} className="rounded-md" />
-          <span className="flex items-center gap-1 text-base font-semibold text-white">
-            {renderNavIcon(currentItem)} {currentItem.label}
+          <span className="flex min-w-0 items-center gap-1.5 text-base font-semibold text-white">
+            {matchedItem && renderNavIcon(matchedItem)}
+            <span className="truncate">{currentLabel}</span>
           </span>
         </header>
 
         {/* 페이지 콘텐츠 */}
-        <main className="flex-1 overflow-auto bg-[#f3f0ea]">
+        {/* FAB(모바일 주요 액션)에 마지막 항목이 가리지 않도록 하단 여백 확보 */}
+        <main className="main-scroll flex-1 overflow-auto bg-[#f3f0ea]">
           {children}
         </main>
       </div>

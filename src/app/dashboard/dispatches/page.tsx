@@ -5,18 +5,15 @@ export const dynamic = 'force-dynamic'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Dispatch, Equipment, Supplier, Client } from '@/lib/types'
-import DispatchModal from './DispatchModal'
 import LogModal from '../daily-logs/LogModal'
+import PageHeader from '@/components/PageHeader'
 
 export default function DispatchesPage() {
   const [dispatches, setDispatches] = useState<Dispatch[]>([])
   const [equipment, setEquipment] = useState<Equipment[]>([])
   const [suppliers, setSuppliers] = useState<Supplier[]>([])
   const [loading, setLoading] = useState(true)
-  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'completed'>('all')
-  const [modalOpen, setModalOpen] = useState(false)
-  const [selected, setSelected] = useState<Dispatch | null>(null)
-  const [logDispatchId, setLogDispatchId] = useState<string | null>(null)
+  const [view, setView] = useState<'all' | 'today' | 'nolog'>('all')
   const [logForModal, setLogForModal] = useState<any>(null)
   const [clients, setClients] = useState<Client[]>([])
   const [loggedIds, setLoggedIds] = useState<Set<string>>(new Set())
@@ -52,20 +49,11 @@ export default function DispatchesPage() {
       .select('*').eq('dispatch_id', dispatchId)
       .order('log_date', { ascending: false }).limit(1)
     setLogForModal(data?.[0] ?? { dispatch_id: dispatchId })
-    setLogDispatchId(dispatchId)
   }
-
-  const filtered = dispatches.filter(d => statusFilter === 'all' || d.status === statusFilter)
 
   async function handleDelete(id: string) {
     if (!confirm('배차를 삭제하시겠습니까?')) return
     await supabase.from('dispatches').delete().eq('id', id)
-    load()
-  }
-
-  async function handleToggleStatus(id: string, current: string) {
-    const next = current === 'active' ? 'completed' : 'active'
-    await supabase.from('dispatches').update({ status: next }).eq('id', id)
     load()
   }
 
@@ -115,6 +103,16 @@ export default function DispatchesPage() {
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
   const now = new Date()
   const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+
+  // 오늘 배차 / 일보 미작성 배차가 실제로 손이 가는 대상이라 바로 걸러볼 수 있게 한다.
+  const todayCount = dispatches.filter(d => d.start_date === today).length
+  const noLogCount = dispatches.filter(d => !loggedIds.has(d.id)).length
+  const filtered = dispatches.filter(d =>
+    view === 'today' ? d.start_date === today
+    : view === 'nolog' ? !loggedIds.has(d.id)
+    : true
+  )
+
   function handleSort(col: string) {
     if (sortCol === col) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
     else { setSortCol(col); setSortDir('asc') }
@@ -141,25 +139,41 @@ export default function DispatchesPage() {
 
   return (
     <div className="p-4 md:p-8">
-      <div className="flex items-center gap-3 mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">배차 등록</h1>
-        <button onClick={() => { setLogForModal({ dispatch_id: null }); setLogDispatchId('new') }}
-          className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
-          + 등록
-        </button>
-      </div>
+      <PageHeader
+        title="배차 등록"
+        primary={{ label: '+ 배차 등록', onClick: () => setLogForModal({ dispatch_id: null }) }}
+      >
+        <div className="no-scrollbar -mx-4 mt-3 flex gap-2 overflow-x-auto px-4 md:mx-0 md:px-0">
+          {([
+            { key: 'all',   label: `전체 ${dispatches.length}` },
+            { key: 'today', label: `오늘 ${todayCount}` },
+            { key: 'nolog', label: `일보없음 ${noLogCount}` },
+          ] as const).map(t => (
+            <button key={t.key} onClick={() => setView(t.key)}
+              className={`shrink-0 rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
+                view === t.key
+                  ? 'bg-gray-900 text-white'
+                  : t.key === 'nolog' && noLogCount > 0
+                    ? 'border border-red-200 bg-red-50 text-red-600'
+                    : 'border border-gray-300 bg-white text-gray-600'
+              }`}>
+              {t.label}
+            </button>
+          ))}
+        </div>
+      </PageHeader>
 
-      <div className="flex items-center gap-3 mb-4 flex-wrap">
-        {selectedIds.size > 0 && (
+      {selectedIds.size > 0 && (
+        <div className="mb-4">
           <button onClick={handleBulkComplete}
-            className="bg-gray-700 hover:bg-gray-800 text-white text-sm font-medium px-4 py-1.5 rounded-lg">
-            ✅ 선택 완료처리 ({selectedIds.size}건)
+            className="rounded-lg bg-gray-800 px-4 py-2.5 text-sm font-semibold text-white hover:bg-gray-900">
+            선택 {selectedIds.size}건 완료처리
           </button>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* 모바일 카드 */}
-      <div className="md:hidden space-y-3">
+      <div className="touch-list md:hidden space-y-3">
         {loading ? (
           <div className="text-center py-8 text-gray-400">불러오는 중...</div>
         ) : filtered.length === 0 ? (
@@ -198,9 +212,9 @@ export default function DispatchesPage() {
               </div>
               <div className="mt-3 flex gap-2 pt-3 border-t border-gray-100">
                 <button onClick={() => openLogModal(d.id)}
-                  className="flex-1 py-1.5 rounded-lg bg-blue-50 text-blue-600 text-sm font-medium">수정</button>
+                  className="flex-[2] rounded-lg bg-blue-600 py-2.5 text-sm font-bold text-white">수정</button>
                 <button onClick={() => handleDelete(d.id)}
-                  className="flex-1 py-1.5 rounded-lg bg-red-50 text-red-500 text-sm font-medium">삭제</button>
+                  className="flex-1 rounded-lg border border-gray-200 py-2.5 text-sm font-medium text-gray-500">삭제</button>
               </div>
             </div>
           )
@@ -208,7 +222,7 @@ export default function DispatchesPage() {
       </div>
 
       {/* 데스크탑 테이블 */}
-      <div className="hidden md:block bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <div className="hidden md:block bg-white rounded-xl border border-gray-200 overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-gray-50 border-b border-gray-200">
@@ -270,12 +284,6 @@ export default function DispatchesPage() {
         </table>
       </div>
 
-      {modalOpen && (
-        <DispatchModal dispatch={selected} equipment={equipment} suppliers={suppliers}
-          onClose={() => setModalOpen(false)}
-          onSaved={() => { setModalOpen(false); load() }} />
-      )}
-
       {logForModal && (
         <LogModal
           log={logForModal}
@@ -283,9 +291,8 @@ export default function DispatchesPage() {
           equipment={equipment as any}
           suppliers={suppliers}
           clients={clients}
-          onClose={() => { setLogDispatchId(null); setLogForModal(null) }}
-          onSaved={() => { setLogDispatchId(null); setLogForModal(null); load() }}
-
+          onClose={() => setLogForModal(null)}
+          onSaved={() => { setLogForModal(null); load() }}
         />
       )}
     </div>

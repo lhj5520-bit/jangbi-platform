@@ -4,7 +4,7 @@
 **작업 폴더**: `C:\Users\mac55\jangbi-platform`  
 **배포 URL**: https://jangbi-platform.vercel.app  
 **Supabase**: https://qeurmytrzghonavsiqwa.supabase.co  
-**최종 정리**: 2026-07-27
+**최종 정리**: 2026-08-05
 
 ---
 
@@ -64,6 +64,26 @@ vercel --prod
 - `allowCreate`가 있을 때만 신규 업체 insert 가능.
 - `allowCreate` 없이 업체 미선택이면 글로벌 회사정보(`ts_company`, 가온 공급자)를 수정하는 모드.
 - 이 구분을 깨면 가온 정보가 다른 업체 정보로 오염됨.
+
+### 배차등록 메뉴는 일부러 뺀 것 (되살리지 말 것)
+- `/dashboard/dispatches` (배차등록 목록) 페이지는 살아 있지만 **사이드바 메뉴에는 없음**.
+- 2026-07-08 LogModal 통합 때 의도적으로 내린 것. `작업확인서출력`과 기능이 겹침
+  (둘 다 dispatches 나열 + LogModal로 등록/수정 + 삭제).
+- **`settings/page.tsx` 권한 목록에는 `/dashboard/dispatches`가 남아 있음.**
+  이걸 보고 "메뉴에서 누락됐다"고 판단해 되살리면 안 됨. 실제로 2026-08-05에 한 번 잘못 되살렸다가 원복함.
+- 메뉴 관련 판단은 `git log -S"경로" -- src/app/dashboard/layout.tsx`로 이력부터 확인할 것.
+
+### 도장 오염 방지 (견적서 포함)
+- 견적서(`estimate/page.tsx`)는 가온 명의 문서라 **글로벌 도장만** 사용.
+  - 읽기/쓰기: `ts_stamp`, `ts_stamp_list`
+  - **`ts_stamp_sup_*` 와 `suppliers.stamp_data`는 절대 건드리지 말 것.**
+- 거래명세서는 업체별 도장을 쓰므로 규칙이 다름 (아래 localStorage 키 항목 참고).
+- 도장 목록(`ts_stamp_list`)은 견적서·거래명세서가 공유.
+
+### 모바일 터치 타겟 (.touch-list)
+- 목록 카드 컨테이너에 `touch-list` 클래스를 주면 그 안의 button이 최소 44px 높이가 됨 (`globals.css`).
+- **문서형 화면(거래명세서/임대차계약서/견적서)에는 절대 붙이지 말 것.** 셀 높이가 밀림.
+- 전역 button 규칙으로 만들지 않은 이유도 이것.
 
 ### localStorage 키
 - `ts_company`: 글로벌 가온 공급자 정보
@@ -182,6 +202,17 @@ if (error) {
   - `equipment.ownership === 'own'`
   - 또는 `equipment_text`의 차량번호가 자차 장비 목록과 매칭되면 자차로 집계
 - 청주시 날씨 위젯 추가 이력 있음.
+- 섹션 순서 (2026-08-05 재배치, 오늘 상태 우선):
+  1. hero — `오늘 N건 배차중` + 자차/타사 + `+ 배차 등록` (모바일 전체폭)
+  2. 메모장 (기본 접힘, 첫 줄 미리보기)
+  3. KPI (오늘 배차 / 미수금 / 전월 청구현황)
+  4. 통장잔액 + 당월 관리비
+  5. 최근 배차 내역 + 정기검사 알림
+  6. 연간 이윤 분석
+  7. 부가세
+  8. 이번 달 계산서 (매출/매입 한 표)
+  9. 세무일정 (기본 접힘, 임박 건 있으면 자동 펼침)
+- 연간 이윤 분석에 하드코딩된 값 있음: 차주 `이영규`, 차량 `002어6110`, 발주처 `제이에이건설`.
 
 ### 사이드바 / 모바일 메뉴
 파일: `src/app/dashboard/layout.tsx`
@@ -191,6 +222,14 @@ if (error) {
 - 이모지 대신 SVG 계열 아이콘 사용.
 - 활성 메뉴는 어두운 선택 배경 + 앰버 포인트.
 - 모바일 드로어도 동일 스타일.
+- 메뉴 그룹 (`navItems`의 `group`, 순서는 `GROUP_ORDER`):
+  - `배차 업무`: 대시보드 · 배차내역서 · 작업확인서출력
+  - `문서 발행`: 거래명세서 · 견적서 · 임대차계약서
+  - `기준 정보`: 발주처 · 중기업체 · 장비(자차) · 장비(타사)
+  - `관리자메뉴`(접기): 매출/매입계산서 · 부가세 · 통장내역 · 관리비 · 장비별 투입비용
+    \+ 개인사업자관리 · 전체 내려받기 · 계정 설정(관리자만)
+- `managementHrefs`는 `navItems`에서 파생. 하드코딩 배열 만들지 말 것.
+- `EXTRA_LABELS`: 메뉴에 없는 경로의 모바일 헤더 표시명. 새 비메뉴 페이지 추가 시 여기도 등록.
 - 앱 화면 오른쪽 스와이프 메뉴 열기 개선:
   - 오른쪽 55px 이상
   - 가로 이동 우세 조건
@@ -242,6 +281,13 @@ if (error) {
 - 종류별 규격 동적 목록.
 - 인쇄 버튼은 PDF 저장 레이블.
 - 인쇄 CSS는 rental-contract와 비슷한 패턴.
+- 도장 등록 지원 (2026-08-05 추가):
+  - 툴바 도장 드롭다운 — 목록 선택 / 새 도장 등록 / 개별 삭제 / 도장 빼기
+  - 크기 24~100px 슬라이더, `estimate_stamp_size`에 저장
+  - 문서 내 도장은 `position:absolute` + `pointerEvents:none` (셀 밀림·입력 가림 방지)
+  - **글로벌 도장(`ts_stamp`, `ts_stamp_list`)만 사용.** 업체별 도장 금지 — 2장 "도장 오염 방지" 참고
+  - 도장 목록은 거래명세서와 공유
+- `quote/page.tsx`는 이 페이지와 중복이라 2026-08-05에 삭제됨 (git 이력에 있음).
 
 ---
 
@@ -385,6 +431,101 @@ GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated;
 
 ## 8. 최근 중요 수정 이력
 
+### 2026-08-05 UX 전면 개선
+
+전 화면 UX 점검 후 `불필요한 요소 삭제 → 중복 통합 → 핵심 행동 강조 → 모바일 개선` 순서로 작업.
+
+#### 공용 헤더 신설 (`src/components/PageHeader.tsx`)
+- 목록 화면 9곳의 제각각이던 헤더를 하나로 통일.
+- props: `title` / `subtitle` / `primary` / `secondary[]` / `children`
+  - `primary`: 파란 솔리드 (데스크탑) + **모바일 우하단 FAB**
+  - `secondary`: 중립 아웃라인, `desktopOnly: true`면 모바일에서 숨김 (인쇄 등)
+- **모바일에서 `title`은 렌더링 안 됨** — 상단 앱 헤더가 이미 페이지명을 보여줘서 중복이었음.
+- 적용: clients, suppliers, EquipmentList, dispatches, daily-logs, invoices, purchase-invoices, expenses, bank
+
+#### 삭제 / 죽은 코드 정리
+- `dashboard/quote/page.tsx` 삭제 — `estimate`와 중복인데 메뉴·링크 어디에도 연결 안 돼 있었음.
+- `dispatches/page.tsx`: 열리지 않는 `DispatchModal`, 안 읽히는 `logDispatchId`, 세터 미호출 `statusFilter` 제거.
+- `layout.tsx`: 동일한 배열 `mgmtHrefList` / `managementHrefs` 중복 제거.
+
+#### 사이드바 (`layout.tsx`)
+- 평면 16개 → `배차 업무 / 문서 발행 / 기준 정보` 그룹 + 기존 관리자메뉴.
+- `navItems`에 `group` 필드 추가, `GROUP_ORDER`가 표시 순서.
+- `managementHrefs`는 `navItems`에서 파생 (하드코딩 배열 아님).
+- 메뉴에 없는 경로용 `EXTRA_LABELS` 추가 — 없으면 모바일 헤더에 엉뚱한 메뉴명이 뜸.
+- 햄버거/드로어 닫기 버튼 44px, 닫기는 텍스트 `X` → SVG 아이콘.
+
+#### 대시보드 (`dashboard/page.tsx`)
+- 순서 변경: 기존 `메모(4줄 textarea) → 세무일정 → 연간이윤 → KPI` 라서 **오늘 배차가 화면 한참 아래** 있었음.
+  → `hero → 메모(접힘) → KPI → 통장/관리비 → 최근내역/검사알림 → 연간이윤 → 부가세 → 계산서 → 세무일정`
+- 메모장: 기본 접힘 + 첫 줄 미리보기. 세무일정: 기본 접힘, **임박 건 있으면 자동 펼침**.
+- 매출/매입 계산서 카드 2개 → 표 1개로 통합 (같은 표가 두 번 반복됐었음).
+- 제목 `안녕하세요, 관리자님!` → `오늘 N건 배차중 (자차 N · 타사 N)`.
+
+#### 배차등록 목록 (`dispatches/page.tsx`)
+- `전체 / 오늘 / 일보없음` 필터 추가. 일보 미작성 건이 빨간 강조인데 걸러볼 방법이 없었음.
+- **주의: 이 페이지는 메뉴에 없음.** 위 "배차등록 메뉴는 일부러 뺀 것" 항목 참고.
+
+#### 견적서 도장 등록 (`estimate/page.tsx`)
+- 기존에는 거래명세서에서 등록한 도장을 **읽기만** 하고 등록 수단이 없었음.
+- 툴바에 도장 드롭다운 추가: 목록 선택 / 새 도장 등록 / 개별 삭제 / 도장 빼기 / 크기 24~100px.
+- 크기는 `estimate_stamp_size`에 저장. 도장은 `position:absolute` + `pointerEvents:none`으로 셀 안 밀림.
+- 글로벌 도장만 사용 — 위 "도장 오염 방지" 항목 참고.
+
+#### 모바일
+- `globals.css`에 `.touch-list`(터치 44px), `.no-scrollbar`, `.main-scroll`(FAB 가림 방지 하단 여백), `.safe-bottom` 추가.
+- 카드 액션 3~4개가 한 줄이라 360px에서 오탭 잦던 화면 → 주요 행동 1줄 전체 + 부수 행동 아래 줄로 분리
+  (작업확인서, 장비, 매출/매입계산서).
+- 검색바 sticky (발주처/중기업체/장비), 입력창 모바일 `text-base` (iOS 확대 방지).
+- `app/layout.tsx`에 `viewportFit: "cover"` — 노치/제스처바 대응.
+- 데스크탑 표 래퍼 `overflow-hidden` → `overflow-x-auto`.
+
+#### 참고
+- `/dashboard/equipment`, `/dashboard/projects`, `/dashboard/settlements`도 메뉴에 없음.
+  동작하는 코드라 삭제하지 않고 `EXTRA_LABELS`에만 등록해둠. 정리 여부는 미결.
+
+### 2026-08-04 수정
+
+#### 전월 버튼 추가 (인디고 색상)
+- 배차내역서 (`dispatch-ledger/page.tsx`)
+- 거래명세서 (`trade-statement/page.tsx`)
+- 관리비 메인 (`expenses/page.tsx`) — 월별 탭에만 표시
+- 관리비 엑셀업로드 모달 (`expenses/ExpensesExcelUploadModal.tsx`) — 미리보기 단계에서 날짜 범위 필터 + 전월 버튼
+- 장비별 투입비용 (`equipment-costs/page.tsx`)
+
+#### 거래명세서 예금주 누적 버그 수정 (`trade-statement/page.tsx`)
+- **원인**: DB에서 supplier 로드 시 `c.bank = bankStr`로 저장 → `bankStr`에 이미 `예금주 :` 포함 → localStorage에 오염된 값 저장 → 다음 로드 때 또 `예금주 :` 붙어서 `::::` 누적
+- **수정**: `c.bank = bankBase` (계좌번호만 저장), localStorage 읽을 때 `예금주 :` 이후 문자열 strip 후 state 저장 및 localStorage 덮어씀
+- **추가**: 입금계좌 줄 직접 편집 가능 (`<input>` 처리)
+
+#### 매입계산서 지급완료 버튼 즉시 토글 (`purchase-invoices/page.tsx`)
+- 기존: 클릭 시 이미지 업로드 다이얼로그 열림
+- 수정: 클릭 시 `paid` ↔ `received` 즉시 DB 토글
+- `handleMarkPaid(id, currentStatus)` 함수로 변경
+
+#### 통장내역 정산대조 탭 순서 변경 (`bank/page.tsx`)
+- 기존: 매칭완료 → 입금미매칭 → 출금미매칭 → 매출미수금 → 매입미지급
+- 변경: **매출미수금 → 매입미지급** → 매칭완료 → 입금미매칭 → 출금미매칭
+
+#### 관리비 카테고리 추가 (`expenses/page.tsx`)
+- `DEFAULT_CATEGORIES`에 `차량유지비`, `식대&집자재` 추가
+- `CATEGORY_COLORS`에 각 색상 추가 (cyan, pink)
+
+#### 매출/매입계산서 월별 합계 테이블 추가 (목록 하단)
+- `invoices/page.tsx`: 연도별 1~12월 공급가액·부가세·합계, 맨 아래 합계행 (파란색)
+- `purchase-invoices/page.tsx`: 동일, 맨 아래 합계행 (주황색)
+- 월 필터 선택 시 해당 연도 기준 / 전체보기 시 올해 기준
+
+#### 대시보드 이번 달 매출/매입계산서 카드 추가 (페이지 하단)
+- `page.tsx` 부가세 카드 아래에 매출계산서(파란색) + 매입계산서(분홍색) 나란히
+- 각각 공급가액·부가세·합계 표시
+
+#### 매입계산서 "중기업체" → "업체명" 자유 입력 (`purchase-invoices/PurchaseInvoiceModal.tsx`)
+- 기존: suppliers 드롭다운 선택만 가능 (중기업체 한정)
+- 변경: 텍스트 직접 입력 우선 + 드롭다운 선택 시 자동완성
+- DB `purchase_invoices.supplier_name` 컬럼에 저장 (CSV 업로드 때부터 이미 존재)
+- `supplier_id` 없이도 저장 가능
+
 ### 2026-07-27 정리
 - HANDOFF 문서 최신 기준으로 재정리.
 - 중복/충돌 내용 압축.
@@ -436,6 +577,8 @@ GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated;
 
 | 파일 | 설명 |
 |---|---|
+| `src/components/PageHeader.tsx` | 목록 화면 공용 헤더 (주요/보조 액션 + 모바일 FAB) |
+| `src/app/globals.css` | `.touch-list` / `.no-scrollbar` / `.main-scroll` / `.safe-bottom` |
 | `src/app/dashboard/page.tsx` | 대시보드 |
 | `src/app/dashboard/layout.tsx` | 대시보드 레이아웃/사이드바 |
 | `src/app/dashboard/daily-logs/LogModal.tsx` | 배차등록/일보 입력 통합 모달 |

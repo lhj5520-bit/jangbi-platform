@@ -73,6 +73,10 @@ export default function EstimatePage() {
   const [siteName, setSiteName] = useState('')
   const [rows, setRows] = useState<Row[]>(initRows)
   const [stampImg, setStampImg] = useState<string>('')
+  const [stampList, setStampList] = useState<{ name: string; data: string }[]>([])
+  const [stampSize, setStampSize] = useState(40)
+  const [stampOpen, setStampOpen] = useState(false)
+  const stampInputRef = useRef<HTMLInputElement>(null)
   const [docScale, setDocScale] = useState(1)
   const [docHeight, setDocHeight] = useState(0)
 
@@ -80,11 +84,66 @@ export default function EstimatePage() {
   const [clients, setClients] = useState<string[]>([])
 
   useEffect(() => {
-    setStampImg(localStorage.getItem('ts_stamp') ?? '')
+    const stamp = localStorage.getItem('ts_stamp') ?? ''
+    setStampImg(stamp)
+    const savedSize = Number(localStorage.getItem('estimate_stamp_size'))
+    if (savedSize) setStampSize(savedSize)
+    // 거래명세서와 같은 ts_stamp_list를 공유해 도장을 한 번만 등록하면 양쪽에서 쓸 수 있게 한다
+    const raw = localStorage.getItem('ts_stamp_list')
+    if (raw) {
+      try { setStampList(JSON.parse(raw)) } catch {}
+    } else if (stamp) {
+      setStampList([{ name: '도장1', data: stamp }])
+    }
     supabase.from('clients').select('name').then(({ data }: { data: any[] | null }) => {
       setClients((data ?? []).map((c: any) => c.name).filter(Boolean).sort())
     })
   }, [])
+
+  // 견적서는 가온 명의 문서라 글로벌 도장(ts_stamp)만 쓴다.
+  // 업체별 도장(ts_stamp_sup_*)이나 suppliers.stamp_data는 절대 건드리지 않는다.
+  function handleStampUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = ev => {
+      const result = ev.target?.result as string
+      if (!result) return
+      const name = prompt('도장 이름을 입력하세요', `도장${stampList.length + 1}`) || `도장${stampList.length + 1}`
+      const newList = [...stampList, { name, data: result }]
+      setStampList(newList)
+      setStampImg(result)
+      try {
+        localStorage.setItem('ts_stamp', result)
+        localStorage.setItem('ts_stamp_list', JSON.stringify(newList))
+      } catch {}
+    }
+    reader.readAsDataURL(file)
+    e.target.value = ''
+  }
+
+  function selectStamp(data: string) {
+    setStampImg(data)
+    try { localStorage.setItem('ts_stamp', data) } catch {}
+    setStampOpen(false)
+  }
+
+  function removeStamp(idx: number) {
+    const target = stampList[idx]
+    if (!confirm(`'${target.name}' 도장을 목록에서 삭제할까요?`)) return
+    const newList = stampList.filter((_, i) => i !== idx)
+    setStampList(newList)
+    try { localStorage.setItem('ts_stamp_list', JSON.stringify(newList)) } catch {}
+    if (stampImg === target.data) {
+      setStampImg('')
+      try { localStorage.removeItem('ts_stamp') } catch {}
+    }
+  }
+
+  function changeStampSize(size: number) {
+    setStampSize(size)
+    try { localStorage.setItem('estimate_stamp_size', String(size)) } catch {}
+  }
 
   useEffect(() => {
     const update = () => setDocScale(Math.min(1, (window.innerWidth - 32) / 780))
@@ -194,6 +253,68 @@ export default function EstimatePage() {
             📷 JPG / 카톡
           </button>
         </div>
+
+        {/* 도장 등록 */}
+        <div className="relative flex items-center gap-2">
+          <button onClick={() => setStampOpen(o => !o)}
+            className="flex items-center gap-1.5 rounded border border-gray-300 bg-white px-2.5 py-1.5 text-xs text-gray-600 hover:bg-gray-50">
+            {stampImg
+              ? <img src={stampImg} alt="" className="h-5 w-5 object-contain" />
+              : <span className="text-gray-400">○</span>}
+            도장 {stampImg ? '변경' : '등록'} ▾
+          </button>
+
+          {stampImg && (
+            <div className="hidden items-center gap-1 sm:flex">
+              <span className="text-xs text-gray-400">크기</span>
+              <input type="range" min={24} max={100} value={stampSize}
+                onChange={e => changeStampSize(Number(e.target.value))}
+                className="w-20 accent-blue-600" />
+              <span className="w-9 text-xs text-gray-500">{stampSize}px</span>
+            </div>
+          )}
+
+          {stampOpen && (
+            <>
+              <div className="fixed inset-0 z-10" onClick={() => setStampOpen(false)} />
+              <div className="absolute left-0 top-full z-20 mt-1 w-60 rounded-lg border border-gray-200 bg-white p-2 shadow-lg">
+                <div className="mb-1 px-1 text-[11px] font-semibold text-gray-400">등록된 도장</div>
+                {stampList.length === 0 ? (
+                  <p className="px-1 py-2 text-xs text-gray-400">등록된 도장이 없습니다.</p>
+                ) : (
+                  <div className="max-h-56 space-y-1 overflow-y-auto">
+                    {stampList.map((s, i) => (
+                      <div key={i} className={`flex items-center gap-2 rounded px-1.5 py-1 ${s.data === stampImg ? 'bg-blue-50' : 'hover:bg-gray-50'}`}>
+                        <button onClick={() => selectStamp(s.data)} className="flex min-w-0 flex-1 items-center gap-2">
+                          <img src={s.data} alt="" className="h-8 w-8 shrink-0 rounded border border-gray-200 object-contain" />
+                          <span className="truncate text-xs text-gray-700">{s.name}</span>
+                          {s.data === stampImg && <span className="ml-auto shrink-0 text-[11px] font-semibold text-blue-600">사용중</span>}
+                        </button>
+                        <button onClick={() => removeStamp(i)} className="shrink-0 px-1 text-xs text-gray-300 hover:text-red-500">✕</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div className="mt-2 flex gap-1 border-t border-gray-100 pt-2">
+                  <button onClick={() => stampInputRef.current?.click()}
+                    className="flex-1 rounded bg-blue-600 px-2 py-2 text-xs font-semibold text-white">
+                    + 새 도장 등록
+                  </button>
+                  {stampImg && (
+                    <button onClick={() => { setStampImg(''); try { localStorage.removeItem('ts_stamp') } catch {}; setStampOpen(false) }}
+                      className="rounded border border-gray-200 px-2 py-2 text-xs text-gray-500">
+                      도장 빼기
+                    </button>
+                  )}
+                </div>
+                <p className="mt-1.5 px-1 text-[11px] leading-relaxed text-gray-400">
+                  거래명세서와 도장 목록을 공유합니다.
+                </p>
+              </div>
+            </>
+          )}
+          <input ref={stampInputRef} type="file" accept="image/*" className="hidden" onChange={handleStampUpload} />
+        </div>
       </div>
 
       {/* 문서 래퍼 */}
@@ -258,7 +379,7 @@ export default function EstimatePage() {
                       <span style={{ fontSize: 10, color: '#555' }}>대표</span>{' '}{GAON.ceo}
                       {stampImg && (
                         <img src={stampImg} alt="도장"
-                          style={{ position: 'absolute', right: 2, top: '50%', marginTop: -20, width: 40, height: 40, objectFit: 'contain', zIndex: 10, opacity: 0.85 }} />
+                          style={{ position: 'absolute', right: 2, top: '50%', marginTop: -(stampSize / 2), width: stampSize, height: stampSize, objectFit: 'contain', zIndex: 10, opacity: 0.85, pointerEvents: 'none' }} />
                       )}
                     </td>
                   </tr>

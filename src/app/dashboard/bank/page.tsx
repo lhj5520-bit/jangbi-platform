@@ -5,6 +5,7 @@ export const dynamic = 'force-dynamic'
 import { useEffect, useState, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import BankUploadModal from './UploadModal'
+import PageHeader from '@/components/PageHeader'
 
 interface BankTx {
   id: string
@@ -361,43 +362,27 @@ export default function BankPage() {
 
   return (
     <div className="p-4 md:p-8">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">통장내역</h1>
-        <div className="flex gap-2">
-          {tab === 'match' && (
-            <>
-              <button onClick={handleAutoMatch}
-                className="bg-green-600 hover:bg-green-700 text-white text-sm font-medium px-3 py-2 rounded-lg">
-                ⚡ 매칭
-              </button>
-              <button onClick={handleReclassifyExpenses}
-                className="bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium px-3 py-2 rounded-lg">
-                🗂️ 관리비 재분류
-              </button>
-            </>
-          )}
-          <button onClick={() => setUploadOpen(true)}
-            className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-3 py-2 rounded-lg">
-            📂 업로드
-          </button>
-          {txs.length > 0 && (
-            <button onClick={() => setDeleteRangeOpen(true)}
-              className="bg-red-100 hover:bg-red-200 text-red-600 text-sm font-medium px-3 py-2 rounded-lg">
-              🗑️ 기간삭제
-            </button>
-          )}
-        </div>
-      </div>
+      <PageHeader
+        title="통장내역"
+        primary={{ label: '내역 업로드', onClick: () => setUploadOpen(true) }}
+        secondary={[
+          ...(tab === 'match' ? [
+            { label: '자동 매칭', onClick: handleAutoMatch },
+            { label: '관리비 재분류', onClick: handleReclassifyExpenses },
+          ] : []),
+          ...(txs.length > 0 ? [{ label: '기간삭제', onClick: () => setDeleteRangeOpen(true) }] : []),
+        ]}
+      />
 
       {matchMsg && (
         <div className="mb-4 px-4 py-2 bg-green-50 border border-green-200 text-green-700 text-sm rounded-lg">{matchMsg}</div>
       )}
 
       {/* 탭 */}
-      <div className="flex gap-1 bg-gray-100 rounded-lg p-1 w-fit mb-6">
+      <div className="mb-6 flex gap-1 rounded-lg bg-gray-100 p-1 md:w-fit">
         {(['list', 'match'] as const).map(t => (
           <button key={t} onClick={() => setTab(t)}
-            className={`px-5 py-2 rounded-md text-sm font-medium transition-colors ${
+            className={`flex-1 rounded-md px-5 py-2.5 text-sm font-medium transition-colors md:flex-none ${
               tab === t ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
             }`}>
             {t === 'list' ? '입출금 내역' : '정산 대조'}
@@ -445,7 +430,7 @@ export default function BankPage() {
           )}
 
           {/* 모바일 카드 */}
-          <div className="md:hidden space-y-2">
+          <div className="touch-list md:hidden space-y-2">
             {loading ? (
               <div className="text-center py-8 text-gray-400">불러오는 중...</div>
             ) : txs.length === 0 ? (
@@ -622,7 +607,7 @@ export default function BankPage() {
                     </tbody>
                   </table>
                 </div>
-                <div className="md:hidden space-y-2">
+                <div className="touch-list md:hidden space-y-2">
                   {filteredMatchedTxs.map(tx => {
                     const inv = tx.matched_invoice_id ? invById[tx.matched_invoice_id] : null
                     const isInv = !!inv
@@ -658,7 +643,7 @@ export default function BankPage() {
               )}
             </div>
             <div className="space-y-2 md:space-y-0 md:bg-white md:rounded-xl md:border md:border-gray-200 md:overflow-hidden">
-              <div className="md:hidden space-y-2">
+              <div className="touch-list md:hidden space-y-2">
                 {filteredUndeposits.map(tx => (
                   <div key={tx.id} onClick={() => setForceDepIds(s => { const n = new Set(s); s.has(tx.id) ? n.delete(tx.id) : n.add(tx.id); return n })}
                     className={`bg-white rounded-xl border p-3 flex items-center gap-3 cursor-pointer ${forceDepIds.has(tx.id) ? 'border-blue-400 bg-blue-50' : 'border-blue-100'}`}>
@@ -725,7 +710,7 @@ export default function BankPage() {
               )}
             </div>
             <div className="space-y-2 md:space-y-0 md:bg-white md:rounded-xl md:border md:border-gray-200 md:overflow-hidden">
-              <div className="md:hidden space-y-2">
+              <div className="touch-list md:hidden space-y-2">
                 {filteredUnwithdraws.map(tx => (
                   <div key={tx.id} onClick={() => setForceWithIds(s => { const n = new Set(s); s.has(tx.id) ? n.delete(tx.id) : n.add(tx.id); return n })}
                     className={`bg-white rounded-xl border p-3 flex items-center gap-3 cursor-pointer ${forceWithIds.has(tx.id) ? 'border-red-400 bg-red-50' : 'border-red-100'}`}>
@@ -795,7 +780,7 @@ export default function BankPage() {
               <div className="bg-gray-50 rounded-xl p-4 text-center text-gray-400 text-sm">모든 매출계산서가 매칭됐습니다</div>
             ) : (
               <div className="md:bg-white md:rounded-xl md:border md:border-gray-200 md:overflow-hidden">
-                <div className="md:hidden space-y-2">
+                <div className="touch-list md:hidden space-y-2">
                   {filteredUninvoices.map(inv => (
                     <div key={inv.id} onClick={() => setForceInvIds(s => { const n = new Set(s); s.has(inv.id) ? n.delete(inv.id) : n.add(inv.id); return n })}
                       className={`bg-white rounded-xl border p-3 flex items-center gap-3 cursor-pointer ${forceInvIds.has(inv.id) ? 'border-blue-400 bg-blue-50' : 'border-blue-100'}`}>
@@ -856,7 +841,7 @@ export default function BankPage() {
               <div className="bg-gray-50 rounded-xl p-4 text-center text-gray-400 text-sm">모든 매입계산서가 매칭됐습니다</div>
             ) : (
               <div className="md:bg-white md:rounded-xl md:border md:border-gray-200 md:overflow-hidden">
-                <div className="md:hidden space-y-2">
+                <div className="touch-list md:hidden space-y-2">
                   {filteredUnpurchases.map(pur => (
                     <div key={pur.id} onClick={() => setForcePurIds(s => { const n = new Set(s); s.has(pur.id) ? n.delete(pur.id) : n.add(pur.id); return n })}
                       className={`bg-white rounded-xl border p-3 flex items-center gap-3 cursor-pointer ${forcePurIds.has(pur.id) ? 'border-orange-400 bg-orange-50' : 'border-orange-100'}`}>
