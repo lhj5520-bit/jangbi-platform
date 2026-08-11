@@ -137,6 +137,7 @@ export default function WorkConfirmPage() {
     if (sortCol === 'log_date') { av = (a as any).start_date ?? logA?.log_date ?? ''; bv = (b as any).start_date ?? logB?.log_date ?? '' }
     else if (sortCol === 'site') { av = (a as any).site_name ?? ''; bv = (b as any).site_name ?? '' }
     else if (sortCol === 'equip') { av = getEquipLabel(a); bv = getEquipLabel(b) }
+    else if (sortCol === 'plate') { av = (a as any).equipment?.plate_no ?? ''; bv = (b as any).equipment?.plate_no ?? '' }
     else if (sortCol === 'driver') { av = (a as any).driver_name ?? ''; bv = (b as any).driver_name ?? '' }
     else if (sortCol === 'supplier') { av = (a.supplier as any)?.name ?? ''; bv = (b.supplier as any)?.name ?? '' }
     else if (sortCol === 'unit') { av = hasTimeSlots(logA) ? 'hour' : (a.unit_type ?? ''); bv = hasTimeSlots(logB) ? 'hour' : (b.unit_type ?? '') }
@@ -192,6 +193,13 @@ export default function WorkConfirmPage() {
     const equipTd = getEquipLabel(d)
     const driverTd = (d as any).driver_name ?? '-'
     const supTd = sup?.name ?? (d as any).supplier_text ?? '-'
+    const plateTd = (() => {
+      const eq = (d as any).equipment
+      if (eq?.plate_no) return eq.plate_no
+      const txt = (d as any).equipment_text ?? ''
+      const parts = txt.trim().split(/\s+/)
+      return parts.length > 0 ? parts[parts.length - 1] : '-'
+    })()
     const actionsTd = (
       <div className="flex gap-2 justify-end">
         <button onClick={() => logMap[d.id] ? window.open('/sign/' + logMap[d.id], '_blank') : setLogDispatchId(d.id)}
@@ -211,14 +219,15 @@ export default function WorkConfirmPage() {
         const p = slotPrice(log, 'work_price_1', fallbackPrice)
         rows.push(<tr key={d.id + '_w1'} className="hover:bg-gray-50 transition-colors">
           <td className="px-4 py-3 text-gray-500 text-xs">{dateTd}</td>
-          <td className="px-4 py-3 font-medium text-gray-900">{siteTd}</td>
           <td className="px-4 py-3 text-gray-600">{equipTd}</td>
-          <td className="px-4 py-3 text-gray-600">{driverTd}</td>
-          <td className="px-4 py-3 text-gray-600">{supTd}</td>
-          <td className="px-4 py-3 text-gray-500"><span className="text-xs font-bold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded">{log.work_type_1 || '시간'}</span></td>
+          <td className="px-4 py-3 text-gray-500 text-xs font-medium">{plateTd}</td>
+          <td className="px-4 py-3 text-gray-500"><span className="text-xs font-bold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded">{log.work_type_1 || '버켓'}</span></td>
           <td className="px-4 py-3 text-right text-gray-500">{h ? `${h}h` : '-'}</td>
           <td className="px-4 py-3 text-right text-gray-900">{p ? p.toLocaleString() + '원' : '-'}</td>
           <td className="px-4 py-3 text-right text-blue-700 font-medium">{h && p ? Math.round(h * p).toLocaleString() + '원' : '-'}</td>
+          <td className="px-4 py-3 text-gray-600">{driverTd}</td>
+          <td className="px-4 py-3 text-gray-600">{supTd}</td>
+          <td className="px-4 py-3 font-medium text-gray-900">{siteTd}</td>
           <td className="px-4 py-3">{actionsTd}</td>
         </tr>)
       }
@@ -227,14 +236,15 @@ export default function WorkConfirmPage() {
         const p = slotPrice(log, 'work_price_2', fallbackPrice)
         rows.push(<tr key={d.id + '_w2'} className="hover:bg-purple-50 transition-colors">
           <td className="px-4 py-3 text-gray-500 text-xs">{dateTd}</td>
-          <td className="px-4 py-3 font-medium text-gray-900">{siteTd}</td>
           <td className="px-4 py-3 text-gray-600">{equipTd}</td>
-          <td className="px-4 py-3 text-gray-600">{driverTd}</td>
-          <td className="px-4 py-3 text-gray-600">{supTd}</td>
-          <td className="px-4 py-3 text-gray-500"><span className="text-xs font-bold text-purple-700 bg-purple-50 px-1.5 py-0.5 rounded">{log.work_type_2 || '시간'}</span></td>
+          <td className="px-4 py-3 text-gray-500 text-xs font-medium">{plateTd}</td>
+          <td className="px-4 py-3 text-gray-500"><span className="text-xs font-bold text-purple-700 bg-purple-50 px-1.5 py-0.5 rounded">{log.work_type_2 || '버켓'}</span></td>
           <td className="px-4 py-3 text-right text-gray-500">{h ? `${h}h` : '-'}</td>
           <td className="px-4 py-3 text-right text-gray-900">{p ? p.toLocaleString() + '원' : '-'}</td>
           <td className="px-4 py-3 text-right text-blue-700 font-medium">{h && p ? Math.round(h * p).toLocaleString() + '원' : '-'}</td>
+          <td className="px-4 py-3 text-gray-600">{driverTd}</td>
+          <td className="px-4 py-3 text-gray-600">{supTd}</td>
+          <td className="px-4 py-3 font-medium text-gray-900">{siteTd}</td>
           <td className="px-4 py-3"></td>
         </tr>)
       }
@@ -243,14 +253,15 @@ export default function WorkConfirmPage() {
         const p = slotPrice(log, 'work_price_3', fallbackPrice)
         rows.push(<tr key={d.id + '_w3'} className="hover:bg-orange-50 transition-colors">
           <td className="px-4 py-3 text-gray-500 text-xs">{dateTd}</td>
-          <td className="px-4 py-3 font-medium text-gray-900">{siteTd}</td>
           <td className="px-4 py-3 text-gray-600">{equipTd}</td>
-          <td className="px-4 py-3 text-gray-600">{driverTd}</td>
-          <td className="px-4 py-3 text-gray-600">{supTd}</td>
-          <td className="px-4 py-3 text-gray-500"><span className="text-xs font-bold text-orange-700 bg-orange-50 px-1.5 py-0.5 rounded">{(log as any).work_type_3 || '시간'}</span></td>
+          <td className="px-4 py-3 text-gray-500 text-xs font-medium">{plateTd}</td>
+          <td className="px-4 py-3 text-gray-500"><span className="text-xs font-bold text-orange-700 bg-orange-50 px-1.5 py-0.5 rounded">{(log as any).work_type_3 || '버켓'}</span></td>
           <td className="px-4 py-3 text-right text-gray-500">{h ? `${h}h` : '-'}</td>
           <td className="px-4 py-3 text-right text-gray-900">{p ? p.toLocaleString() + '원' : '-'}</td>
           <td className="px-4 py-3 text-right text-blue-700 font-medium">{h && p ? Math.round(h * p).toLocaleString() + '원' : '-'}</td>
+          <td className="px-4 py-3 text-gray-600">{driverTd}</td>
+          <td className="px-4 py-3 text-gray-600">{supTd}</td>
+          <td className="px-4 py-3 font-medium text-gray-900">{siteTd}</td>
           <td className="px-4 py-3"></td>
         </tr>)
       }
@@ -261,14 +272,15 @@ export default function WorkConfirmPage() {
     const displayAmt = qty && price ? Math.round(qty * price) : 0
     return [<tr key={d.id} className="hover:bg-gray-50 transition-colors">
       <td className="px-4 py-3 text-gray-500 text-xs">{dateTd}</td>
-      <td className="px-4 py-3 font-medium text-gray-900">{siteTd}</td>
       <td className="px-4 py-3 text-gray-600">{equipTd}</td>
-      <td className="px-4 py-3 text-gray-600">{driverTd}</td>
-      <td className="px-4 py-3 text-gray-600">{supTd}</td>
+      <td className="px-4 py-3 text-gray-500 text-xs font-medium">{plateTd}</td>
       <td className="px-4 py-3 text-gray-500">{unitLabel[d.unit_type] ?? '-'}</td>
       <td className="px-4 py-3 text-right text-gray-500">{qty ? `${qty}h` : '-'}</td>
       <td className="px-4 py-3 text-right text-gray-900">{price ? price.toLocaleString() + '원' : '-'}</td>
       <td className="px-4 py-3 text-right text-blue-700 font-medium">{displayAmt ? displayAmt.toLocaleString() + '원' : '-'}</td>
+      <td className="px-4 py-3 text-gray-600">{driverTd}</td>
+      <td className="px-4 py-3 text-gray-600">{supTd}</td>
+      <td className="px-4 py-3 font-medium text-gray-900">{siteTd}</td>
       <td className="px-4 py-3">{actionsTd}</td>
     </tr>]
   })
@@ -330,11 +342,11 @@ export default function WorkConfirmPage() {
                 </span>
               </div>
               <div className="grid grid-cols-2 gap-y-1.5 text-sm mt-2">
-                <div className="text-gray-400">차주</div>
+                <div className="text-gray-400">차주명</div>
                 <div className="text-gray-700">{(d as any).driver_name ?? '-'}</div>
                 <div className="text-gray-400">중기업체</div>
                 <div className="text-gray-700">{sup?.name ?? (d as any).supplier_text ?? '-'}</div>
-                <div className="text-gray-400">날짜</div>
+                <div className="text-gray-400">거래일</div>
                 <div className="text-gray-700 text-xs">{(d as any).start_date}</div>
               </div>
               {/* 주요 행동(확인서 출력 / 일보 작성)을 한 줄 전체로, 부수 행동은 아래 줄로 분리 */}
@@ -366,15 +378,16 @@ export default function WorkConfirmPage() {
               const thR = 'text-right px-4 py-3 font-semibold text-gray-600 cursor-pointer select-none hover:bg-gray-100 whitespace-nowrap'
               return (
                 <tr className="bg-gray-50 border-b border-gray-200">
-                  <th className={thL} onClick={() => handleSort('log_date')}>날짜{arrow('log_date')}</th>
-                  <th className={thL} onClick={() => handleSort('site')}>현장{arrow('site')}</th>
+                  <th className={thL} onClick={() => handleSort('log_date')}>거래일{arrow('log_date')}</th>
                   <th className={thL} onClick={() => handleSort('equip')}>차종{arrow('equip')}</th>
-                  <th className={thL} onClick={() => handleSort('driver')}>차주{arrow('driver')}</th>
-                  <th className={thL} onClick={() => handleSort('supplier')}>중기업체{arrow('supplier')}</th>
-                  <th className={thL} onClick={() => handleSort('unit')}>단위{arrow('unit')}</th>
+                  <th className={thL} onClick={() => handleSort('plate')}>차량번호{arrow('plate')}</th>
+                  <th className={thL} onClick={() => handleSort('unit')}>작업{arrow('unit')}</th>
                   <th className={thR}>가동시간</th>
                   <th className={thR} onClick={() => handleSort('price')}>단가{arrow('price')}</th>
-                  <th className={thR} onClick={() => handleSort('amount')}>금액{arrow('amount')}</th>
+                  <th className={thR} onClick={() => handleSort('amount')}>매출액{arrow('amount')}</th>
+                  <th className={thL} onClick={() => handleSort('driver')}>차주명{arrow('driver')}</th>
+                  <th className={thL} onClick={() => handleSort('supplier')}>중기업체{arrow('supplier')}</th>
+                  <th className={thL} onClick={() => handleSort('site')}>현장명{arrow('site')}</th>
                   <th className="px-4 py-3"></th>
                 </tr>
               )
@@ -382,9 +395,9 @@ export default function WorkConfirmPage() {
           </thead>
           <tbody className="divide-y divide-gray-100">
             {loading ? (
-              <tr><td colSpan={10} className="px-5 py-8 text-center text-gray-400">불러오는 중...</td></tr>
+              <tr><td colSpan={11} className="px-5 py-8 text-center text-gray-400">불러오는 중...</td></tr>
             ) : filtered.length === 0 ? (
-              <tr><td colSpan={10} className="px-5 py-8 text-center text-gray-400">배차 내역이 없습니다.</td></tr>
+              <tr><td colSpan={11} className="px-5 py-8 text-center text-gray-400">배차 내역이 없습니다.</td></tr>
 ) : tableRows}
           </tbody>
         </table>
