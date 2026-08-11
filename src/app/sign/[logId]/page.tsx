@@ -13,6 +13,7 @@ export default function SignPage({ params }: { params: Promise<{ logId: string }
   const [activeCanvas, setActiveCanvas] = useState<'driver' | 'site' | null>(null)
   const [signerName, setSignerName] = useState('')
   const [log, setLog] = useState<any>(null)
+  const [equipByPlate, setEquipByPlate] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [done, setDone] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -28,10 +29,24 @@ export default function SignPage({ params }: { params: Promise<{ logId: string }
       .select('*, dispatch:dispatches(*, equipment:equipment(*), supplier:suppliers(*), project:projects(*, client:clients(*)))')
       .eq('id', logId)
       .single()
-      .then(({ data }: { data: any }) => {
+      .then(async ({ data }: { data: any }) => {
         if (data) {
           setLog(data)
           if (data.signed_at) setAlreadySigned(true)
+          // equipment_id 없이 equipment_text만 있는 경우 plate로 장비 DB 조회
+          const dispatch = data.dispatch
+          if (dispatch && !dispatch.equipment_id && dispatch.equipment_text) {
+            const parts = (dispatch.equipment_text as string).trim().split(/\s+/)
+            const plate = parts[parts.length - 1]
+            if (plate) {
+              const { data: eqData } = await supabase
+                .from('equipment')
+                .select('type, spec, model')
+                .eq('plate_no', plate)
+                .single()
+              if (eqData) setEquipByPlate(eqData)
+            }
+          }
         }
         setLoading(false)
       })
@@ -170,13 +185,14 @@ export default function SignPage({ params }: { params: Promise<{ logId: string }
   const equipText: string = (d as any)?.equipment_text ?? ''
   const equipParts = equipText.trim().split(/\s+/)
   const typeMap: Record<string, string> = { excavator: '굴삭기', dump: '덤프', cargo: '화물차', truck: '화물차' }
+  const resolvedEq = eq ?? equipByPlate  // equipment_id 조인 우선, 없으면 plate 조회 결과
   const equipName = (() => {
-    if (eq) {
-      const typeName = typeMap[eq.type] ?? eq.type ?? ''
-      const spec = eq.spec ?? eq.model ?? ''
+    if (resolvedEq) {
+      const typeName = typeMap[resolvedEq.type] ?? resolvedEq.type ?? ''
+      const spec = resolvedEq.spec ?? resolvedEq.model ?? ''
       return [typeName, spec].filter(Boolean).join(' ') || '-'
     }
-    // equipment_text fallback
+    // 최후 fallback: equipment_text에서 plate 제외한 나머지
     return (equipParts.length > 1 ? equipParts.slice(0, -1).join(' ') : equipParts[0] ?? '') || '-'
   })()
   const plateNo = (eq?.plate_no ?? (equipParts.length > 1 ? equipParts[equipParts.length - 1] : '')) || '-'
