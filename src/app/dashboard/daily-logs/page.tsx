@@ -92,16 +92,23 @@ export default function WorkConfirmPage() {
 
   function getEquipLabel(d: any) {
     const emojiFor = (type: string) => type === 'excavator' ? '🚜' : type === 'dump' ? '🚛' : '🚚'
+    const typeMap: Record<string, string> = { excavator: '굴삭기', dump: '덤프', cargo: '화물차', truck: '화물차' }
     if (d.equipment_text) {
       const parts = (d.equipment_text as string).trim().split(/\s+/)
       const plate = parts[parts.length - 1]
       const matched = equipment.find((e: any) => e.plate_no === plate)
-      const display = matched ? `${emojiFor((matched as any).type)} ${d.equipment_text}` : d.equipment_text
-      return display
+      if (matched) {
+        const typeName = typeMap[(matched as any).type] ?? (matched as any).type ?? ''
+        const spec = (matched as any).spec ?? (matched as any).model ?? ''
+        return `${emojiFor((matched as any).type)} ${[typeName, spec].filter(Boolean).join(' ')}`
+      }
+      return d.equipment_text
     }
     const eq = d.equipment as any
     if (!eq) return '-'
-    return `${emojiFor(eq.type)} ${eq.plate_no ?? ''}`
+    const typeName = typeMap[eq.type] ?? eq.type ?? ''
+    const spec = eq.spec ?? eq.model ?? ''
+    return `${emojiFor(eq.type)} ${[typeName, spec].filter(Boolean).join(' ')}`
   }
 
   const filtered = dispatches.filter(d => {
@@ -361,7 +368,7 @@ export default function WorkConfirmPage() {
                 <tr className="bg-gray-50 border-b border-gray-200">
                   <th className={thL} onClick={() => handleSort('log_date')}>날짜{arrow('log_date')}</th>
                   <th className={thL} onClick={() => handleSort('site')}>현장{arrow('site')}</th>
-                  <th className={thL} onClick={() => handleSort('equip')}>장비{arrow('equip')}</th>
+                  <th className={thL} onClick={() => handleSort('equip')}>차종{arrow('equip')}</th>
                   <th className={thL} onClick={() => handleSort('driver')}>차주{arrow('driver')}</th>
                   <th className={thL} onClick={() => handleSort('supplier')}>중기업체{arrow('supplier')}</th>
                   <th className={thL} onClick={() => handleSort('unit')}>단위{arrow('unit')}</th>

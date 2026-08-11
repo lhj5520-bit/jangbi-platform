@@ -4,7 +4,7 @@
 **작업 폴더**: `C:\Users\mac55\jangbi-platform`  
 **배포 URL**: https://jangbi-platform.vercel.app  
 **Supabase**: https://qeurmytrzghonavsiqwa.supabase.co  
-**최종 정리**: 2026-08-05
+**최종 정리**: 2026-08-11
 
 ---
 
@@ -430,6 +430,50 @@ GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated;
 ---
 
 ## 8. 최근 중요 수정 이력
+
+### 2026-08-11 수정
+
+#### 보안 취약점 수정
+- `api/create-user/route.ts`, `api/users/route.ts` — 관리자 인증 없이 누구나 계정 생성/조회/권한변경 가능했던 취약점 수정
+  - 호출자의 세션 토큰(Authorization 헤더)으로 `user_permissions.is_admin` 확인 후 차단
+- `settings/page.tsx` — API 호출 시 `Authorization: Bearer {token}` 헤더 전송하도록 수정
+- Supabase Dashboard에서 `equipment_costs` 테이블 RLS 활성화 (수동 실행)
+  ```sql
+  ALTER TABLE equipment_costs ENABLE ROW LEVEL SECURITY;
+  CREATE POLICY "auth users only" ON equipment_costs FOR ALL USING (auth.uid() IS NOT NULL);
+  ```
+
+#### 배차내역서 엑셀 내보내기 컬럼 추가 (`dispatch-ledger/page.tsx`)
+- 기존: No, 날짜, 차량번호, 장비종류, 차주명, 발주처, 현장명, 작업내용, 기사명, 배차금액, 미수금, 노무비, 비고
+- 추가: **가동시간, 단가, 수수료** 컬럼
+
+#### 통장내역 강제수금/지급완료 버그 수정 (`bank/page.tsx`)
+- **원인**: `unmatchedInvoices/unmatchedPurchases` 필터가 `bank_transactions.matched_invoice_id` 여부만 체크하고, `status = 'paid'`를 무시해서 강제 처리 후에도 목록에 계속 남아 있었음
+- **수정**: select에 `status` 필드 추가 + 필터에 `status !== 'paid'` 조건 추가
+
+#### 매출계산서 엑셀 업로드 `품목비고` → 현장 매핑 (`invoices/CsvUploadModal.tsx`)
+- 홈택스 세금계산서 xls의 `품목비고` 컬럼을 `project_name(현장)`으로 자동 매핑
+
+#### 장비 서류 교체 버튼 추가 (`SupplierEquipmentModal.tsx`)
+- 도장 이미지 옆 **🔄 사진 교체** 버튼 추가
+- 서류 목록 각 파일 row에 **교체** 버튼 추가 (삭제 버튼 왼쪽)
+  - 클릭 시 기존 스토리지 파일 삭제 → 새 파일 업로드 → DB 업데이트
+
+#### 작업확인서 빈 시간대 숨기기 (`sign/[logId]/page.tsx`)
+- 시간대 2, 3번이 비어 있으면 해당 row 자체를 렌더링하지 않음 (기존: `: ~ :` / `시간` 회색 텍스트 노출)
+
+#### 작업확인서 목록 "장비" → "차종" 변경 (`daily-logs/page.tsx`)
+- 컬럼 헤더: 장비 → **차종**
+- 내용: 기존 `이모지 + 차량번호` → **`이모지 + 장비종류(한글) + 규격`** (예: 🚜 굴삭기 06W)
+  - `typeMap: { excavator: '굴삭기', dump: '덤프', cargo/truck: '화물차' }`
+  - `eq.spec ?? eq.model` 순 폴백
+
+#### 작업확인서 건설기계명 차종 형식으로 변경 (`sign/[logId]/page.tsx`)
+- 기존: `eq.spec`만 표시 (예: "06W")
+- 변경: `typeMap[eq.type] + " " + spec` 형식 (예: "굴삭기 06W")
+- 양식 라벨("건설기계명", "차량번호")은 그대로 유지
+
+---
 
 ### 2026-08-05 UX 전면 개선
 

@@ -169,7 +169,16 @@ export default function SignPage({ params }: { params: Promise<{ logId: string }
   const eq = d?.equipment
   const equipText: string = (d as any)?.equipment_text ?? ''
   const equipParts = equipText.trim().split(/\s+/)
-  const equipName = (eq?.spec ?? eq?.model ?? eq?.type ?? (equipParts.length > 1 ? equipParts.slice(0, -1).join(' ') : equipParts[0] ?? '')) || '-'
+  const typeMap: Record<string, string> = { excavator: '굴삭기', dump: '덤프', cargo: '화물차', truck: '화물차' }
+  const equipName = (() => {
+    if (eq) {
+      const typeName = typeMap[eq.type] ?? eq.type ?? ''
+      const spec = eq.spec ?? eq.model ?? ''
+      return [typeName, spec].filter(Boolean).join(' ') || '-'
+    }
+    // equipment_text fallback
+    return (equipParts.length > 1 ? equipParts.slice(0, -1).join(' ') : equipParts[0] ?? '') || '-'
+  })()
   const plateNo = (eq?.plate_no ?? (equipParts.length > 1 ? equipParts[equipParts.length - 1] : '')) || '-'
   const dateStr = log.log_date ? log.log_date.replace(/-/g, '. ') + '.' : ''
   function calcSlotHours(slot: string | null): number {
@@ -228,28 +237,31 @@ export default function SignPage({ params }: { params: Promise<{ logId: string }
               <td className="px-3 py-2.5" colSpan={3}>{(d as any)?.client_name ?? d?.project?.client?.name ?? '-'}</td>
             </tr>
 
-            {/* 작업시간 */}
-            {[0, 1, 2].map((i) => (
-              <tr key={i} className="border-b border-gray-300">
-                <td className="px-2 py-2 font-bold bg-gray-50 border-r border-gray-300 whitespace-nowrap text-sm" style={{ width: '60px' }}>
-                  {i === 0 ? '작업시간' : ''}
-                </td>
-                <td className="border-r border-gray-300 px-3 py-2">
-                  <div className="flex items-center gap-2">
-                    {workTypes[i] && <span className="text-xs font-bold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded">{workTypes[i]}</span>}
-                    {timeSlots[i] ?? <span className="text-gray-300">: ~ :</span>}
-                  </div>
-                </td>
-                <td className="px-3 py-2 text-gray-700 font-medium whitespace-nowrap">
-                  {timeSlots[i] ? (
-                    <div>
-                      <div>{calcSlotHours(timeSlots[i])} 시간</div>
-                      {workPrices[i] && <div className="text-xs text-blue-600">{Math.round(calcSlotHours(timeSlots[i]) * workPrices[i]).toLocaleString()}원</div>}
+            {/* 작업시간 - 내용 없는 슬롯은 숨김 */}
+            {[0, 1, 2].map((i) => {
+              if (i > 0 && !timeSlots[i] && !workTypes[i]) return null
+              return (
+                <tr key={i} className="border-b border-gray-300">
+                  <td className="px-2 py-2 font-bold bg-gray-50 border-r border-gray-300 whitespace-nowrap text-sm" style={{ width: '60px' }}>
+                    {i === 0 ? '작업시간' : ''}
+                  </td>
+                  <td className="border-r border-gray-300 px-3 py-2">
+                    <div className="flex items-center gap-2">
+                      {workTypes[i] && <span className="text-xs font-bold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded">{workTypes[i]}</span>}
+                      {timeSlots[i] ?? <span className="text-gray-300">: ~ :</span>}
                     </div>
-                  ) : <span className="text-gray-300">시간</span>}
-                </td>
-              </tr>
-            ))}
+                  </td>
+                  <td className="px-3 py-2 text-gray-700 font-medium whitespace-nowrap">
+                    {timeSlots[i] ? (
+                      <div>
+                        <div>{calcSlotHours(timeSlots[i])} 시간</div>
+                        {workPrices[i] && <div className="text-xs text-blue-600">{Math.round(calcSlotHours(timeSlots[i]) * workPrices[i]).toLocaleString()}원</div>}
+                      </div>
+                    ) : <span className="text-gray-300">시간</span>}
+                  </td>
+                </tr>
+              )
+            })}
             <tr className="border-b border-gray-300">
               <td className="px-2 py-2 bg-gray-50 border-r border-gray-300 text-right font-bold text-sm">총</td>
               <td className="px-3 py-2 font-bold" colSpan={2}>
