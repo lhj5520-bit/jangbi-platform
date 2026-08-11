@@ -392,17 +392,20 @@ export default function DispatchLedgerPage() {
       '발주처': r.client_name,
       '현장명': r.site_name,
       '작업내용': r.work_device,
+      '가동시간': r.operating_hours || '',
+      '단가': r.unit_price || '',
       '기사명': r.engineer_name,
       '배차금액': r.sales_amount || wages[r.id] || 0,
       '미수금': paid[r.id] ? 0 : (r.sales_amount || wages[r.id] || 0),
-      '노무비': wages[r.id] ?? r.engineer_daily_wage,
+      '수수료': commissions[r.id] ?? r.commission_amount ?? 0,
+      '노무비': wages[r.id] ?? r.engineer_daily_wage ?? 0,
       '비고': r.memo ?? '',
     }))
     const ws = XLSX.utils.json_to_sheet(data)
     // 컬럼 너비
     ws['!cols'] = [
-      {wch:5},{wch:12},{wch:12},{wch:12},{wch:10},{wch:14},{wch:16},{wch:12},{wch:10},
-      {wch:12},{wch:12},{wch:12},{wch:16},
+      {wch:5},{wch:12},{wch:12},{wch:12},{wch:10},{wch:14},{wch:16},{wch:12},{wch:8},
+      {wch:10},{wch:10},{wch:12},{wch:12},{wch:10},{wch:12},{wch:16},
     ]
     const wb = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(wb, ws, '배차내역')

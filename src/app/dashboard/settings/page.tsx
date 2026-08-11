@@ -49,9 +49,16 @@ export default function SettingsPage() {
     loadUsers()
   }, [])
 
+  async function getAuthHeader(): Promise<Record<string, string>> {
+    const { data } = await supabase.auth.getSession()
+    const token = data.session?.access_token
+    return token ? { Authorization: `Bearer ${token}` } : {}
+  }
+
   async function loadUsers() {
     setLoadingUsers(true)
-    const res = await fetch('/api/users')
+    const authHeader = await getAuthHeader()
+    const res = await fetch('/api/users', { headers: authHeader })
     const data = await res.json()
     setUsers(data.users ?? [])
     setLoadingUsers(false)
@@ -61,9 +68,10 @@ export default function SettingsPage() {
     e.preventDefault()
     setCreating(true)
     setCreateMsg(null)
+    const authHeader = await getAuthHeader()
     const res = await fetch('/api/create-user', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...authHeader },
       body: JSON.stringify({ email: newEmail, password: newPassword }),
     })
     const data = await res.json()
@@ -88,9 +96,10 @@ export default function SettingsPage() {
 
   async function savePerm(userId: string, isAdmin: boolean, paths: string[]) {
     setSavingPerm(userId)
+    const authHeader = await getAuthHeader()
     const res = await fetch('/api/users', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...authHeader },
       body: JSON.stringify({ user_id: userId, is_admin: isAdmin, allowed_paths: paths }),
     })
     const data = await res.json()
