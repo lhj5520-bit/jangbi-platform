@@ -109,8 +109,8 @@ export default function BankPage() {
     setLoading(true)
     const [{ data: txData }, { data: invData }, { data: purData }, { data: supData }] = await Promise.all([
       supabase.from('bank_transactions').select('*').order('transaction_at', { ascending: false }),
-      supabase.from('invoices').select('id, issue_date, total_amount, client_name, representative').order('issue_date', { ascending: false }),
-      supabase.from('purchase_invoices').select('id, issue_date, total_amount, supplier_name, representative').order('issue_date', { ascending: false }),
+      supabase.from('invoices').select('id, issue_date, total_amount, client_name, representative, status').order('issue_date', { ascending: false }),
+      supabase.from('purchase_invoices').select('id, issue_date, total_amount, supplier_name, representative, status').order('issue_date', { ascending: false }),
       supabase.from('suppliers').select('name, ceo_name'),
     ])
     setTxs((txData ?? []) as BankTx[])
@@ -128,8 +128,8 @@ export default function BankPage() {
     // 최신 데이터 다시 로드 (stale closure 방지 - 인보이스도 직접 fetch)
     const [{ data: freshTxs }, { data: freshInvData }, { data: freshPurData }, { data: freshSupData }] = await Promise.all([
       supabase.from('bank_transactions').select('*'),
-      supabase.from('invoices').select('id, issue_date, total_amount, client_name, representative'),
-      supabase.from('purchase_invoices').select('id, issue_date, total_amount, supplier_name, representative'),
+      supabase.from('invoices').select('id, issue_date, total_amount, client_name, representative, status'),
+      supabase.from('purchase_invoices').select('id, issue_date, total_amount, supplier_name, representative, status'),
       supabase.from('suppliers').select('name, ceo_name'),
     ])
     const allTxs = (freshTxs ?? []) as BankTx[]
@@ -350,8 +350,8 @@ export default function BankPage() {
   // 계산서 중 통장내역과 매칭 안 된 것
   const matchedInvIds = new Set(txs.map(t => t.matched_invoice_id).filter(Boolean))
   const matchedPurIds = new Set(txs.map(t => t.matched_purchase_id).filter(Boolean))
-  const unmatchedInvoices = invoices.filter(i => !matchedInvIds.has(i.id))
-  const unmatchedPurchases = purchases.filter(p => !matchedPurIds.has(p.id))
+  const unmatchedInvoices = invoices.filter(i => !matchedInvIds.has(i.id) && (i as any).status !== 'paid')
+  const unmatchedPurchases = purchases.filter(p => !matchedPurIds.has(p.id) && (p as any).status !== 'paid')
 
   const mq = matchSearch.toLowerCase()
   const filteredMatchedTxs = matchSearch ? matchedTxs.filter(t => t.counterparty?.toLowerCase().includes(mq)) : matchedTxs
