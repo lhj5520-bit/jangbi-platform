@@ -184,6 +184,30 @@ export default function SupplierEquipmentModal({
     setDocs(d => d.filter(doc => doc.id !== docId))
   }
 
+  const replaceInputRef = useRef<HTMLInputElement>(null)
+  const replacingDocRef = useRef<{ id: string; fileUrl: string } | null>(null)
+
+  async function handleReplaceDoc(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    const target = replacingDocRef.current
+    const refId = equipment?.id ?? selectedSupId
+    if (!file || !target || !refId) return
+    e.target.value = ''
+    setUploading(true)
+    // 기존 파일 스토리지에서 삭제
+    await supabase.storage.from('documents').remove([target.fileUrl])
+    // 새 파일 업로드
+    const ext = file.name.split('.').pop()
+    const path = `${refId}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`
+    const { error } = await supabase.storage.from('documents').upload(path, file)
+    if (error) { alert('업로드 실패: ' + error.message); setUploading(false); return }
+    // DB 업데이트
+    await supabase.from('documents').update({ file_url: path, file_name: file.name }).eq('id', target.id)
+    setDocs(d => d.map(doc => doc.id === target.id ? { ...doc, file_url: path, file_name: file.name } : doc))
+    setUploading(false)
+    replacingDocRef.current = null
+  }
+
   // ── 회사 정보 ──────────────────────────────────────────────
   // 초기값: 업체별 캐시 있으면 로드, 없으면 빈 상태 (useEffect에서 DB auto-fill)
   // 글로벌 ts_company 폴백 제거 — 업체 간 정보 오염 방지
@@ -641,7 +665,11 @@ export default function SupplierEquipmentModal({
             {stampImg ? (
               <div className="flex items-center gap-2 mb-2 p-2 rounded-lg bg-gray-50 border border-gray-200">
                 <img src={stampImg} alt="현재 도장" className="w-10 h-10 object-contain" />
-                <span className="text-xs text-gray-500">현재 업체에 저장된 도장</span>
+                <span className="text-xs text-gray-500 flex-1">현재 업체에 저장된 도장</span>
+                <button onClick={() => stampInputRef.current?.click()}
+                  className="text-xs px-2 py-1 rounded-lg bg-blue-50 border border-blue-200 text-blue-600 hover:bg-blue-100 transition-colors">
+                  🔄 사진 교체
+                </button>
               </div>
             ) : (
               <p className="text-xs text-gray-400 mb-2">이 업체에 선택된 도장이 없습니다. 아래에서 선택하거나 업로드하세요.</p>
@@ -729,11 +757,16 @@ export default function SupplierEquipmentModal({
                               <p className="text-xs text-gray-400">{doc.doc_type}{doc.expire_date ? ` · 만료 ${doc.expire_date}` : ''}</p>
                             </div>
                           </div>
-                          <button onClick={e => { e.stopPropagation(); handleDeleteDoc(doc.id, doc.file_url) }}
-                            className="text-xs text-red-400 hover:text-red-600 shrink-0 ml-2">삭제</button>
+                          <div className="flex items-center gap-2 shrink-0 ml-2">
+                            <button onClick={e => { e.stopPropagation(); replacingDocRef.current = { id: doc.id, fileUrl: doc.file_url }; replaceInputRef.current?.click() }}
+                              className="text-xs text-blue-400 hover:text-blue-600">교체</button>
+                            <button onClick={e => { e.stopPropagation(); handleDeleteDoc(doc.id, doc.file_url) }}
+                              className="text-xs text-red-400 hover:text-red-600">삭제</button>
+                          </div>
                         </div>
                       )
                     })}
+                    <input ref={replaceInputRef} type="file" accept="image/*,.pdf" className="hidden" onChange={handleReplaceDoc} />
                   </div>
                 )}
               </div>
