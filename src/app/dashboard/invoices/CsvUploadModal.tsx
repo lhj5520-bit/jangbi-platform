@@ -24,7 +24,7 @@ interface Row {
 const HEADER_MAP: Record<string, keyof Row> = {
   // 일반
   '발주처': 'client_name', '발주처명': 'client_name', '업체명': 'client_name', '거래처': 'client_name',
-  '현장': 'project_name', '현장명': 'project_name', '공사명': 'project_name',
+  '현장': 'project_name', '현장명': 'project_name', '공사명': 'project_name', '품목비고': 'project_name',
   '발행일': 'issue_date', '계산서일자': 'issue_date',
   '기간시작': 'period_start', '시작일': 'period_start',
   '기간종료': 'period_end', '종료일': 'period_end',
