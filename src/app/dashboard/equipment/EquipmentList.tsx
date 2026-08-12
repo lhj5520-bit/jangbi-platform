@@ -187,8 +187,8 @@ export default function EquipmentList({ ownership }: Props) {
       <PageHeader
         title={title}
         subtitle={`${filtered.length}대`}
-        primary={{ label: '+ 장비 등록', onClick: () => { setSelected(null); setModalOpen(true) } }}
-        secondary={[{ label: '엑셀 업로드', onClick: () => setExcelOpen(true) }]}
+        primary={ownership === 'own' ? { label: '+ 장비 등록', onClick: () => { setSelected(null); setModalOpen(true) } } : undefined}
+        secondary={ownership === 'own' ? [{ label: '엑셀 업로드', onClick: () => setExcelOpen(true) }] : []}
       />
 
       <div className="sticky top-0 z-10 -mx-4 mb-4 space-y-2 bg-[#f3f0ea] px-4 py-2 md:static md:mx-0 md:flex md:gap-3 md:space-y-0 md:bg-transparent md:p-0 md:pb-4">
