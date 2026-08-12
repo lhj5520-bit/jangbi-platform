@@ -879,9 +879,8 @@ export default function LogModal({ log, dispatches, equipment = [], suppliers = 
               {form.work_type_1 && (
                 <div className="flex items-center gap-1.5 pl-[88px]">
                   <div className="relative flex-1">
-                    <input type="number" value={form.work_price_1}
-                      onChange={e => handleWorkPrice1Change(e.target.value)}
-                      onWheel={e => e.currentTarget.blur()}
+                    <input type="text" inputMode="numeric" pattern="[0-9]*" value={form.work_price_1}
+                      onChange={e => handleWorkPrice1Change(e.target.value.replace(/[^0-9]/g, ''))}
                       className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 pr-8"
                       placeholder="개별단가" />
                     <span className="absolute right-2 top-1.5 text-xs text-gray-400">원</span>
@@ -929,9 +928,8 @@ export default function LogModal({ log, dispatches, equipment = [], suppliers = 
               {form.work_type_2 && (
                 <div className="flex items-center gap-1.5 pl-[88px]">
                   <div className="relative flex-1">
-                    <input type="number" value={form.work_price_2}
-                      onChange={e => setF('work_price_2', e.target.value)}
-                      onWheel={e => e.currentTarget.blur()}
+                    <input type="text" inputMode="numeric" pattern="[0-9]*" value={form.work_price_2}
+                      onChange={e => setF('work_price_2', e.target.value.replace(/[^0-9]/g, ''))}
                       className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 pr-8"
                       placeholder="개별단가" />
                     <span className="absolute right-2 top-1.5 text-xs text-gray-400">원</span>
@@ -979,9 +977,8 @@ export default function LogModal({ log, dispatches, equipment = [], suppliers = 
               {form.work_type_3 && (
                 <div className="flex items-center gap-1.5 pl-[88px]">
                   <div className="relative flex-1">
-                    <input type="number" value={form.work_price_3}
-                      onChange={e => setF('work_price_3', e.target.value)}
-                      onWheel={e => e.currentTarget.blur()}
+                    <input type="text" inputMode="numeric" pattern="[0-9]*" value={form.work_price_3}
+                      onChange={e => setF('work_price_3', e.target.value.replace(/[^0-9]/g, ''))}
                       className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 pr-8"
                       placeholder="개별단가" />
                     <span className="absolute right-2 top-1.5 text-xs text-gray-400">원</span>
