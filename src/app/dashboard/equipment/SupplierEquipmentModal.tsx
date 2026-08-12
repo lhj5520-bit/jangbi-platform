@@ -26,10 +26,8 @@ interface Props {
 }
 
 const DEFAULT_COMPANY: CompanyInfo = {
-  name: '㈜가온건설중기', reg_no: '315-81-39390', ceo: '이현정',
-  address: '청주시 흥덕구 옥산면 오산덕촌길 57-21',
-  biz_type: '건설업', biz_item: '건설장비 운영업',
-  bank: '농협 351-1301-4357-03', phone: '010-5596-2177',
+  name: '', reg_no: '', ceo: '', address: '',
+  biz_type: '', biz_item: '', bank: '', phone: '',
 }
 
 function loadCompanyFromStorage(supId?: string): CompanyInfo {
@@ -219,10 +217,17 @@ export default function SupplierEquipmentModal({
       // 없으면 빈 상태 (useEffect에서 DB auto-fill)
       return { name: '', reg_no: '', ceo: '', address: '', biz_type: '', biz_item: '', bank: '', phone: '' }
     }
-    // 신규 등록 모드면 빈 폼, 아니면(거래명세서 공급자 정보) 기본 회사정보
-    return allowCreate
-      ? { name: '', reg_no: '', ceo: '', address: '', biz_type: '', biz_item: '', bank: '', phone: '' }
-      : DEFAULT_COMPANY
+    // 신규 등록 모드 또는 equipment 모달 → 빈 폼
+    // allowCreate 없고 equipment도 없으면 거래명세서 공급자 편집 → ts_company 로드
+    if (allowCreate || equipment !== undefined) {
+      return { name: '', reg_no: '', ceo: '', address: '', biz_type: '', biz_item: '', bank: '', phone: '' }
+    }
+    // 거래명세서 공급자 편집 모드: ts_company localStorage 우선
+    try {
+      const global = localStorage.getItem('ts_company')
+      if (global) return JSON.parse(global)
+    } catch {}
+    return DEFAULT_COMPANY
   })
 
   // ── 장비 폼 ────────────────────────────────────────────────
