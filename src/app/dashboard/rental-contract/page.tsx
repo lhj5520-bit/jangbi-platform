@@ -117,7 +117,7 @@ function fmtAmt(v: string): string {
 // 인라인 스타일 공통
 // ─────────────────────────────────────────────
 const cTd: React.CSSProperties = {
-  border: '1px solid #444', padding: '3px 5px', fontSize: 11, verticalAlign: 'middle', overflow: 'hidden',
+  border: '1px solid #444', padding: '3px 5px', fontSize: 11, verticalAlign: 'middle',
 }
 const cTh: React.CSSProperties = {
   border: '1px solid #444', padding: '3px 5px', fontSize: 11, fontWeight: 700,
@@ -514,7 +514,7 @@ export default function RentalContractPage() {
   const sigRow = (label: string, key: keyof ContractForm, hasStamp?: boolean, beforeContent?: React.ReactNode) => (
     <tr key={key}>
       <td style={{ ...cTd, width: 90, fontWeight: 600, background: '#fafafa', whiteSpace: 'nowrap' }}>{label}</td>
-      <td style={{ ...cTd, position: 'relative', overflow: 'visible' }}>
+      <td style={{ ...cTd, position: 'relative', overflow: 'visible', wordBreak: 'break-all' }}>
         {beforeContent}
         <textarea value={form[key]} onChange={e => setF(key, e.target.value)} style={cTA} rows={1} onInput={AR} />
         {hasStamp && stampImg && (
@@ -603,7 +603,7 @@ export default function RentalContractPage() {
             }}>
               {/* 제목 */}
               <div style={{ textAlign: 'center', marginBottom: 4 }}>
-                <div style={{ fontSize: 19, fontWeight: 700, letterSpacing: '0.08em' }}>건설기계임대차 표준계약서</div>
+                <div style={{ fontSize: 23, fontWeight: 700, letterSpacing: '0.08em' }}>건설기계임대차 표준계약서</div>
               </div>
               <div style={{ textAlign: 'right', marginBottom: 22 }}>
                 <img src="/icons/ftc-logo.svg" alt="공정거래위원회" style={{ height: 26, display: 'block', marginLeft: 'auto', marginBottom: 2 }} />

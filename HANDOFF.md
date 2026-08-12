@@ -472,6 +472,19 @@ GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated;
 - 기존: `eq.spec`만 표시 (예: "06W")
 - 변경: `typeMap[eq.type] + " " + spec` 형식 (예: "굴삭기 06W")
 - 양식 라벨("건설기계명", "차량번호")은 그대로 유지
+- `equipment_id` 없는 배차(equipment_text 방식)는 차량번호로 equipment 테이블 재조회해서 spec 취득
+
+#### 헤더 컬럼 라벨 배차내역서 기준으로 통일 (`daily-logs/page.tsx`, `dispatch-ledger/page.tsx`)
+- 날짜 → **거래일**, 현장 → **현장명**, 차주 → **차주명**, 금액 → **매출액**
+- 작업확인서 목록 기준: 단위 → **작업** (배차내역서의 "작업" 컬럼명과 통일)
+
+#### 작업확인서 목록 차량번호 컬럼 추가 (`daily-logs/page.tsx`)
+- 기존 10개 컬럼 → 11개 (`차량번호` 컬럼 삽입)
+- `equipment.plate_no` 우선, 없으면 `equipment_text` 마지막 토큰(차량번호) 사용
+- 컬럼 순서를 배차내역서 기준으로 통일: **거래일 → 차종 → 차량번호 → 작업 → 가동시간 → 단가 → 매출액 → 차주명 → 중기업체 → 현장명**
+- w1/w2/w3 슬롯 행 및 default 행 모두 동일 순서 적용
+- 차량번호 정렬 핸들러(`sortCol === 'plate'`) 추가
+- `colSpan` 10 → 11로 갱신
 
 ---
 
