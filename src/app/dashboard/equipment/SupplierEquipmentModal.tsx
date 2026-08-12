@@ -438,6 +438,11 @@ export default function SupplierEquipmentModal({
 
   // ── 저장 ───────────────────────────────────────────────────
   async function handleSave() {
+    // 업체 선택 없이 장비 신규 저장 시도하면 차단
+    if (!allowCreate && !isEdit && !selectedSupId) {
+      alert('중기업체를 선택해 주세요.')
+      return
+    }
     setSaving(true)
 
     // company.bank 문자열 파싱 → "농협 401143-56-266600 (홍길동)"
