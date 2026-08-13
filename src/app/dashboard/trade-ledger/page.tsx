@@ -265,12 +265,14 @@ export default function TradeLedgerPage() {
     <>
       <style>{`
         .print-only { display: none; }
+        .debit-input:hover { border-color: #bbb !important; background-color: #f9f9f9 !important; }
+        .debit-input:focus { border-color: #4a90d9 !important; background-color: #fff !important; }
         @media print {
           body * { visibility: hidden !important; }
           #trade-ledger-print, #trade-ledger-print * { visibility: visible !important; }
           #trade-ledger-print { position: fixed; top: 0; left: 0; width: 100%; }
           .no-print { display: none !important; }
-          .print-only { display: inline !important; }
+          .print-only { display: table-cell !important; }
           input { border: none !important; outline: none !important; background: transparent !important; }
         }
       `}</style>
@@ -410,10 +412,11 @@ export default function TradeLedgerPage() {
                           }
                           load()
                         }}
+                        className="debit-input"
                         style={{
-                          width: '100%', border: '1px solid #ddd', borderRadius: 4, textAlign: 'right',
+                          width: '100%', border: '1px solid transparent', borderRadius: 4, textAlign: 'right',
                           padding: '1px 4px', fontSize: 12, outline: 'none',
-                          background: r.debitOverride != null ? '#fff8e1' : '#fff',
+                          background: r.debitOverride != null ? '#fff8e1' : 'transparent',
                         }}
                       />
                     </td>
