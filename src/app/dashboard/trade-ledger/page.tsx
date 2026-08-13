@@ -41,16 +41,16 @@ export default function TradeLedgerPage() {
   const now = new Date()
   const y = now.getFullYear()
   const m = String(now.getMonth() + 1).padStart(2, '0')
-  const lastDay = new Date(y, now.getMonth() + 1, 0).getDate()
+  const d = String(now.getDate()).padStart(2, '0')
 
-  const [dateFrom, setDateFrom] = useState(`${y}-${m}-01`)
-  const [dateTo, setDateTo] = useState(`${y}-${m}-${String(lastDay).padStart(2, '0')}`)
+  const [dateFrom, setDateFrom] = useState(`${y}-01-01`)
+  const [dateTo, setDateTo] = useState(`${y}-${m}-${d}`)
   const [rows, setRows] = useState<LedgerRow[]>([])
   const [hiddenIds, setHiddenIds] = useState<Set<string>>(new Set())
   const [codeMap, setCodeMap] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(false)
   const [detail, setDetail] = useState<ClientDetail | null>(null)
-  const [debugInfo, setDebugInfo] = useState<string>('')
+  const [balanceOnly, setBalanceOnly] = useState(true)
 
   // 원본 데이터 (팝업용)
   const [allInvoicesRef, setAllInvoicesRef] = useState<any[]>([])
@@ -235,7 +235,7 @@ export default function TradeLedgerPage() {
   }
 
   const fmt = (n: number) => n === 0 ? '' : n.toLocaleString()
-  const visibleRows = rows.filter(r => !hiddenIds.has(r.clientId))
+  const visibleRows = rows.filter(r => !hiddenIds.has(r.clientId) && (!balanceOnly || r.balance !== 0))
   const totalCarry = visibleRows.reduce((s, r) => s + r.carryOver, 0)
   const totalDebit = visibleRows.reduce((s, r) => s + r.debit, 0)
   const totalCredit = visibleRows.reduce((s, r) => s + r.credit, 0)
@@ -278,8 +278,8 @@ export default function TradeLedgerPage() {
             </button>
             <button onClick={() => {
               const n = new Date(); const ny = n.getFullYear(); const nm = String(n.getMonth()+1).padStart(2,'0')
-              const nl = new Date(ny, n.getMonth()+1, 0).getDate()
-              setDateFrom(`${ny}-${nm}-01`); setDateTo(`${ny}-${nm}-${String(nl).padStart(2,'0')}`)
+              const nd = String(n.getDate()).padStart(2,'0')
+              setDateFrom(`${ny}-01-01`); setDateTo(`${ny}-${nm}-${nd}`)
             }} className="px-3 py-2 text-sm rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50">
               이번달
             </button>
@@ -293,6 +293,11 @@ export default function TradeLedgerPage() {
                 숨긴 항목 복원 ({hiddenIds.size})
               </button>
             )}
+            <button
+              onClick={() => setBalanceOnly(v => !v)}
+              className={`px-3 py-2 text-sm rounded-lg border font-medium ${balanceOnly ? 'bg-blue-600 text-white border-blue-600' : 'border-gray-300 text-gray-600 hover:bg-gray-50'}`}>
+              잔액 있는 것만
+            </button>
             <div className="ml-auto">
               <button onClick={() => window.print()}
                 className="px-4 py-2 text-sm rounded-lg bg-blue-600 text-white hover:bg-blue-700 font-medium">
