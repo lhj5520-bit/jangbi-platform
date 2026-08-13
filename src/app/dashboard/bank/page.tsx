@@ -1036,7 +1036,6 @@ export default function BankPage() {
                   return (
                     <div key={item.id}
                       onClick={() => {
-                        if (isAlreadyMatched && !isSelected) return
                         if (multiSelectMode) {
                           setSelectedInvIds(s => { const n = new Set(s); isSelected ? n.delete(item.id) : n.add(item.id); return n })
                         } else {
@@ -1044,14 +1043,16 @@ export default function BankPage() {
                         }
                       }}
                       className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-colors
-                        ${isSelected ? (isDeposit ? 'bg-blue-50 border-blue-300' : 'bg-orange-50 border-orange-300') : 'border-gray-100 hover:border-gray-300'}
-                        ${isAlreadyMatched && !isSelected ? 'opacity-40 cursor-not-allowed' : ''}`}>
+                        ${isSelected ? (isDeposit ? 'bg-blue-50 border-blue-300' : 'bg-orange-50 border-orange-300') : 'border-gray-100 hover:border-gray-300'}`}>
                       <div className="flex-1 min-w-0">
                         <div className="font-medium text-sm truncate">
                           {item.client_name ?? item.supplier_name ?? '-'}
                           {item.representative && <span className="ml-1 text-xs text-gray-400">({item.representative})</span>}
                         </div>
-                        <div className="text-xs text-gray-400">{item.issue_date}{isAlreadyMatched ? ' · 이미 매칭됨' : ''}</div>
+                        <div className="text-xs text-gray-400">
+                          {item.issue_date}
+                          {isAlreadyMatched && <span className="ml-1 text-orange-400">· 분할입금 연결 가능</span>}
+                        </div>
                       </div>
                       <div className={`text-sm font-bold ml-3 ${isDeposit ? 'text-blue-600' : 'text-orange-500'}`}>
                         {item.total_amount?.toLocaleString()}원
