@@ -396,7 +396,7 @@ export default function TradeLedgerPage() {
                       <input
                         type="text"
                         inputMode="numeric"
-                        defaultValue={r.debit || ''}
+                        defaultValue={r.debitOverride != null ? fmt(r.debitOverride) : ''}
                         placeholder={r.debitOverride == null ? fmt(r.debit) : ''}
                         onBlur={async e => {
                           const raw = e.target.value.replace(/[^0-9]/g, '')
