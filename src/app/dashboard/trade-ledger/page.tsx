@@ -49,6 +49,7 @@ export default function TradeLedgerPage() {
   const [codeMap, setCodeMap] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(false)
   const [detail, setDetail] = useState<ClientDetail | null>(null)
+  const [debugInfo, setDebugInfo] = useState<string>('')
 
   // 원본 데이터 (팝업용)
   const [allInvoicesRef, setAllInvoicesRef] = useState<any[]>([])
@@ -162,6 +163,9 @@ export default function TradeLedgerPage() {
         balance,
       })
     }
+
+    // 디버그 정보
+    setDebugInfo(`clients:${clientList.length} | invoices:${allInvoices.length} | tx:${allTx.length} | debit거래처:${debitMap.size} | prevDebit거래처:${prevDebitMap.size} | activeNames:${activeNames.size} | rows:${result.length}`)
 
     result.sort((a, b) => {
       if (a.code && b.code) return a.code.localeCompare(b.code)
@@ -293,6 +297,11 @@ export default function TradeLedgerPage() {
           <p className="text-xs text-gray-400 mt-2">
             💡 코드 칸 클릭 → 저장 | 거래처명 클릭 → 계산서·입금 내역 | 삭제 → 해당 행 숨김
           </p>
+          {debugInfo && (
+            <p className="text-xs text-orange-500 mt-1 font-mono bg-orange-50 px-2 py-1 rounded">
+              🔍 {debugInfo}
+            </p>
+          )}
         </div>
 
         {/* 인쇄 영역 */}
