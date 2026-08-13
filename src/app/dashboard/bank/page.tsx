@@ -443,9 +443,19 @@ export default function BankPage() {
             ) : filtered.map(tx => (
               <div key={tx.id} className="bg-white rounded-xl border border-gray-200 p-3">
                 <div className="flex items-center justify-between">
-                  <div>
-                    <div className="font-medium text-gray-900 text-sm">{tx.counterparty ?? '-'}</div>
-                    <div className="text-xs text-gray-400 mt-0.5">{tx.transaction_at?.slice(0, 10)} · {tx.transaction_type ?? ''}</div>
+                  <div className="flex-1 min-w-0 mr-2">
+                    <input
+                      type="text"
+                      defaultValue={tx.counterparty ?? ''}
+                      onBlur={async e => {
+                        const val = e.target.value.trim() || null
+                        if (val === (tx.counterparty ?? null)) return
+                        await supabase.from('bank_transactions').update({ counterparty: val }).eq('id', tx.id)
+                        setTxs(prev => prev.map(t => t.id === tx.id ? { ...t, counterparty: val } : t))
+                      }}
+                      className="w-full font-medium text-gray-900 text-sm border border-transparent rounded px-1 hover:border-gray-300 focus:border-blue-400 focus:outline-none bg-transparent focus:bg-white"
+                    />
+                    <div className="text-xs text-gray-400 mt-0.5 px-1">{tx.transaction_at?.slice(0, 10)} · {tx.transaction_type ?? ''}</div>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="text-right">
@@ -494,7 +504,19 @@ export default function BankPage() {
                 ) : filtered.map(tx => (
                   <tr key={tx.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-5 py-3 text-gray-500 text-xs">{tx.transaction_at?.replace('T', ' ').slice(0, 19)}</td>
-                    <td className="px-5 py-3 font-medium text-gray-900">{tx.counterparty ?? '-'}</td>
+                    <td className="px-5 py-3 font-medium text-gray-900">
+                      <input
+                        type="text"
+                        defaultValue={tx.counterparty ?? ''}
+                        onBlur={async e => {
+                          const val = e.target.value.trim() || null
+                          if (val === (tx.counterparty ?? null)) return
+                          await supabase.from('bank_transactions').update({ counterparty: val }).eq('id', tx.id)
+                          setTxs(prev => prev.map(t => t.id === tx.id ? { ...t, counterparty: val } : t))
+                        }}
+                        className="w-full px-2 py-1 text-sm font-medium text-gray-900 border border-transparent rounded hover:border-gray-300 focus:border-blue-400 focus:outline-none bg-transparent focus:bg-white"
+                      />
+                    </td>
                     <td className="px-5 py-3 text-gray-500 text-xs">{tx.transaction_type ?? '-'}</td>
                     <td className="px-5 py-3 text-right text-red-500 font-medium">
                       {tx.withdrawal ? tx.withdrawal.toLocaleString() : '-'}

@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase/client'
 interface LedgerRow {
   clientId: string
   clientName: string
+  representative: string
   code: string
   carryOver: number
   debit: number
@@ -79,7 +80,7 @@ export default function TradeLedgerPage() {
     const dateToFull = dateTo + 'T23:59:59'
 
     const { data: allInvRaw, error: invErr } = await supabase.from('invoices')
-      .select('id, client_id, client_name, supply_amount, vat_amount, total_amount, issue_date')
+      .select('id, client_id, client_name, representative, supply_amount, vat_amount, total_amount, issue_date')
     const allInvoices = allInvRaw ?? []
     setAllInvoicesRef(allInvoices)
 
@@ -100,6 +101,7 @@ export default function TradeLedgerPage() {
     const invNameMap = new Map<string, string>()
     const debitMap = new Map<string, number>()
     const prevDebitMap = new Map<string, number>()
+    const repMap = new Map<string, string>() // clientName → representative
 
     const invAmt = (inv: any) =>
       Number(inv.total_amount) || (Number(inv.supply_amount) + Number(inv.vat_amount)) || 0
@@ -108,6 +110,7 @@ export default function TradeLedgerPage() {
       const name = resolveClientName(inv)
       if (!name) continue
       invNameMap.set(inv.id, name)
+      if (inv.representative && !repMap.has(name)) repMap.set(name, inv.representative)
       const amt = invAmt(inv)
       if (!amt) continue
       const d = (inv.issue_date || '').slice(0, 10)
@@ -156,6 +159,7 @@ export default function TradeLedgerPage() {
       result.push({
         clientId,
         clientName,
+        representative: repMap.get(clientName) ?? '',
         code: client?.code ?? '',
         carryOver,
         debit,
@@ -357,7 +361,14 @@ export default function TradeLedgerPage() {
                           cursor: 'pointer', background: 'none', border: 'none', fontSize: 12, padding: 0 }}>
                         {r.clientName}
                       </button>
-                      <span className="print-only" style={{ fontSize: 12 }}>{r.clientName}</span>
+                      {r.representative && (
+                        <span className="no-print" style={{ fontSize: 11, color: '#888', marginLeft: 6 }}>
+                          {r.representative}
+                        </span>
+                      )}
+                      <span className="print-only" style={{ fontSize: 12 }}>
+                        {r.clientName}{r.representative ? ` ${r.representative}` : ''}
+                      </span>
                     </td>
                     <td style={{ ...tdBase, textAlign: 'right', color: r.carryOver > 0 ? '#333' : '#999' }}>
                       {fmt(r.carryOver)}
