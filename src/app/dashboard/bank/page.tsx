@@ -34,7 +34,7 @@ interface Invoice {
 export default function BankPage() {
   const supabase = createClient()
   const [tab, setTab] = useState<'list' | 'match'>('list')
-  const [matchTab, setMatchTab] = useState<'matched' | 'undeposit' | 'unwithdraw' | 'uninvoice' | 'unpurchase'>('matched')
+  const [matchTab, setMatchTab] = useState<'matched' | 'undeposit' | 'unwithdraw' | 'uninvoice' | 'unpurchase' | 'forced'>('matched')
   const [matchSearch, setMatchSearch] = useState('')
   const [txs, setTxs] = useState<BankTx[]>([])
   const [invoices, setInvoices] = useState<Invoice[]>([])
@@ -346,6 +346,7 @@ export default function BankPage() {
   const matchedTxs = txs.filter(t => t.matched_invoice_id || t.matched_purchase_id)
   const unmatchedDeposits = txs.filter(t => t.deposit && !t.matched_invoice_id && t.matched_extra_ids !== 'forced')
   const unmatchedWithdrawals = txs.filter(t => t.withdrawal && !t.matched_purchase_id && t.matched_extra_ids !== 'forced')
+  const forcedTxs = txs.filter(t => t.matched_extra_ids === 'forced' && !t.matched_invoice_id && !t.matched_purchase_id)
 
   // 계산서 중 통장내역과 매칭 안 된 것
   const matchedInvIds = new Set(txs.map(t => t.matched_invoice_id).filter(Boolean))
@@ -359,6 +360,7 @@ export default function BankPage() {
   const filteredUnwithdraws = matchSearch ? unmatchedWithdrawals.filter(t => t.counterparty?.toLowerCase().includes(mq)) : unmatchedWithdrawals
   const filteredUninvoices = matchSearch ? unmatchedInvoices.filter(i => i.client_name?.toLowerCase().includes(mq)) : unmatchedInvoices
   const filteredUnpurchases = matchSearch ? unmatchedPurchases.filter(p => p.supplier_name?.toLowerCase().includes(mq)) : unmatchedPurchases
+  const filteredForcedTxs = matchSearch ? forcedTxs.filter(t => t.counterparty?.toLowerCase().includes(mq)) : forcedTxs
 
   return (
     <div className="p-4 md:p-8">
@@ -563,6 +565,7 @@ export default function BankPage() {
               ['matched',    `✅ 매칭완료 ${matchedTxs.length}`],
               ['undeposit',  `🔵 입금미매칭 ${unmatchedDeposits.length}`],
               ['unwithdraw', `🔴 출금미매칭 ${unmatchedWithdrawals.length}`],
+              ['forced',     `⚡ 강제처리 ${forcedTxs.length}`],
             ] as const).map(([key, label]) => (
               <button key={key} onClick={() => { setMatchTab(key); setMatchSearch('') }}
                 className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
@@ -904,6 +907,50 @@ export default function BankPage() {
                     </tbody>
                   </table>
                 </div>
+              </div>
+            )}
+          </div>}
+          {matchTab === 'forced' && <div>
+            <h2 className="text-base font-semibold text-gray-700 mb-3">
+              ⚡ 강제처리 완료 <span className="text-gray-600 font-bold">{filteredForcedTxs.length}건</span>
+            </h2>
+            {filteredForcedTxs.length === 0 ? (
+              <div className="bg-gray-50 rounded-xl p-6 text-center text-gray-400 text-sm">강제처리된 항목이 없습니다.</div>
+            ) : (
+              <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-gray-50 border-b border-gray-200">
+                      <th className="text-left px-4 py-3 font-semibold text-gray-600">거래일시</th>
+                      <th className="text-left px-4 py-3 font-semibold text-gray-600">거래처</th>
+                      <th className="text-right px-4 py-3 font-semibold text-gray-600">금액</th>
+                      <th className="text-left px-4 py-3 font-semibold text-gray-600">비고</th>
+                      <th className="px-4 py-3"></th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {filteredForcedTxs.map(tx => (
+                      <tr key={tx.id} className="hover:bg-gray-50">
+                        <td className="px-4 py-3 text-xs text-gray-500">{tx.transaction_at?.slice(0, 10)}</td>
+                        <td className="px-4 py-3 font-medium text-gray-900">{tx.counterparty ?? '-'}</td>
+                        <td className={`px-4 py-3 text-right font-medium ${tx.deposit ? 'text-blue-600' : 'text-red-500'}`}>
+                          {tx.deposit ? `+${tx.deposit.toLocaleString()}` : `-${tx.withdrawal?.toLocaleString()}`}원
+                        </td>
+                        <td className="px-4 py-3 text-xs text-gray-400">{tx.memo ?? '-'}</td>
+                        <td className="px-4 py-3 text-right">
+                          <button
+                            onClick={async () => {
+                              await supabase.from('bank_transactions').update({ matched_extra_ids: null }).eq('id', tx.id)
+                              load()
+                            }}
+                            className="text-xs px-2 py-1 rounded bg-gray-100 text-gray-500 hover:bg-gray-200">
+                            강제해제
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             )}
           </div>}
