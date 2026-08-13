@@ -11,6 +11,7 @@ interface LedgerRow {
   representative: string
   code: string
   adjustment: number
+  debitOverride: number | null
   carryOver: number
   debit: number
   credit: number
@@ -65,7 +66,7 @@ export default function TradeLedgerPage() {
     setHiddenIds(new Set())
     try {
 
-    let { data: clients, error: clientsErr } = await supabase.from('clients').select('id, name, code, adjustment').order('name')
+    let { data: clients, error: clientsErr } = await supabase.from('clients').select('id, name, code, adjustment, debit_override').order('name')
     if (clientsErr) {
       // code 컬럼 미존재 시 fallback
       const fb = await supabase.from('clients').select('id, name').order('name')
@@ -159,16 +160,20 @@ export default function TradeLedgerPage() {
       const balance = carryOver + debit - credit
       if (carryOver === 0 && debit === 0 && credit === 0) continue
       const adjustment = Number(client?.adjustment) || 0
+      const debitOverride = client?.debit_override != null ? Number(client.debit_override) : null
+      const effectiveDebit = debitOverride ?? debit
+      const effectiveBalance = carryOver + effectiveDebit - credit - adjustment
       result.push({
         clientId,
         clientName,
         representative: repMap.get(clientName) ?? '',
         code: client?.code ?? '',
         adjustment,
+        debitOverride,
         carryOver,
-        debit,
+        debit: effectiveDebit,
         credit,
-        balance: balance - adjustment,
+        balance: effectiveBalance,
       })
     }
 
@@ -229,13 +234,12 @@ export default function TradeLedgerPage() {
   }
 
   function setMonth(offset: number) {
-    const base = dateFrom ? new Date(dateFrom) : new Date()
+    const base = dateTo ? new Date(dateTo) : new Date()
     base.setDate(1)
     base.setMonth(base.getMonth() + offset)
     const ny = base.getFullYear()
     const nm = String(base.getMonth() + 1).padStart(2, '0')
     const nl = new Date(ny, base.getMonth() + 1, 0).getDate()
-    setDateFrom(`${ny}-${nm}-01`)
     setDateTo(`${ny}-${nm}-${String(nl).padStart(2, '0')}`)
   }
 
@@ -384,7 +388,32 @@ export default function TradeLedgerPage() {
                     <td style={{ ...tdBase, textAlign: 'right', color: r.carryOver > 0 ? '#333' : '#999' }}>
                       {fmt(r.carryOver)}
                     </td>
-                    <td style={{ ...tdBase, textAlign: 'right' }}>{fmt(r.debit)}</td>
+                    <td className="no-print" style={{ ...tdBase, textAlign: 'right', padding: '2px 4px' }}>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        defaultValue={r.debit || ''}
+                        placeholder={r.debitOverride == null ? fmt(r.debit) : ''}
+                        onBlur={async e => {
+                          const raw = e.target.value.replace(/[^0-9]/g, '')
+                          const val = raw === '' ? null : Number(raw)
+                          if (val === r.debitOverride) return
+                          const isUuid = /^[0-9a-f-]{36}$/i.test(r.clientId)
+                          if (isUuid) {
+                            await supabase.from('clients').update({ debit_override: val }).eq('id', r.clientId)
+                          } else {
+                            await supabase.from('clients').update({ debit_override: val }).eq('name', r.clientName)
+                          }
+                          load()
+                        }}
+                        style={{
+                          width: '100%', border: '1px solid #ddd', borderRadius: 4, textAlign: 'right',
+                          padding: '1px 4px', fontSize: 12, outline: 'none',
+                          background: r.debitOverride != null ? '#fff8e1' : '#fff',
+                        }}
+                      />
+                    </td>
+                    <td className="print-only" style={{ ...tdBase, textAlign: 'right' }}>{fmt(r.debit)}</td>
                     <td style={{ ...tdBase, textAlign: 'right' }}>{fmt(r.credit)}</td>
                     <td style={{ ...tdBase, textAlign: 'right', fontWeight: r.balance !== 0 ? 600 : 400,
                       color: r.balance > 0 ? '#1a56db' : r.balance < 0 ? '#e02424' : '#999' }}>
