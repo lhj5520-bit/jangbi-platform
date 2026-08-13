@@ -73,6 +73,13 @@ export default function ExpensesPage() {
   const [prevMonthTotal, setPrevMonthTotal] = useState(0)
 
   const [form, setForm] = useState({ category: '', amount: '', expense_date: '', memo: '', note: '' })
+  const [modalTab, setModalTab] = useState<'direct' | 'bank'>('direct')
+  const [bankTxs, setBankTxs] = useState<any[]>([])
+  const [selectedBankIds, setSelectedBankIds] = useState<Set<string>>(new Set())
+  const [bankCategory, setBankCategory] = useState('')
+  const [bankSearch, setBankSearch] = useState('')
+  const [bankDateFrom, setBankDateFrom] = useState(() => new Date().toISOString().slice(0, 7) + '-01')
+  const [bankDateTo, setBankDateTo] = useState(() => new Date().toISOString().slice(0, 10))
 
   useEffect(() => {
     const saved = localStorage.getItem('expense_categories')
@@ -127,10 +134,45 @@ export default function ExpensesPage() {
   useEffect(() => { load() }, [month, viewMode, selYear])
 
 
+  async function loadBankTxs() {
+    const fromSlash = bankDateFrom.replace(/-/g, '/')
+    const toSlash = bankDateTo.replace(/-/g, '/') + ' 99:99:99'
+    const { data } = await supabase
+      .from('bank_transactions')
+      .select('id, transaction_at, withdrawal, counterparty, memo')
+      .gt('withdrawal', 0)
+      .gte('transaction_at', fromSlash)
+      .lte('transaction_at', toSlash)
+      .order('transaction_at', { ascending: false })
+    setBankTxs(data ?? [])
+    setSelectedBankIds(new Set())
+  }
+
   function openNew() {
     setEditItem(null)
     setForm({ category: categories[0] ?? '', amount: '', expense_date: new Date().toISOString().slice(0, 10), memo: '', note: '' })
+    setModalTab('direct')
+    setBankCategory(categories[0] ?? '')
+    setSelectedBankIds(new Set())
+    setBankTxs([])
     setModalOpen(true)
+  }
+
+  async function handleSaveFromBank() {
+    const selected = bankTxs.filter(t => selectedBankIds.has(t.id))
+    if (!selected.length) return alert('항목을 선택하세요.')
+    if (!bankCategory) return alert('항목을 선택하세요.')
+    const rows = selected.map(t => ({
+      category: bankCategory,
+      amount: t.withdrawal,
+      expense_date: (t.transaction_at ?? '').replace(/\//g, '-').slice(0, 10),
+      memo: t.counterparty ?? null,
+      note: t.memo ?? null,
+    }))
+    const { error } = await supabase.from('expenses').insert(rows)
+    if (error) { alert('저장 실패: ' + error.message); return }
+    setModalOpen(false)
+    load()
   }
 
   function openEdit(e: Expense) {
@@ -397,53 +439,127 @@ export default function ExpensesPage() {
 
       {modalOpen && (
         <div className="fixed inset-0 bg-black/40 flex items-end sm:items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-sm shadow-xl">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+          <div className="bg-white rounded-2xl w-full max-w-lg shadow-xl max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 shrink-0">
               <h2 className="font-bold text-gray-900">{editItem ? '수정' : '관리비 등록'}</h2>
               <button onClick={() => setModalOpen(false)} className="text-gray-400 text-xl">X</button>
             </div>
-            <div className="px-6 py-5 space-y-4">
-              <div>
-                <label className="text-sm text-gray-500 block mb-1.5">항목</label>
-                <select value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                  {categories.map(c => <option key={c} value={c}>{c}</option>)}
-                </select>
+
+            {!editItem && (
+              <div className="flex border-b border-gray-200 shrink-0">
+                <button onClick={() => setModalTab('direct')}
+                  className={`flex-1 py-2.5 text-sm font-medium ${modalTab === 'direct' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500'}`}>
+                  직접 입력
+                </button>
+                <button onClick={() => { setModalTab('bank'); loadBankTxs() }}
+                  className={`flex-1 py-2.5 text-sm font-medium ${modalTab === 'bank' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500'}`}>
+                  통장에서 선택
+                </button>
               </div>
-              <div>
-                <label className="text-sm text-gray-500 block mb-1.5">금액 *</label>
-                <input type="number" value={form.amount}
-                  onChange={e => setForm(f => ({ ...f, amount: e.target.value }))}
-                  placeholder="0"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-              </div>
-              <div>
-                <label className="text-sm text-gray-500 block mb-1.5">날짜 *</label>
-                <input type="date" value={form.expense_date}
-                  onChange={e => setForm(f => ({ ...f, expense_date: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-              </div>
-              <div>
-                <label className="text-sm text-gray-500 block mb-1.5">메모</label>
-                <input type="text" value={form.memo}
-                  onChange={e => setForm(f => ({ ...f, memo: e.target.value }))}
-                  placeholder="예: 홍길동 6월 급여"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-              </div>
-              <div>
-                <label className="text-sm text-gray-500 block mb-1.5">비고</label>
-                <input type="text" value={form.note}
-                  onChange={e => setForm(f => ({ ...f, note: e.target.value }))}
-                  placeholder="추가 메모"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-              </div>
-            </div>
-            <div className="flex gap-2 px-6 py-4 border-t border-gray-200">
-              <button onClick={() => setModalOpen(false)}
-                className="flex-1 py-2.5 rounded-lg border border-gray-300 text-sm text-gray-600">취소</button>
-              <button onClick={handleSave}
-                className="flex-1 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium">저장</button>
-            </div>
+            )}
+
+            {/* 직접 입력 탭 */}
+            {(editItem || modalTab === 'direct') && (
+              <>
+                <div className="px-6 py-5 space-y-4 overflow-y-auto flex-1">
+                  <div>
+                    <label className="text-sm text-gray-500 block mb-1.5">항목</label>
+                    <select value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                      {categories.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-sm text-gray-500 block mb-1.5">금액 *</label>
+                    <input type="number" value={form.amount}
+                      onChange={e => setForm(f => ({ ...f, amount: e.target.value }))}
+                      placeholder="0"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                  </div>
+                  <div>
+                    <label className="text-sm text-gray-500 block mb-1.5">날짜 *</label>
+                    <input type="date" value={form.expense_date}
+                      onChange={e => setForm(f => ({ ...f, expense_date: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                  </div>
+                  <div>
+                    <label className="text-sm text-gray-500 block mb-1.5">메모</label>
+                    <input type="text" value={form.memo}
+                      onChange={e => setForm(f => ({ ...f, memo: e.target.value }))}
+                      placeholder="예: 홍길동 6월 급여"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                  </div>
+                  <div>
+                    <label className="text-sm text-gray-500 block mb-1.5">비고</label>
+                    <input type="text" value={form.note}
+                      onChange={e => setForm(f => ({ ...f, note: e.target.value }))}
+                      placeholder="추가 메모"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                  </div>
+                </div>
+                <div className="flex gap-2 px-6 py-4 border-t border-gray-200 shrink-0">
+                  <button onClick={() => setModalOpen(false)}
+                    className="flex-1 py-2.5 rounded-lg border border-gray-300 text-sm text-gray-600">취소</button>
+                  <button onClick={handleSave}
+                    className="flex-1 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium">저장</button>
+                </div>
+              </>
+            )}
+
+            {/* 통장에서 선택 탭 */}
+            {!editItem && modalTab === 'bank' && (
+              <>
+                <div className="px-4 py-3 border-b border-gray-100 shrink-0 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <input type="date" value={bankDateFrom} onChange={e => setBankDateFrom(e.target.value)}
+                      className="flex-1 px-2 py-1.5 border border-gray-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    <span className="text-gray-400 text-xs">~</span>
+                    <input type="date" value={bankDateTo} onChange={e => setBankDateTo(e.target.value)}
+                      className="flex-1 px-2 py-1.5 border border-gray-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    <button onClick={loadBankTxs}
+                      className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-xs font-medium shrink-0">조회</button>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input type="text" placeholder="거래처 검색..." value={bankSearch} onChange={e => setBankSearch(e.target.value)}
+                      className="flex-1 px-2 py-1.5 border border-gray-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    <select value={bankCategory} onChange={e => setBankCategory(e.target.value)}
+                      className="flex-1 px-2 py-1.5 border border-gray-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500">
+                      {categories.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                  </div>
+                  {selectedBankIds.size > 0 && (
+                    <p className="text-xs text-blue-600 font-medium">{selectedBankIds.size}건 선택 · 합계 {bankTxs.filter(t => selectedBankIds.has(t.id)).reduce((s,t) => s + (t.withdrawal ?? 0), 0).toLocaleString()}원</p>
+                  )}
+                </div>
+                <div className="flex-1 overflow-y-auto">
+                  {bankTxs.filter(t => !bankSearch || t.counterparty?.includes(bankSearch) || t.memo?.includes(bankSearch)).map(tx => {
+                    const checked = selectedBankIds.has(tx.id)
+                    return (
+                      <label key={tx.id}
+                        className={`flex items-center gap-3 px-4 py-2.5 border-b border-gray-100 cursor-pointer hover:bg-gray-50 ${checked ? 'bg-blue-50' : ''}`}>
+                        <input type="checkbox" checked={checked}
+                          onChange={() => setSelectedBankIds(prev => { const n = new Set(prev); n.has(tx.id) ? n.delete(tx.id) : n.add(tx.id); return n })}
+                          className="accent-blue-600 shrink-0" />
+                        <span className="text-xs text-gray-400 shrink-0 w-24">{(tx.transaction_at ?? '').slice(0, 10)}</span>
+                        <span className="text-sm font-medium text-gray-800 flex-1 truncate">{tx.counterparty}</span>
+                        <span className="text-sm font-bold text-red-500 shrink-0">{(tx.withdrawal ?? 0).toLocaleString()}원</span>
+                      </label>
+                    )
+                  })}
+                  {bankTxs.length === 0 && (
+                    <div className="text-center py-10 text-gray-400 text-sm">기간을 설정하고 조회하세요</div>
+                  )}
+                </div>
+                <div className="flex gap-2 px-6 py-4 border-t border-gray-200 shrink-0">
+                  <button onClick={() => setModalOpen(false)}
+                    className="flex-1 py-2.5 rounded-lg border border-gray-300 text-sm text-gray-600">취소</button>
+                  <button onClick={handleSaveFromBank} disabled={selectedBankIds.size === 0}
+                    className="flex-1 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:text-gray-400 text-white text-sm font-medium">
+                    {selectedBankIds.size > 0 ? `${selectedBankIds.size}건 등록` : '선택하세요'}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
