@@ -132,7 +132,7 @@ export default function TradeLedgerPage() {
       if (!name) continue
       const dep = Number(tx.deposit) || 0
       if (!dep) continue
-      const txAt = (tx.transaction_at ?? '').slice(0, 19)
+      const txAt = (tx.transaction_at ?? '').replace(/\//g, '-').slice(0, 19)
       const txDate = txAt.slice(0, 10)
       if (txDate >= dateFrom && txAt <= dateToFull) {
         creditMap.set(name, (creditMap.get(name) ?? 0) + dep)
@@ -204,11 +204,11 @@ export default function TradeLedgerPage() {
     const pays: TxDetail[] = allTxRef
       .filter(tx => {
         const name = (invClientMapRef as any).get(tx.matched_invoice_id)
-        const txDate = (tx.transaction_at ?? '').slice(0, 10)
+        const txDate = (tx.transaction_at ?? '').replace(/\//g, '-').slice(0, 10)
         return name === row.clientName && txDate >= dateFrom && txDate <= dateTo && Number(tx.deposit) > 0
       })
       .map(tx => ({
-        transaction_at: (tx.transaction_at ?? '').slice(0, 10),
+        transaction_at: (tx.transaction_at ?? '').replace(/\//g, '-').slice(0, 10),
         deposit: Number(tx.deposit) || 0,
         counterparty: tx.counterparty ?? '',
       }))
