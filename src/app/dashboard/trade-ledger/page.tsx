@@ -66,11 +66,15 @@ export default function TradeLedgerPage() {
     setHiddenIds(new Set())
     try {
 
-    let { data: clients, error: clientsErr } = await supabase.from('clients').select('id, name, code, adjustment, debit_override').order('name')
-    if (clientsErr) {
-      // code 컬럼 미존재 시 fallback
-      const fb = await supabase.from('clients').select('id, name').order('name')
-      clients = (fb.data ?? []).map((c: any) => ({ ...c, code: null }))
+    // 컬럼별 fallback: 없는 컬럼이 있어도 기본 데이터는 보장
+    let { data: clients } = await supabase.from('clients').select('id, name, code, adjustment, debit_override').order('name')
+    if (!clients) {
+      const r2 = await supabase.from('clients').select('id, name, code').order('name')
+      clients = (r2.data ?? []).map((c: any) => ({ ...c, adjustment: 0, debit_override: null }))
+    }
+    if (!clients) {
+      const r3 = await supabase.from('clients').select('id, name').order('name')
+      clients = (r3.data ?? []).map((c: any) => ({ ...c, code: null, adjustment: 0, debit_override: null }))
     }
     const clientList = clients ?? []
     const clientById = new Map<string, any>()
