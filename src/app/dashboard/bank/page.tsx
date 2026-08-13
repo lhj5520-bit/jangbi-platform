@@ -68,6 +68,7 @@ export default function BankPage() {
     { pattern: /이자|캐피탈|캐피|금융|리스/i,          category: '대출이자' },
     { pattern: /주유|주유소|가스|LPG|오일/i,           category: '주유비' },
     { pattern: /급여|월급|임금|인건비/i,               category: '급여' },
+    { pattern: /임대|전세|보증금|임차/i,               category: '임대료' },
   ]
 
   async function handleReclassifyExpenses() {
@@ -87,7 +88,8 @@ export default function BankPage() {
       .filter(tx => tx.withdrawal && tx.withdrawal > 0)
       .map(tx => {
         const name = tx.counterparty ?? ''
-        const rule = EXPENSE_RULES.find(r => r.pattern.test(name))
+        const memo = tx.memo ?? ''
+        const rule = EXPENSE_RULES.find(r => r.pattern.test(name) || r.pattern.test(memo))
         if (!rule) return null
         return {
           category: rule.category,
