@@ -322,10 +322,15 @@ export default function BankPage() {
     if (typeFilter === 'withdrawal' && !tx.withdrawal) return false
     if (search) {
       const q = search.toLowerCase()
-      if (!tx.counterparty?.toLowerCase().includes(q) && !tx.transaction_type?.toLowerCase().includes(q)) return false
+      if (
+        !tx.counterparty?.toLowerCase().includes(q) &&
+        !tx.transaction_type?.toLowerCase().includes(q) &&
+        !tx.memo?.toLowerCase().includes(q)
+      ) return false
     }
-    if (dateFrom && tx.transaction_at < dateFrom) return false
-    if (dateTo && tx.transaction_at > dateTo + ' 99:99:99') return false
+    const txDate = (tx.transaction_at ?? '').replace(/\//g, '-')
+    if (dateFrom && txDate < dateFrom) return false
+    if (dateTo && txDate > dateTo + ' 99:99:99') return false
     return true
   }), [txs, typeFilter, search, dateFrom, dateTo])
 
