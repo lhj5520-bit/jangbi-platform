@@ -62,12 +62,13 @@ export default function TradeLedgerPage() {
   async function load() {
     setLoading(true)
     setHiddenIds(new Set())
+    try {
 
     let { data: clients, error: clientsErr } = await supabase.from('clients').select('id, name, code').order('name')
     if (clientsErr) {
       // code 컬럼 미존재 시 fallback
       const fb = await supabase.from('clients').select('id, name').order('name')
-      clients = fb.data
+      clients = (fb.data ?? []).map((c: any) => ({ ...c, code: null }))
     }
     const clientList = clients ?? []
     const clientById = new Map<string, any>()
@@ -168,9 +169,6 @@ export default function TradeLedgerPage() {
       })
     }
 
-    // 디버그 정보
-    setDebugInfo(`clients:${clientList.length} | invoices:${allInvoices.length}${invErr ? '(ERR:'+invErr.message+')' : ''} | tx:${allTx.length}${txErr ? '(ERR:'+txErr.message+')' : ''} | debit거래처:${debitMap.size} | prevDebit거래처:${prevDebitMap.size} | activeNames:${activeNames.size} | rows:${result.length}`)
-
     result.sort((a, b) => {
       if (a.code && b.code) return a.code.localeCompare(b.code)
       if (a.code) return -1
@@ -182,7 +180,11 @@ export default function TradeLedgerPage() {
     for (const r of result) cm[r.clientId] = r.code
     setCodeMap(cm)
     setRows(result)
-    setLoading(false)
+    } catch (e) {
+      console.error('trade-ledger load error', e)
+    } finally {
+      setLoading(false)
+    }
   }
 
   function openDetail(row: LedgerRow) {
