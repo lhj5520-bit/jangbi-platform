@@ -10,6 +10,7 @@ interface LedgerRow {
   clientName: string
   representative: string
   code: string
+  adjustment: number
   carryOver: number
   debit: number
   credit: number
@@ -64,7 +65,7 @@ export default function TradeLedgerPage() {
     setHiddenIds(new Set())
     try {
 
-    let { data: clients, error: clientsErr } = await supabase.from('clients').select('id, name, code').order('name')
+    let { data: clients, error: clientsErr } = await supabase.from('clients').select('id, name, code, adjustment').order('name')
     if (clientsErr) {
       // code 컬럼 미존재 시 fallback
       const fb = await supabase.from('clients').select('id, name').order('name')
@@ -157,15 +158,17 @@ export default function TradeLedgerPage() {
       const credit = creditMap.get(clientName) ?? 0
       const balance = carryOver + debit - credit
       if (carryOver === 0 && debit === 0 && credit === 0) continue
+      const adjustment = Number(client?.adjustment) || 0
       result.push({
         clientId,
         clientName,
         representative: repMap.get(clientName) ?? '',
         code: client?.code ?? '',
+        adjustment,
         carryOver,
         debit,
         credit,
-        balance,
+        balance: balance - adjustment,
       })
     }
 
@@ -338,6 +341,7 @@ export default function TradeLedgerPage() {
                   <th style={{ ...thBase, width: 120, textAlign: 'center' }}>차 변</th>
                   <th style={{ ...thBase, width: 120, textAlign: 'center' }}>대 변</th>
                   <th style={{ ...thBase, width: 120, textAlign: 'center' }}>잔 액</th>
+                  <th className="no-print" style={{ ...thBase, width: 100, textAlign: 'center' }}>조 정</th>
                   <th className="no-print" style={{ ...thBase, width: 44 }}></th>
                 </tr>
               </thead>
@@ -387,6 +391,28 @@ export default function TradeLedgerPage() {
                       {fmt(r.balance)}
                     </td>
                     <td className="no-print" style={{ ...tdBase, textAlign: 'center', padding: '2px 4px' }}>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        defaultValue={r.adjustment || ''}
+                        placeholder="0"
+                        onBlur={async e => {
+                          const val = Number(e.target.value.replace(/[^0-9-]/g, '')) || 0
+                          if (val === r.adjustment) return
+                          // clientId가 UUID이면 DB 업데이트, 이름 키면 name으로 조회
+                          const isUuid = /^[0-9a-f-]{36}$/i.test(r.clientId)
+                          if (isUuid) {
+                            await supabase.from('clients').update({ adjustment: val }).eq('id', r.clientId)
+                          } else {
+                            await supabase.from('clients').update({ adjustment: val }).eq('name', r.clientName)
+                          }
+                          load()
+                        }}
+                        style={{ width: '90px', border: '1px solid #ddd', borderRadius: 4, textAlign: 'right',
+                          padding: '1px 4px', fontSize: 12, background: '#fff', outline: 'none' }}
+                      />
+                    </td>
+                    <td className="no-print" style={{ ...tdBase, textAlign: 'center', padding: '2px 4px' }}>
                       <button
                         onClick={() => setHiddenIds(prev => new Set([...prev, r.clientId]))}
                         style={{ fontSize: 11, color: '#e02424', background: '#fff5f5',
@@ -412,6 +438,7 @@ export default function TradeLedgerPage() {
                   <td style={{ ...tdBase, textAlign: 'right', fontWeight: 700, color: '#ffd700', background: '#1a1a2e' }}>
                     {totalBalance ? totalBalance.toLocaleString() : ''}
                   </td>
+                  <td className="no-print" style={{ ...tdBase, background: '#1a1a2e', border: '1px solid #444' }} />
                   <td className="no-print" style={{ ...tdBase, background: '#1a1a2e', border: '1px solid #444' }} />
                 </tr>
               </tbody>
