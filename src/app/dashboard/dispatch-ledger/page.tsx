@@ -1040,9 +1040,10 @@ export default function DispatchLedgerPage() {
           <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
             className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
           <button onClick={() => {
-            const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - 1)
-            const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0')
-            const last = new Date(y, d.getMonth()+1, 0).getDate()
+            const base = dateFrom ? new Date(dateFrom) : new Date()
+            base.setDate(1); base.setMonth(base.getMonth() - 1)
+            const y = base.getFullYear(), m = String(base.getMonth()+1).padStart(2,'0')
+            const last = new Date(y, base.getMonth()+1, 0).getDate()
             setDateFrom(`${y}-${m}-01`); setDateTo(`${y}-${m}-${String(last).padStart(2,'0')}`)
           }} className="px-3 py-2 text-sm rounded-lg border border-indigo-400 text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-colors font-medium">
             전월
