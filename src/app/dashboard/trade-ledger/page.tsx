@@ -15,6 +15,24 @@ interface LedgerRow {
   balance: number
 }
 
+interface InvDetail {
+  issue_date: string
+  amount: number
+  project_name?: string
+}
+
+interface TxDetail {
+  transaction_at: string
+  deposit: number
+  counterparty?: string
+}
+
+interface ClientDetail {
+  clientName: string
+  invoices: InvDetail[]
+  payments: TxDetail[]
+}
+
 export default function TradeLedgerPage() {
   const supabase = createClient()
   const printAreaRef = useRef<HTMLDivElement>(null)
@@ -27,40 +45,51 @@ export default function TradeLedgerPage() {
   const [dateFrom, setDateFrom] = useState(`${y}-${m}-01`)
   const [dateTo, setDateTo] = useState(`${y}-${m}-${String(lastDay).padStart(2, '0')}`)
   const [rows, setRows] = useState<LedgerRow[]>([])
+  const [hiddenIds, setHiddenIds] = useState<Set<string>>(new Set())
   const [codeMap, setCodeMap] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(false)
+  const [detail, setDetail] = useState<ClientDetail | null>(null)
+
+  // 원본 데이터 (팝업용)
+  const [allInvoicesRef, setAllInvoicesRef] = useState<any[]>([])
+  const [allTxRef, setAllTxRef] = useState<any[]>([])
+  const [invClientMapRef, setInvClientMapRef] = useState<Map<string, string>>(new Map())
 
   useEffect(() => { load() }, [dateFrom, dateTo])
 
   async function load() {
     setLoading(true)
+    setHiddenIds(new Set())
 
-    // 1. 클라이언트 목록
     const { data: clients } = await supabase.from('clients').select('id, name, code').order('name')
     const clientList = clients ?? []
     const clientById = new Map<string, any>()
-    const clientByName = new Map<string, string>() // name → id
+    const clientByName = new Map<string, string>()
     for (const c of clientList) {
       clientById.set(c.id, c)
       if (c.name) clientByName.set(c.name.trim(), c.id)
     }
 
-    // client_id 또는 client_name으로 발주처 ID 확정
     const resolveClientId = (inv: any): string | null => {
       if (inv.client_id) return inv.client_id
       if (inv.client_name) return clientByName.get(inv.client_name.trim()) ?? null
       return null
     }
 
-    // 날짜 범위 — transaction_at은 타임스탬프라 dateTo 끝에 T23:59:59 추가
     const dateToFull = dateTo + 'T23:59:59'
 
-    // 2. 전체 매출계산서 (id → resolved client_id 맵 + 기간별 집계)
     const { data: allInvRaw } = await supabase.from('invoices')
-      .select('id, client_id, client_name, supply_amount, vat_amount, total_amount, issue_date')
+      .select('id, client_id, client_name, supply_amount, vat_amount, total_amount, issue_date, project_name')
     const allInvoices = allInvRaw ?? []
+    setAllInvoicesRef(allInvoices)
 
-    const invClientMap = new Map<string, string>() // invoice_id → client_id
+    const { data: allTxRaw } = await supabase.from('bank_transactions')
+      .select('deposit, transaction_at, matched_invoice_id, counterparty')
+      .not('matched_invoice_id', 'is', null)
+    const allTx = allTxRaw ?? []
+    setAllTxRef(allTx)
+
+    const invClientMap = new Map<string, string>()
     const debitMap = new Map<string, number>()
     const prevDebitMap = new Map<string, number>()
 
@@ -80,11 +109,7 @@ export default function TradeLedgerPage() {
       }
     }
 
-    // 3. 은행 입금 (matched_invoice_id → client_id 역추적)
-    const { data: allTxRaw } = await supabase.from('bank_transactions')
-      .select('deposit, transaction_at, matched_invoice_id')
-      .not('matched_invoice_id', 'is', null)
-    const allTx = allTxRaw ?? []
+    setInvClientMapRef(invClientMap)
 
     const creditMap = new Map<string, number>()
     const prevCreditMap = new Map<string, number>()
@@ -102,7 +127,6 @@ export default function TradeLedgerPage() {
       }
     }
 
-    // 활동 있는 클라이언트 목록
     const activeIds = new Set([
       ...debitMap.keys(), ...creditMap.keys(),
       ...prevDebitMap.keys(), ...prevCreditMap.keys(),
@@ -127,7 +151,6 @@ export default function TradeLedgerPage() {
       })
     }
 
-    // 코드 → 이름 순 정렬
     result.sort((a, b) => {
       if (a.code && b.code) return a.code.localeCompare(b.code)
       if (a.code) return -1
@@ -135,7 +158,6 @@ export default function TradeLedgerPage() {
       return a.clientName.localeCompare(b.clientName)
     })
 
-    // 코드 상태 초기화 (로컬 편집용)
     const cm: Record<string, string> = {}
     for (const r of result) cm[r.clientId] = r.code
     setCodeMap(cm)
@@ -143,20 +165,40 @@ export default function TradeLedgerPage() {
     setLoading(false)
   }
 
+  function openDetail(row: LedgerRow) {
+    const dateToFull = dateTo + 'T23:59:59'
+    const invs: InvDetail[] = allInvoicesRef
+      .filter(inv => {
+        const cid = invClientMapRef.get(inv.id) ?? (inv.client_id === row.clientId ? inv.client_id : null)
+        return cid === row.clientId && inv.issue_date >= dateFrom && inv.issue_date <= dateTo
+      })
+      .map(inv => ({
+        issue_date: inv.issue_date,
+        amount: Number(inv.total_amount) || (Number(inv.supply_amount) + Number(inv.vat_amount)) || 0,
+        project_name: inv.project_name ?? '',
+      }))
+      .sort((a, b) => a.issue_date.localeCompare(b.issue_date))
+
+    const pays: TxDetail[] = allTxRef
+      .filter(tx => {
+        const cid = invClientMapRef.get(tx.matched_invoice_id)
+        const txAt = tx.transaction_at ?? ''
+        return cid === row.clientId && txAt >= dateFrom && txAt <= dateToFull && Number(tx.deposit) > 0
+      })
+      .map(tx => ({
+        transaction_at: tx.transaction_at?.slice(0, 10) ?? '',
+        deposit: Number(tx.deposit) || 0,
+        counterparty: tx.counterparty ?? '',
+      }))
+      .sort((a, b) => a.transaction_at.localeCompare(b.transaction_at))
+
+    setDetail({ clientName: row.clientName, invoices: invs, payments: pays })
+  }
+
   async function handleCodeBlur(clientId: string) {
     const code = codeMap[clientId] ?? ''
     await supabase.from('clients').update({ code }).eq('id', clientId)
-    // 행 코드도 업데이트
-    setRows(prev => prev.map(r => r.clientId === clientId ? { ...r, code } : r)
-      .sort((a, b) => {
-        const ac = codeMap[a.clientId] ?? a.code
-        const bc = codeMap[b.clientId] ?? b.code
-        if (ac && bc) return ac.localeCompare(bc)
-        if (ac) return -1
-        if (bc) return 1
-        return a.clientName.localeCompare(b.clientName)
-      })
-    )
+    setRows(prev => prev.map(r => r.clientId === clientId ? { ...r, code } : r))
   }
 
   function setMonth(offset: number) {
@@ -171,10 +213,11 @@ export default function TradeLedgerPage() {
   }
 
   const fmt = (n: number) => n === 0 ? '' : n.toLocaleString()
-  const totalCarry = rows.reduce((s, r) => s + r.carryOver, 0)
-  const totalDebit = rows.reduce((s, r) => s + r.debit, 0)
-  const totalCredit = rows.reduce((s, r) => s + r.credit, 0)
-  const totalBalance = rows.reduce((s, r) => s + r.balance, 0)
+  const visibleRows = rows.filter(r => !hiddenIds.has(r.clientId))
+  const totalCarry = visibleRows.reduce((s, r) => s + r.carryOver, 0)
+  const totalDebit = visibleRows.reduce((s, r) => s + r.debit, 0)
+  const totalCredit = visibleRows.reduce((s, r) => s + r.credit, 0)
+  const totalBalance = visibleRows.reduce((s, r) => s + r.balance, 0)
 
   const tdBase: React.CSSProperties = {
     border: '1px solid #bbb', padding: '4px 8px', fontSize: 12, verticalAlign: 'middle',
@@ -209,18 +252,23 @@ export default function TradeLedgerPage() {
               className="px-3 py-2 text-sm rounded-lg border border-indigo-400 text-indigo-600 bg-indigo-50 hover:bg-indigo-100 font-medium">
               ◀ 전월
             </button>
-            <button onClick={() => setMonth(0)}
-              className="px-3 py-2 text-sm rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50">
+            <button onClick={() => {
+              const n = new Date(); const ny = n.getFullYear(); const nm = String(n.getMonth()+1).padStart(2,'0')
+              const nl = new Date(ny, n.getMonth()+1, 0).getDate()
+              setDateFrom(`${ny}-${nm}-01`); setDateTo(`${ny}-${nm}-${String(nl).padStart(2,'0')}`)
+            }} className="px-3 py-2 text-sm rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50">
               이번달
             </button>
             <button onClick={() => setMonth(1)}
               className="px-3 py-2 text-sm rounded-lg border border-indigo-400 text-indigo-600 bg-indigo-50 hover:bg-indigo-100 font-medium">
               다음월 ▶
             </button>
-            <button onClick={() => { setDateFrom('2020-01-01'); setDateTo(dateTo) }}
-              className="px-3 py-2 text-sm rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50">
-              전체
-            </button>
+            {hiddenIds.size > 0 && (
+              <button onClick={() => setHiddenIds(new Set())}
+                className="px-3 py-2 text-sm rounded-lg border border-orange-300 text-orange-600 bg-orange-50 hover:bg-orange-100">
+                숨긴 항목 복원 ({hiddenIds.size})
+              </button>
+            )}
             <div className="ml-auto">
               <button onClick={() => window.print()}
                 className="px-4 py-2 text-sm rounded-lg bg-blue-600 text-white hover:bg-blue-700 font-medium">
@@ -228,13 +276,14 @@ export default function TradeLedgerPage() {
               </button>
             </div>
           </div>
-          <p className="text-xs text-gray-400 mt-2">💡 코드 칸을 클릭해서 직접 입력하면 저장됩니다.</p>
+          <p className="text-xs text-gray-400 mt-2">
+            💡 코드 칸 클릭 → 저장 | 거래처명 클릭 → 계산서·입금 내역 | 삭제 → 해당 행 숨김
+          </p>
         </div>
 
         {/* 인쇄 영역 */}
         <div id="trade-ledger-print" ref={printAreaRef}
-          style={{ fontFamily: '"Malgun Gothic", "맑은 고딕", sans-serif', maxWidth: 900 }}>
-          {/* 문서 헤더 */}
+          style={{ fontFamily: '"Malgun Gothic", "맑은 고딕", sans-serif', maxWidth: 960 }}>
           <div style={{ textAlign: 'center', fontSize: 20, fontWeight: 700, marginBottom: 6, letterSpacing: '0.05em' }}>
             거래처 원장( 잔액 )
           </div>
@@ -246,7 +295,6 @@ export default function TradeLedgerPage() {
             <span>0108:외상매출금</span>
           </div>
 
-          {/* 표 */}
           {loading ? (
             <div className="no-print text-center py-12 text-gray-400">불러오는 중...</div>
           ) : (
@@ -259,16 +307,17 @@ export default function TradeLedgerPage() {
                   <th style={{ ...thBase, width: 120, textAlign: 'center' }}>차 변</th>
                   <th style={{ ...thBase, width: 120, textAlign: 'center' }}>대 변</th>
                   <th style={{ ...thBase, width: 120, textAlign: 'center' }}>잔 액</th>
+                  <th className="no-print" style={{ ...thBase, width: 44 }}></th>
                 </tr>
               </thead>
               <tbody>
-                {rows.length === 0 ? (
+                {visibleRows.length === 0 ? (
                   <tr>
-                    <td colSpan={6} style={{ ...tdBase, textAlign: 'center', color: '#999', padding: '24px' }}>
+                    <td colSpan={7} style={{ ...tdBase, textAlign: 'center', color: '#999', padding: '24px' }}>
                       해당 기간 데이터가 없습니다
                     </td>
                   </tr>
-                ) : rows.map((r, i) => (
+                ) : visibleRows.map((r, i) => (
                   <tr key={r.clientId} style={{ background: i % 2 === 0 ? '#fff' : '#fafafa' }}>
                     <td style={{ ...tdBase, textAlign: 'center' }}>
                       <input
@@ -276,11 +325,20 @@ export default function TradeLedgerPage() {
                         onChange={e => setCodeMap(prev => ({ ...prev, [r.clientId]: e.target.value }))}
                         onBlur={() => handleCodeBlur(r.clientId)}
                         style={{ width: '100%', border: '1px solid #ddd', borderRadius: 4, textAlign: 'center',
-                          padding: '1px 2px', fontSize: 12, background: '#fff', outline: 'none' }}
+                          padding: '1px 4px', fontSize: 12, background: '#fff', outline: 'none' }}
                         placeholder="코드"
                       />
                     </td>
-                    <td style={{ ...tdBase }}>{r.clientName}</td>
+                    <td style={{ ...tdBase }}>
+                      <button
+                        onClick={() => openDetail(r)}
+                        className="no-print"
+                        style={{ textAlign: 'left', color: '#1a56db', textDecoration: 'underline',
+                          cursor: 'pointer', background: 'none', border: 'none', fontSize: 12, padding: 0 }}>
+                        {r.clientName}
+                      </button>
+                      <span className="print-only" style={{ fontSize: 12 }}>{r.clientName}</span>
+                    </td>
                     <td style={{ ...tdBase, textAlign: 'right', color: r.carryOver > 0 ? '#333' : '#999' }}>
                       {fmt(r.carryOver)}
                     </td>
@@ -290,9 +348,16 @@ export default function TradeLedgerPage() {
                       color: r.balance > 0 ? '#1a56db' : r.balance < 0 ? '#e02424' : '#999' }}>
                       {fmt(r.balance)}
                     </td>
+                    <td className="no-print" style={{ ...tdBase, textAlign: 'center', padding: '2px 4px' }}>
+                      <button
+                        onClick={() => setHiddenIds(prev => new Set([...prev, r.clientId]))}
+                        style={{ fontSize: 11, color: '#e02424', background: '#fff5f5',
+                          border: '1px solid #fca5a5', borderRadius: 4, padding: '2px 6px', cursor: 'pointer' }}>
+                        삭제
+                      </button>
+                    </td>
                   </tr>
                 ))}
-                {/* 합계 행 */}
                 <tr style={{ background: '#1a1a2e' }}>
                   <td colSpan={2} style={{ ...tdBase, textAlign: 'center', fontWeight: 700, color: '#fff', background: '#1a1a2e' }}>
                     합 계
@@ -309,12 +374,102 @@ export default function TradeLedgerPage() {
                   <td style={{ ...tdBase, textAlign: 'right', fontWeight: 700, color: '#ffd700', background: '#1a1a2e' }}>
                     {totalBalance ? totalBalance.toLocaleString() : ''}
                   </td>
+                  <td className="no-print" style={{ ...tdBase, background: '#1a1a2e', border: '1px solid #444' }} />
                 </tr>
               </tbody>
             </table>
           )}
         </div>
       </div>
+
+      {/* 거래처 상세 팝업 */}
+      {detail && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          onClick={() => setDetail(null)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[80vh] overflow-y-auto"
+            onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+              <h2 className="text-base font-bold text-gray-800">{detail.clientName}</h2>
+              <button onClick={() => setDetail(null)} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
+            </div>
+            <div className="px-6 py-4 space-y-4">
+              {/* 계산서 발행 */}
+              <div>
+                <div className="text-xs font-bold text-blue-700 mb-2 uppercase tracking-wide">
+                  📄 계산서 발행 ({dateFrom} ~ {dateTo})
+                </div>
+                {detail.invoices.length === 0 ? (
+                  <p className="text-xs text-gray-400">해당 기간 계산서 없음</p>
+                ) : (
+                  <table className="w-full text-xs border-collapse">
+                    <thead>
+                      <tr className="bg-blue-50">
+                        <th className="border border-gray-200 px-2 py-1 text-left">발행일</th>
+                        <th className="border border-gray-200 px-2 py-1 text-left">현장</th>
+                        <th className="border border-gray-200 px-2 py-1 text-right">금액</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {detail.invoices.map((inv, i) => (
+                        <tr key={i} className="hover:bg-gray-50">
+                          <td className="border border-gray-200 px-2 py-1">{inv.issue_date}</td>
+                          <td className="border border-gray-200 px-2 py-1 text-gray-500">{inv.project_name || '-'}</td>
+                          <td className="border border-gray-200 px-2 py-1 text-right font-medium">
+                            {inv.amount.toLocaleString()}원
+                          </td>
+                        </tr>
+                      ))}
+                      <tr className="bg-blue-50 font-bold">
+                        <td colSpan={2} className="border border-gray-200 px-2 py-1 text-right">합계</td>
+                        <td className="border border-gray-200 px-2 py-1 text-right">
+                          {detail.invoices.reduce((s, i) => s + i.amount, 0).toLocaleString()}원
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                )}
+              </div>
+
+              {/* 입금 내역 */}
+              <div>
+                <div className="text-xs font-bold text-green-700 mb-2 uppercase tracking-wide">
+                  💰 입금 내역 ({dateFrom} ~ {dateTo})
+                </div>
+                {detail.payments.length === 0 ? (
+                  <p className="text-xs text-gray-400">해당 기간 입금 없음</p>
+                ) : (
+                  <table className="w-full text-xs border-collapse">
+                    <thead>
+                      <tr className="bg-green-50">
+                        <th className="border border-gray-200 px-2 py-1 text-left">입금일</th>
+                        <th className="border border-gray-200 px-2 py-1 text-left">거래처</th>
+                        <th className="border border-gray-200 px-2 py-1 text-right">입금액</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {detail.payments.map((tx, i) => (
+                        <tr key={i} className="hover:bg-gray-50">
+                          <td className="border border-gray-200 px-2 py-1">{tx.transaction_at}</td>
+                          <td className="border border-gray-200 px-2 py-1 text-gray-500">{tx.counterparty || '-'}</td>
+                          <td className="border border-gray-200 px-2 py-1 text-right font-medium text-green-700">
+                            {tx.deposit.toLocaleString()}원
+                          </td>
+                        </tr>
+                      ))}
+                      <tr className="bg-green-50 font-bold">
+                        <td colSpan={2} className="border border-gray-200 px-2 py-1 text-right">합계</td>
+                        <td className="border border-gray-200 px-2 py-1 text-right text-green-700">
+                          {detail.payments.reduce((s, t) => s + t.deposit, 0).toLocaleString()}원
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }
