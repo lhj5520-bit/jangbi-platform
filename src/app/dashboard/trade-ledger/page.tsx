@@ -79,7 +79,7 @@ export default function TradeLedgerPage() {
     const dateToFull = dateTo + 'T23:59:59'
 
     const { data: allInvRaw, error: invErr } = await supabase.from('invoices')
-      .select('id, client_id, client_name, supply_amount, vat_amount, total_amount, issue_date, project_name')
+      .select('id, client_id, client_name, supply_amount, vat_amount, total_amount, issue_date')
     const allInvoices = allInvRaw ?? []
     setAllInvoicesRef(allInvoices)
 
@@ -193,7 +193,7 @@ export default function TradeLedgerPage() {
       .map(inv => ({
         issue_date: (inv.issue_date || '').slice(0, 10),
         amount: Number(inv.total_amount) || (Number(inv.supply_amount) + Number(inv.vat_amount)) || 0,
-        project_name: inv.project_name ?? '',
+        project_name: '',
       }))
       .sort((a, b) => a.issue_date.localeCompare(b.issue_date))
 
