@@ -39,63 +39,67 @@ export default function TradeLedgerPage() {
     const { data: clients } = await supabase.from('clients').select('id, name, code').order('name')
     const clientList = clients ?? []
     const clientById = new Map<string, any>()
-    for (const c of clientList) clientById.set(c.id, c)
-
-    // 2. 현재 기간 매출계산서 (차변)
-    const { data: invCurr } = await supabase.from('invoices')
-      .select('id, client_id, supply_amount, vat_amount, total_amount')
-      .gte('issue_date', dateFrom).lte('issue_date', dateTo)
-
-    // 3. 이전 기간 매출계산서 (전기이월 차변)
-    const { data: invPrev } = await supabase.from('invoices')
-      .select('id, client_id, supply_amount, vat_amount, total_amount')
-      .lt('issue_date', dateFrom)
-
-    // 4. 전체 invoice id → client_id 맵 (은행 매칭용)
-    const { data: allInv } = await supabase.from('invoices').select('id, client_id')
-    const invClientMap = new Map<string, string>()
-    for (const inv of allInv ?? []) {
-      if (inv.client_id) invClientMap.set(inv.id, inv.client_id)
+    const clientByName = new Map<string, string>() // name → id
+    for (const c of clientList) {
+      clientById.set(c.id, c)
+      if (c.name) clientByName.set(c.name.trim(), c.id)
     }
 
-    // 5. 현재 기간 입금 (대변) — matched_invoice_id로 발주처 역추적
-    const { data: txCurr } = await supabase.from('bank_transactions')
-      .select('deposit, matched_invoice_id')
-      .gte('transaction_at', dateFrom).lte('transaction_at', dateTo)
-      .not('matched_invoice_id', 'is', null)
-      .gt('deposit', 0)
+    // client_id 또는 client_name으로 발주처 ID 확정
+    const resolveClientId = (inv: any): string | null => {
+      if (inv.client_id) return inv.client_id
+      if (inv.client_name) return clientByName.get(inv.client_name.trim()) ?? null
+      return null
+    }
 
-    // 6. 이전 기간 입금 (전기이월 대변)
-    const { data: txPrev } = await supabase.from('bank_transactions')
-      .select('deposit, matched_invoice_id')
-      .lt('transaction_at', dateFrom)
-      .not('matched_invoice_id', 'is', null)
-      .gt('deposit', 0)
+    // 날짜 범위 — transaction_at은 타임스탬프라 dateTo 끝에 T23:59:59 추가
+    const dateToFull = dateTo + 'T23:59:59'
 
-    // 집계 헬퍼
-    const add = (map: Map<string, number>, key: string, val: number) =>
-      map.set(key, (map.get(key) ?? 0) + val)
+    // 2. 전체 매출계산서 (id → resolved client_id 맵 + 기간별 집계)
+    const { data: allInvRaw } = await supabase.from('invoices')
+      .select('id, client_id, client_name, supply_amount, vat_amount, total_amount, issue_date')
+    const allInvoices = allInvRaw ?? []
 
+    const invClientMap = new Map<string, string>() // invoice_id → client_id
     const debitMap = new Map<string, number>()
-    const creditMap = new Map<string, number>()
     const prevDebitMap = new Map<string, number>()
+
+    const invAmt = (inv: any) =>
+      Number(inv.total_amount) || (Number(inv.supply_amount) + Number(inv.vat_amount)) || 0
+
+    for (const inv of allInvoices) {
+      const cid = resolveClientId(inv)
+      if (!cid) continue
+      invClientMap.set(inv.id, cid)
+      const amt = invAmt(inv)
+      if (!amt) continue
+      if (inv.issue_date >= dateFrom && inv.issue_date <= dateTo) {
+        debitMap.set(cid, (debitMap.get(cid) ?? 0) + amt)
+      } else if (inv.issue_date < dateFrom) {
+        prevDebitMap.set(cid, (prevDebitMap.get(cid) ?? 0) + amt)
+      }
+    }
+
+    // 3. 은행 입금 (matched_invoice_id → client_id 역추적)
+    const { data: allTxRaw } = await supabase.from('bank_transactions')
+      .select('deposit, transaction_at, matched_invoice_id')
+      .not('matched_invoice_id', 'is', null)
+    const allTx = allTxRaw ?? []
+
+    const creditMap = new Map<string, number>()
     const prevCreditMap = new Map<string, number>()
 
-    const invAmt = (inv: any) => inv.total_amount ?? (inv.supply_amount ?? 0) + (inv.vat_amount ?? 0)
-
-    for (const inv of invCurr ?? []) {
-      if (inv.client_id) add(debitMap, inv.client_id, invAmt(inv))
-    }
-    for (const inv of invPrev ?? []) {
-      if (inv.client_id) add(prevDebitMap, inv.client_id, invAmt(inv))
-    }
-    for (const tx of txCurr ?? []) {
+    for (const tx of allTx) {
       const cid = invClientMap.get(tx.matched_invoice_id)
-      if (cid) add(creditMap, cid, tx.deposit ?? 0)
-    }
-    for (const tx of txPrev ?? []) {
-      const cid = invClientMap.get(tx.matched_invoice_id)
-      if (cid) add(prevCreditMap, cid, tx.deposit ?? 0)
+      if (!cid) continue
+      const dep = Number(tx.deposit) || 0
+      if (!dep) continue
+      const txAt = tx.transaction_at ?? ''
+      if (txAt >= dateFrom && txAt <= dateToFull) {
+        creditMap.set(cid, (creditMap.get(cid) ?? 0) + dep)
+      } else if (txAt < dateFrom) {
+        prevCreditMap.set(cid, (prevCreditMap.get(cid) ?? 0) + dep)
+      }
     }
 
     // 활동 있는 클라이언트 목록
@@ -251,10 +255,10 @@ export default function TradeLedgerPage() {
                 <tr>
                   <th style={{ ...thBase, width: 64 }}>코 드</th>
                   <th style={{ ...thBase }}>거 래 처 명</th>
-                  <th style={{ ...thBase, width: 120, textAlign: 'right' }}>전기(월)이월</th>
-                  <th style={{ ...thBase, width: 120, textAlign: 'right' }}>차 변</th>
-                  <th style={{ ...thBase, width: 120, textAlign: 'right' }}>대 변</th>
-                  <th style={{ ...thBase, width: 120, textAlign: 'right' }}>잔 액</th>
+                  <th style={{ ...thBase, width: 120, textAlign: 'center' }}>전기(월)이월</th>
+                  <th style={{ ...thBase, width: 120, textAlign: 'center' }}>차 변</th>
+                  <th style={{ ...thBase, width: 120, textAlign: 'center' }}>대 변</th>
+                  <th style={{ ...thBase, width: 120, textAlign: 'center' }}>잔 액</th>
                 </tr>
               </thead>
               <tbody>
