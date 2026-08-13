@@ -19,7 +19,8 @@ export default function PurchaseInvoicesPage() {
   const [suppliers, setSuppliers] = useState<Supplier[]>([])
   const [projects, setProjects] = useState<Project[]>([])
   const [loading, setLoading] = useState(true)
-  const [month, setMonth] = useState('')
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
   const [statusFilter, setStatusFilter] = useState<'all' | 'received' | 'paid'>('all')
   const [modalOpen, setModalOpen] = useState(false)
   const [selected, setSelected] = useState<PurchaseInvoiceWithRelations | null>(null)
@@ -35,9 +36,8 @@ export default function PurchaseInvoicesPage() {
     let query = supabase.from('purchase_invoices')
       .select('*, supplier:suppliers(*), project:projects(*)')
       .order('issue_date', { ascending: false })
-    if (month) {
-      query = query.gte('issue_date', month + '-01').lte('issue_date', month + '-31')
-    }
+    if (dateFrom) query = query.gte('issue_date', dateFrom)
+    if (dateTo) query = query.lte('issue_date', dateTo)
     const [{ data: invData }, { data: supData }, { data: projData }] = await Promise.all([
       query,
       supabase.from('suppliers').select('*').eq('status', 'active').order('name'),
@@ -74,10 +74,11 @@ export default function PurchaseInvoicesPage() {
   }
 
   async function handleAutoGenerate() {
-    if (!confirm(`${month} 월 정산 기준으로 중기업체별 매입계산서를 자동 생성할까요?`)) return
+    if (!dateFrom || !dateTo) { alert('기간을 선택해 주세요.'); return }
+    if (!confirm(`${dateFrom} ~ ${dateTo} 정산 기준으로 중기업체별 매입계산서를 자동 생성할까요?`)) return
 
-    const startDate = month + '-01'
-    const endDate = month + '-31'
+    const startDate = dateFrom
+    const endDate = dateTo
 
     const { data: logs } = await supabase
       .from('daily_logs')
@@ -127,7 +128,7 @@ export default function PurchaseInvoicesPage() {
     load()
   }
 
-  useEffect(() => { load() }, [month])
+  useEffect(() => { load() }, [dateFrom, dateTo])
 
   const filtered = invoices.filter(i => {
     if (statusFilter !== 'all' && i.status !== statusFilter) return false
@@ -146,7 +147,7 @@ export default function PurchaseInvoicesPage() {
   const totalAmount = filtered.reduce((a, i) => a + (i.total_amount ?? 0), 0)
 
   // 월별 합계
-  const selYear = month ? month.slice(0, 4) : new Date().getFullYear().toString()
+  const selYear = dateFrom ? dateFrom.slice(0, 4) : new Date().getFullYear().toString()
   const monthlyTotals = Array.from({ length: 12 }, (_, idx) => {
     const m = String(idx + 1).padStart(2, '0')
     const prefix = `${selYear}-${m}`
@@ -170,9 +171,12 @@ export default function PurchaseInvoicesPage() {
 
       <div className="mb-6 flex flex-wrap gap-3">
         <div className="flex items-center gap-1">
-          <input type="month" value={month} onChange={e => setMonth(e.target.value)}
+          <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
             className="rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 md:py-2" />
-          {month && <button onClick={() => setMonth('')} className="rounded-lg bg-gray-100 px-3 py-2.5 text-sm text-gray-500 hover:bg-gray-200 md:py-2">전체보기</button>}
+          <span className="text-gray-400 text-sm">~</span>
+          <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
+            className="rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 md:py-2" />
+          {(dateFrom || dateTo) && <button onClick={() => { setDateFrom(''); setDateTo('') }} className="rounded-lg bg-gray-100 px-3 py-2.5 text-sm text-gray-500 hover:bg-gray-200 md:py-2">전체보기</button>}
         </div>
         <input type="text" placeholder="업체명 또는 금액 검색..." value={search} onChange={e => setSearch(e.target.value)}
           className="min-w-[180px] flex-1 rounded-lg border border-gray-300 px-4 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 md:py-2 md:text-sm" />

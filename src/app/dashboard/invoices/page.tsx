@@ -19,7 +19,8 @@ export default function InvoicesPage() {
   const [clients, setClients] = useState<Client[]>([])
   const [projects, setProjects] = useState<Project[]>([])
   const [loading, setLoading] = useState(true)
-  const [month, setMonth] = useState('')
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
   const [statusFilter, setStatusFilter] = useState<'all' | 'issued' | 'paid'>('all')
   const [modalOpen, setModalOpen] = useState(false)
   const [selected, setSelected] = useState<InvoiceWithRelations | null>(null)
@@ -36,9 +37,8 @@ export default function InvoicesPage() {
     let query = supabase.from('invoices')
       .select('*, client:clients(*), project:projects(*)')
       .order('issue_date', { ascending: false })
-    if (month) {
-      query = query.gte('issue_date', month + '-01').lte('issue_date', month + '-31')
-    }
+    if (dateFrom) query = query.gte('issue_date', dateFrom)
+    if (dateTo) query = query.lte('issue_date', dateTo)
     const [{ data: invData }, { data: cliData }, { data: projData }] = await Promise.all([
       query,
       supabase.from('clients').select('*').order('name'),
@@ -74,9 +74,10 @@ export default function InvoicesPage() {
   }
 
   async function handleAutoInvoice() {
-    if (!confirm(month + ' 월 일보 기준으로 발주처별 세금계산서를 자동 생성할까요?')) return
-    const startDate = month + '-01'
-    const endDate = month + '-31'
+    if (!dateFrom || !dateTo) { alert('기간을 선택해 주세요.'); return }
+    if (!confirm(`${dateFrom} ~ ${dateTo} 일보 기준으로 발주처별 세금계산서를 자동 생성할까요?`)) return
+    const startDate = dateFrom
+    const endDate = dateTo
     const { data: logs } = await supabase
       .from('daily_logs')
       .select('*, dispatch:dispatches(*, project:projects(*, client:clients(*)))')
@@ -121,7 +122,7 @@ export default function InvoicesPage() {
     load()
   }
 
-  useEffect(() => { load() }, [month])
+  useEffect(() => { load() }, [dateFrom, dateTo])
 
   const filtered = invoices.filter(i => {
     if (statusFilter !== 'all' && i.status !== statusFilter) return false
@@ -161,7 +162,7 @@ export default function InvoicesPage() {
   const clientNames = Array.from(new Set(invoices.map(i => i.client?.name ?? (i as any).client_name ?? '').filter(Boolean)))
 
   // 월별 합계 (전체 데이터 기준, 연도별)
-  const selYear = month ? month.slice(0, 4) : new Date().getFullYear().toString()
+  const selYear = dateFrom ? dateFrom.slice(0, 4) : new Date().getFullYear().toString()
   const monthlyTotals = Array.from({ length: 12 }, (_, idx) => {
     const m = String(idx + 1).padStart(2, '0')
     const prefix = `${selYear}-${m}`
@@ -178,7 +179,7 @@ export default function InvoicesPage() {
         title="매출계산서"
         primary={{ label: '+ 계산서 등록', onClick: () => { setSelected(null); setModalOpen(true) } }}
         secondary={[
-          ...(month ? [{ label: '자동 생성', onClick: handleAutoInvoice }] : []),
+          ...((dateFrom && dateTo) ? [{ label: '자동 생성', onClick: handleAutoInvoice }] : []),
           { label: '엑셀 업로드', onClick: () => setCsvOpen(true), desktopOnly: true },
         ]}
       />
@@ -186,10 +187,13 @@ export default function InvoicesPage() {
       {/* 필터 바 */}
       <div className="mb-4 flex flex-wrap gap-2">
         <div className="flex items-center gap-1">
-          <input type="month" value={month} onChange={e => setMonth(e.target.value)}
+          <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
             className="rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 md:py-2" />
-          {month && (
-            <button onClick={() => setMonth('')}
+          <span className="text-gray-400 text-sm">~</span>
+          <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
+            className="rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 md:py-2" />
+          {(dateFrom || dateTo) && (
+            <button onClick={() => { setDateFrom(''); setDateTo('') }}
               className="rounded-lg bg-gray-100 px-3 py-2.5 text-sm text-gray-500 hover:bg-gray-200 md:py-2">
               전체
             </button>
