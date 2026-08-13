@@ -61,7 +61,12 @@ export default function TradeLedgerPage() {
     setLoading(true)
     setHiddenIds(new Set())
 
-    const { data: clients } = await supabase.from('clients').select('id, name, code').order('name')
+    let { data: clients, error: clientsErr } = await supabase.from('clients').select('id, name, code').order('name')
+    if (clientsErr) {
+      // code 컬럼 미존재 시 fallback
+      const fb = await supabase.from('clients').select('id, name').order('name')
+      clients = fb.data
+    }
     const clientList = clients ?? []
     const clientById = new Map<string, any>()
     const clientByName = new Map<string, string>()
