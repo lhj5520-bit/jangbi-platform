@@ -247,11 +247,13 @@ export default function TradeLedgerPage() {
   return (
     <>
       <style>{`
+        .print-only { display: none; }
         @media print {
           body * { visibility: hidden !important; }
           #trade-ledger-print, #trade-ledger-print * { visibility: visible !important; }
           #trade-ledger-print { position: fixed; top: 0; left: 0; width: 100%; }
           .no-print { display: none !important; }
+          .print-only { display: inline !important; }
           input { border: none !important; outline: none !important; background: transparent !important; }
         }
       `}</style>
@@ -297,11 +299,6 @@ export default function TradeLedgerPage() {
           <p className="text-xs text-gray-400 mt-2">
             💡 코드 칸 클릭 → 저장 | 거래처명 클릭 → 계산서·입금 내역 | 삭제 → 해당 행 숨김
           </p>
-          {debugInfo && (
-            <p className="text-xs text-orange-500 mt-1 font-mono bg-orange-50 px-2 py-1 rounded">
-              🔍 {debugInfo}
-            </p>
-          )}
         </div>
 
         {/* 인쇄 영역 */}
