@@ -78,12 +78,12 @@ export default function TradeLedgerPage() {
 
     const dateToFull = dateTo + 'T23:59:59'
 
-    const { data: allInvRaw } = await supabase.from('invoices')
+    const { data: allInvRaw, error: invErr } = await supabase.from('invoices')
       .select('id, client_id, client_name, supply_amount, vat_amount, total_amount, issue_date, project_name')
     const allInvoices = allInvRaw ?? []
     setAllInvoicesRef(allInvoices)
 
-    const { data: allTxRaw } = await supabase.from('bank_transactions')
+    const { data: allTxRaw, error: txErr } = await supabase.from('bank_transactions')
       .select('deposit, transaction_at, matched_invoice_id, counterparty')
       .not('matched_invoice_id', 'is', null)
     const allTx = allTxRaw ?? []
@@ -165,7 +165,7 @@ export default function TradeLedgerPage() {
     }
 
     // 디버그 정보
-    setDebugInfo(`clients:${clientList.length} | invoices:${allInvoices.length} | tx:${allTx.length} | debit거래처:${debitMap.size} | prevDebit거래처:${prevDebitMap.size} | activeNames:${activeNames.size} | rows:${result.length}`)
+    setDebugInfo(`clients:${clientList.length} | invoices:${allInvoices.length}${invErr ? '(ERR:'+invErr.message+')' : ''} | tx:${allTx.length}${txErr ? '(ERR:'+txErr.message+')' : ''} | debit거래처:${debitMap.size} | prevDebit거래처:${prevDebitMap.size} | activeNames:${activeNames.size} | rows:${result.length}`)
 
     result.sort((a, b) => {
       if (a.code && b.code) return a.code.localeCompare(b.code)
