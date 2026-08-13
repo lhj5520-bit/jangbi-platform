@@ -70,12 +70,6 @@ export default function TradeLedgerPage() {
       if (c.name) clientByName.set(c.name.trim(), c.id)
     }
 
-    const resolveClientId = (inv: any): string | null => {
-      if (inv.client_id) return inv.client_id
-      if (inv.client_name) return clientByName.get(inv.client_name.trim()) ?? null
-      return null
-    }
-
     const dateToFull = dateTo + 'T23:59:59'
 
     const { data: allInvRaw } = await supabase.from('invoices')
@@ -89,7 +83,8 @@ export default function TradeLedgerPage() {
     const allTx = allTxRaw ?? []
     setAllTxRef(allTx)
 
-    const invClientMap = new Map<string, string>()
+    // invoice_id → client_name (key로 사용)
+    const invNameMap = new Map<string, string>()
     const debitMap = new Map<string, number>()
     const prevDebitMap = new Map<string, number>()
 
@@ -97,52 +92,57 @@ export default function TradeLedgerPage() {
       Number(inv.total_amount) || (Number(inv.supply_amount) + Number(inv.vat_amount)) || 0
 
     for (const inv of allInvoices) {
-      const cid = resolveClientId(inv)
-      if (!cid) continue
-      invClientMap.set(inv.id, cid)
+      const name = (inv.client_name || '').trim()
+      if (!name) continue
+      invNameMap.set(inv.id, name)
       const amt = invAmt(inv)
       if (!amt) continue
-      if (inv.issue_date >= dateFrom && inv.issue_date <= dateTo) {
-        debitMap.set(cid, (debitMap.get(cid) ?? 0) + amt)
-      } else if (inv.issue_date < dateFrom) {
-        prevDebitMap.set(cid, (prevDebitMap.get(cid) ?? 0) + amt)
+      const d = (inv.issue_date || '').slice(0, 10)
+      if (d >= dateFrom && d <= dateTo) {
+        debitMap.set(name, (debitMap.get(name) ?? 0) + amt)
+      } else if (d < dateFrom) {
+        prevDebitMap.set(name, (prevDebitMap.get(name) ?? 0) + amt)
       }
     }
 
-    setInvClientMapRef(invClientMap)
+    // invoice_id → client_name 맵을 ref에 저장 (팝업용 — clientId처럼 사용)
+    setInvClientMapRef(invNameMap as any)
 
     const creditMap = new Map<string, number>()
     const prevCreditMap = new Map<string, number>()
 
     for (const tx of allTx) {
-      const cid = invClientMap.get(tx.matched_invoice_id)
-      if (!cid) continue
+      const name = invNameMap.get(tx.matched_invoice_id)
+      if (!name) continue
       const dep = Number(tx.deposit) || 0
       if (!dep) continue
-      const txAt = tx.transaction_at ?? ''
-      if (txAt >= dateFrom && txAt <= dateToFull) {
-        creditMap.set(cid, (creditMap.get(cid) ?? 0) + dep)
-      } else if (txAt < dateFrom) {
-        prevCreditMap.set(cid, (prevCreditMap.get(cid) ?? 0) + dep)
+      const txAt = (tx.transaction_at ?? '').slice(0, 19)
+      const txDate = txAt.slice(0, 10)
+      if (txDate >= dateFrom && txAt <= dateToFull) {
+        creditMap.set(name, (creditMap.get(name) ?? 0) + dep)
+      } else if (txDate < dateFrom) {
+        prevCreditMap.set(name, (prevCreditMap.get(name) ?? 0) + dep)
       }
     }
 
-    const activeIds = new Set([
+    const activeNames = new Set([
       ...debitMap.keys(), ...creditMap.keys(),
       ...prevDebitMap.keys(), ...prevCreditMap.keys(),
     ])
 
     const result: LedgerRow[] = []
-    for (const clientId of activeIds) {
-      const client = clientById.get(clientId)
-      const carryOver = (prevDebitMap.get(clientId) ?? 0) - (prevCreditMap.get(clientId) ?? 0)
-      const debit = debitMap.get(clientId) ?? 0
-      const credit = creditMap.get(clientId) ?? 0
+    for (const clientName of activeNames) {
+      // clients 테이블에서 일치하는 항목 찾기 (코드용)
+      const client = clientByName.get(clientName) ? clientById.get(clientByName.get(clientName)!) : undefined
+      const clientId = client?.id ?? clientName // ID 없으면 이름을 키로
+      const carryOver = (prevDebitMap.get(clientName) ?? 0) - (prevCreditMap.get(clientName) ?? 0)
+      const debit = debitMap.get(clientName) ?? 0
+      const credit = creditMap.get(clientName) ?? 0
       const balance = carryOver + debit - credit
       if (carryOver === 0 && debit === 0 && credit === 0) continue
       result.push({
         clientId,
-        clientName: client?.name ?? '알 수 없음',
+        clientName,
         code: client?.code ?? '',
         carryOver,
         debit,
@@ -167,13 +167,15 @@ export default function TradeLedgerPage() {
 
   function openDetail(row: LedgerRow) {
     const dateToFull = dateTo + 'T23:59:59'
+
     const invs: InvDetail[] = allInvoicesRef
       .filter(inv => {
-        const cid = invClientMapRef.get(inv.id) ?? (inv.client_id === row.clientId ? inv.client_id : null)
-        return cid === row.clientId && inv.issue_date >= dateFrom && inv.issue_date <= dateTo
+        const name = (inv.client_name || '').trim()
+        const d = (inv.issue_date || '').slice(0, 10)
+        return name === row.clientName && d >= dateFrom && d <= dateTo
       })
       .map(inv => ({
-        issue_date: inv.issue_date,
+        issue_date: (inv.issue_date || '').slice(0, 10),
         amount: Number(inv.total_amount) || (Number(inv.supply_amount) + Number(inv.vat_amount)) || 0,
         project_name: inv.project_name ?? '',
       }))
@@ -181,12 +183,12 @@ export default function TradeLedgerPage() {
 
     const pays: TxDetail[] = allTxRef
       .filter(tx => {
-        const cid = invClientMapRef.get(tx.matched_invoice_id)
-        const txAt = tx.transaction_at ?? ''
-        return cid === row.clientId && txAt >= dateFrom && txAt <= dateToFull && Number(tx.deposit) > 0
+        const name = (invClientMapRef as any).get(tx.matched_invoice_id)
+        const txDate = (tx.transaction_at ?? '').slice(0, 10)
+        return name === row.clientName && txDate >= dateFrom && txDate <= dateTo && Number(tx.deposit) > 0
       })
       .map(tx => ({
-        transaction_at: tx.transaction_at?.slice(0, 10) ?? '',
+        transaction_at: (tx.transaction_at ?? '').slice(0, 10),
         deposit: Number(tx.deposit) || 0,
         counterparty: tx.counterparty ?? '',
       }))
