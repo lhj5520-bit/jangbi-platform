@@ -84,6 +84,13 @@ export default function TradeLedgerPage() {
     setAllTxRef(allTx)
 
     // invoice_id → client_name (key로 사용)
+    // client_name 없으면 client_id → clients.name 폴백
+    const resolveClientName = (inv: any): string => {
+      if (inv.client_name?.trim()) return inv.client_name.trim()
+      if (inv.client_id) return clientById.get(inv.client_id)?.name?.trim() ?? ''
+      return ''
+    }
+
     const invNameMap = new Map<string, string>()
     const debitMap = new Map<string, number>()
     const prevDebitMap = new Map<string, number>()
@@ -92,7 +99,7 @@ export default function TradeLedgerPage() {
       Number(inv.total_amount) || (Number(inv.supply_amount) + Number(inv.vat_amount)) || 0
 
     for (const inv of allInvoices) {
-      const name = (inv.client_name || '').trim()
+      const name = resolveClientName(inv)
       if (!name) continue
       invNameMap.set(inv.id, name)
       const amt = invAmt(inv)
