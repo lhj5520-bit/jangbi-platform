@@ -1,5 +1,5 @@
 @echo off
-cd /d C:\Users\mac55\jangbi-platform
+cd /d D:\claude-test\jangbi-platform
 
 if exist .git\index.lock del /f .git\index.lock
 git add -A

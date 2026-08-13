@@ -9,7 +9,7 @@
 # 작업 완료 후 필수 (매번 빠짐없이)
 - 반드시 아래 배포 명령어 정확히 출력:
   ```
-  cd C:\Users\mac55\jangbi-platform
+  cd D:\claude-test\jangbi-platform
   vercel --prod
   ```
 - 수정 내용 요약 필수 작성 (어떤 파일, 무엇을 바꿨는지)

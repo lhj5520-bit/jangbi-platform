@@ -1,7 +1,7 @@
 # 장비 플랫폼 HANDOFF
 
 **프로젝트**: `jangbi-platform`  
-**작업 폴더**: `C:\Users\mac55\jangbi-platform`  
+**작업 폴더**: `D:\claude-test\jangbi-platform`  
 **배포 URL**: https://jangbi-platform.vercel.app  
 **Supabase**: https://qeurmytrzghonavsiqwa.supabase.co  
 **최종 정리**: 2026-08-11
@@ -20,7 +20,7 @@
 사용자에게 수정 완료 후 항상 아래 배포 코드를 같이 안내할 것.
 
 ```bash
-cd C:\Users\mac55\jangbi-platform
+cd D:\claude-test\jangbi-platform
 vercel --prod
 ```
 
@@ -665,6 +665,6 @@ GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated;
 배포 코드:
 
 ```bash
-cd C:\Users\mac55\jangbi-platform
+cd D:\claude-test\jangbi-platform
 vercel --prod
 ```

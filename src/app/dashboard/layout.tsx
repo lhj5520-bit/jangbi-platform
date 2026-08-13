@@ -58,6 +58,7 @@ const navItems: NavItem[] = [
   { href: '/dashboard/equipment-own',    label: '장비(자차)',      icon: null, customIcon: ExcavatorIcon, group: '기준 정보' },
   { href: '/dashboard/equipment-other',  label: '장비(타사)',      icon: null, customIcon: ExcavatorIcon, group: '기준 정보' },
 
+  { href: '/dashboard/trade-ledger',      label: '거래처원장',      icon: 'ledger',     group: '관리' },
   { href: '/dashboard/invoices',         label: '매출계산서',      icon: 'invoice',    group: '관리' },
   { href: '/dashboard/purchase-invoices',label: '매입계산서',      icon: 'purchase',   group: '관리' },
   { href: '/dashboard/vat',              label: '부가세',          icon: 'vat',        group: '관리' },
