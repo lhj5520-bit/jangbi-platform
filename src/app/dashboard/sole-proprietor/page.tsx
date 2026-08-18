@@ -275,14 +275,14 @@ export default function SoleProprietorPage() {
               </tr>
               {/* 대표자 행 */}
               {!headerCollapsed && <tr>
-                <td className={lbl}>대표자</td>
+                <td className="border-b border-r border-gray-200 px-4 py-2.5 text-sm text-white font-medium bg-[#1e3a5f] sticky left-0 z-10 min-w-[130px]">대표자</td>
                 {companies.map(c => (
                   <td key={c.id} className="border-b border-r border-gray-200 px-4 py-2.5 text-sm text-gray-700 text-center font-medium">{c.ceo_name}</td>
                 ))}
               </tr>}
               {/* 사업자번호 행 */}
               {!headerCollapsed && <tr>
-                <td className={lbl}>사업자번호</td>
+                <td className="border-b border-r border-gray-200 px-4 py-2.5 text-sm text-white font-medium bg-[#1e3a5f] sticky left-0 z-10 min-w-[130px]">사업자번호</td>
                 {companies.map(c => (
                   <td key={c.id} className="border-b border-r border-gray-200 px-4 py-2.5 text-sm text-gray-500 text-center tracking-wide">{c.business_no}</td>
                 ))}

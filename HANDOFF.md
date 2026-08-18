@@ -4,7 +4,7 @@
 **작업 폴더**: `D:\claude-test\jangbi-platform`  
 **배포 URL**: https://jangbi-platform.vercel.app  
 **Supabase**: https://qeurmytrzghonavsiqwa.supabase.co  
-**최종 정리**: 2026-08-11
+**최종 정리**: 2026-08-13
 
 ---
 
@@ -102,6 +102,14 @@ vercel --prod
 - 모바일 축소는 `transform: scale()` 사용.
 - CSS `zoom` 금지. 모바일에서 표 셀 밀림/잘림 발생함.
 - 문서형 input/textarea는 `width: 100%` + `minWidth: 0` 필수.
+
+### 거래처 원장 (`trade-ledger/page.tsx`) 핵심 패턴
+- `bank_transactions.transaction_at`은 슬래시 형식(`2026/08/13 10:18:47`) — 날짜 비교 전 반드시 `.replace(/\//g, '-')` 적용. 그냥 문자열 비교하면 `/`(ASCII 47) > `-`(ASCII 45) 때문에 전부 필터 아웃됨.
+- `invoices` 테이블: `client_id`(배차 생성) 또는 `client_name`(CSV) 중 하나만 있는 경우 있음. `resolveClientName()` 패턴 유지.
+- `clients` 테이블 추가 컬럼: `code`, `adjustment`, `debit_override` — 없으면 fallback chain으로 처리.
+- 대변(credit) 계산은 `matched_invoice_id IS NOT NULL`인 은행 거래만 포함.
+- `debit_override`가 있으면 계산된 `debit` 대신 사용 → `effectiveDebit`.
+- `adjustment`(보험료 공제 등)은 잔액 계산에서 차감: `잔액 = 전월이월 + effectiveDebit - credit - adjustment`.
 
 ### Supabase 쓰기
 쓰기 후 반드시 error 확인.
@@ -340,6 +348,13 @@ DB:
 
 ## 6. Supabase SQL 확인 목록
 
+> **거래처 원장 관련 컬럼** (아직 실행 안 했으면 필수):
+> ```sql
+> ALTER TABLE clients ADD COLUMN IF NOT EXISTS code TEXT;
+> ALTER TABLE clients ADD COLUMN IF NOT EXISTS adjustment INTEGER DEFAULT 0;
+> ALTER TABLE clients ADD COLUMN IF NOT EXISTS debit_override BIGINT;
+> ```
+
 환경에 따라 아직 안 되어 있을 수 있음.
 
 ### 장비별 투입비용
@@ -430,6 +445,40 @@ GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated;
 ---
 
 ## 8. 최근 중요 수정 이력
+
+### 2026-08-13 수정
+
+#### 거래처 원장 (`trade-ledger/page.tsx`)
+- 차변 입력 필드 기본값 수정:
+  - 오버라이드 없음: 빈 칸 + 플레이스홀더로 계산값(콤마 포맷) 표시 (기존엔 날숫자 표시)
+  - 오버라이드 있음: `fmt()` 포맷된 값 표시
+- 차변 입력 필드 테두리: 평소 투명 → 호버 회색 → 포커스 파랑 (`.debit-input` 클래스)
+- 인쇄 시 `.print-only` td의 `display: inline` → `display: table-cell` (td 렌더링 깨짐 수정)
+
+#### 통장내역 검색 / 날짜 필터 (`bank/page.tsx`)
+- **날짜 필터 버그 수정**: `transaction_at`이 슬래시(`2026/08/13`) 형식인데 `dateFrom`/`dateTo`는 대시 형식 → ASCII 비교 오류로 전체 필터 아웃되던 문제. 비교 전 `.replace(/\//g, '-')` 적용
+- 검색 대상에 `memo` 필드 추가 (기존: counterparty, transaction_type만)
+
+#### 통장 업로드 중복 처리 (`bank/UploadModal.tsx`)
+- 중복 경고 팝업 재설계: 기존 DB 내역을 **체크박스 목록**으로 표시
+  - 매칭 안 된 항목: 기본 체크
+  - 매칭된 항목(매출/매입/강제): 주황 테두리로 경고
+  - 전체선택/전체해제 버튼
+  - 선택한 것만 삭제 후 등록 / 중복 유지 등록 선택 가능
+
+#### 관리비 자동분류 규칙 추가 (`bank/page.tsx`, `bank/UploadModal.tsx`)
+- EXPENSE_RULES에 `임대|전세|보증금|임차` → **임대료** 패턴 추가
+- 분류 시 거래처명 외 **memo 필드도 검색** (기존: counterparty만)
+- 통장 재분류 버튼 클릭 시 memo도 패턴 매칭
+
+#### 관리비 등록 모달 — 통장에서 선택 탭 추가 (`expenses/page.tsx`)
+- 등록 모달에 탭 추가: **직접 입력** / **통장에서 선택**
+- 통장에서 선택 탭:
+  - 기간 설정 → 조회 → 출금 내역 체크 → 항목(카테고리) 지정 → 등록
+  - 거래처명/메모 검색, 선택 건수·합계 실시간 표시
+
+#### 매입계산서 날짜 필터 (`purchase-invoices/page.tsx`)
+- 월 단위 `<input type="month">` → 날짜 범위 `dateFrom ~ dateTo` 로 변경 (매출계산서와 동일)
 
 ### 2026-08-11 수정
 
@@ -650,6 +699,12 @@ GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated;
 | `src/app/dashboard/equipment/SupplierEquipmentModal.tsx` | 업체/장비 공용 모달 |
 | `src/app/dashboard/equipment-costs/page.tsx` | 장비별 투입비용 |
 | `src/app/dashboard/estimate/page.tsx` | 견적서 |
+| `src/app/dashboard/trade-ledger/page.tsx` | 거래처 원장(잔액) |
+| `src/app/dashboard/bank/page.tsx` | 통장내역 |
+| `src/app/dashboard/bank/UploadModal.tsx` | 통장 업로드 모달 |
+| `src/app/dashboard/expenses/page.tsx` | 관리비 |
+| `src/app/dashboard/invoices/page.tsx` | 매출계산서 |
+| `src/app/dashboard/purchase-invoices/page.tsx` | 매입계산서 |
 
 ---
 
