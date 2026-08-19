@@ -117,7 +117,7 @@ function fmtAmt(v: string): string {
 // 인라인 스타일 공통
 // ─────────────────────────────────────────────
 const cTd: React.CSSProperties = {
-  border: '1px solid #444', padding: '3px 5px', fontSize: 11, verticalAlign: 'middle',
+  border: '1px solid #444', padding: '3px 5px', fontSize: 11, verticalAlign: 'top',
 }
 const cTh: React.CSSProperties = {
   border: '1px solid #444', padding: '3px 5px', fontSize: 11, fontWeight: 700,
@@ -670,14 +670,14 @@ export default function RentalContractPage() {
                         <td style={cTd}><textarea value={form.site_name} onChange={e => setF('site_name', e.target.value)} style={cTA} rows={1} onInput={AR} /></td>
                         <td style={cTd}><textarea value={form.site_addr} onChange={e => setF('site_addr', e.target.value)} style={cTA} rows={1} onInput={AR} /></td>
                         <td style={cTd}>
-          <select className="no-print-sel" style={{...cTA,fontSize:10,color:'#999'}} onChange={e=>{if(e.target.value)setF('orderer',e.target.value)}}>
+          <select className="no-print-sel" style={{ fontFamily: 'inherit' }} onChange={e=>{if(e.target.value)setF('orderer',e.target.value)}}>
             <option value="">발주처 선택▼</option>
             {clients.map((c:any)=><option key={c.id} value={c.name}>{c.name}</option>)}
           </select>
           <textarea value={form.orderer} onChange={e=>setF('orderer',e.target.value)} style={cTA} rows={1} onInput={AR} />
         </td>
                         <td style={cTd}>
-          <select className="no-print-sel" style={{...cTA,fontSize:10,color:'#999'}} onChange={e=>{if(e.target.value)setF('contractor',e.target.value)}}>
+          <select className="no-print-sel" style={{ fontFamily: 'inherit' }} onChange={e=>{if(e.target.value)setF('contractor',e.target.value)}}>
             <option value="">임차인 선택▼</option>
             {clients.map((c:any)=><option key={c.id} value={c.name}>{c.name}</option>)}
           </select>
@@ -812,7 +812,7 @@ export default function RentalContractPage() {
                   </thead>
                   <tbody>
                     {sigRow('상 호', 'lessor_name', false,
-                      <select className="no-print-sel" style={{...cTA,fontSize:10,color:'#999'}} value={selectedSupId} onChange={e=>setSelectedSupId(e.target.value)}>
+                      <select className="no-print-sel" style={{ fontFamily: 'inherit' }} value={selectedSupId} onChange={e=>setSelectedSupId(e.target.value)}>
                         <option value="gaon">가온건설중기 (기본)</option>
                         {suppliers.map((s:any)=><option key={s.id} value={s.id}>{s.name}</option>)}
                       </select>
@@ -830,7 +830,7 @@ export default function RentalContractPage() {
                   </thead>
                   <tbody>
                     {sigRow('상 호', 'lessee_name', false,
-                      <select className="no-print-sel" style={{...cTA,fontSize:10,color:'#999'}} onChange={e=>{if(e.target.value)setSelectedClientId(e.target.value)}}>
+                      <select className="no-print-sel" style={{ fontFamily: 'inherit' }} onChange={e=>{if(e.target.value)setSelectedClientId(e.target.value)}}>
                         <option value="">발주처/임차인 선택▼</option>
                         {clients.map((c:any)=><option key={c.id} value={c.id}>{c.name}</option>)}
                       </select>
@@ -869,6 +869,21 @@ export default function RentalContractPage() {
       </div>
 
       <style>{`
+        select.no-print-sel {
+          display: block;
+          height: 16px;
+          line-height: 1;
+          font-size: 10px;
+          padding: 0;
+          margin-bottom: 1px;
+          border: none;
+          outline: none;
+          background: transparent;
+          color: #aaa;
+          width: 100%;
+          min-height: 0 !important;
+          cursor: pointer;
+        }
         @media print {
           .no-print { display: none !important; }
           header, nav, aside { display: none !important; }
