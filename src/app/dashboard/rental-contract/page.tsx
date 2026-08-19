@@ -787,12 +787,10 @@ export default function RentalContractPage() {
                   { k: 'equip_reg', l: '건설기계등록증' },
                   { k: 'insurance', l: '보험증권 사본' },
                 ].map(d => (
-                  <label key={d.k} style={{ marginLeft: 12, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
-                    <input type="checkbox"
-                      checked={attachChecks[d.k as keyof typeof attachChecks]}
-                      onChange={e => setAttachChecks(p => ({ ...p, [d.k]: e.target.checked }))} />
+                  <span key={d.k} style={{ marginLeft: 12, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                    <span style={{ fontSize: 14, lineHeight: 1 }}>☑</span>
                     {d.l}
-                  </label>
+                  </span>
                 ))}
               </div>
 
