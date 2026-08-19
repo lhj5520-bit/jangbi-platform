@@ -183,6 +183,7 @@ export default function RentalContractPage() {
   const [selectedEquipId, setSelectedEquipId] = useState<string>('')
 
   const [stampImg, setStampImg] = useState<string>('')
+  const [stampSize, setStampSize] = useState<number>(44)
   const [form, setForm] = useState<ContractForm>(INIT_F)
   const [showTerms, setShowTerms] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -519,7 +520,7 @@ export default function RentalContractPage() {
         <textarea value={form[key]} onChange={e => setF(key, e.target.value)} style={cTA} rows={1} onInput={AR} />
         {hasStamp && stampImg && (
           <img src={stampImg} alt="도장"
-            style={{ position: 'absolute', right: -22, top: '50%', marginTop: -22, width: 44, height: 44, objectFit: 'contain', zIndex: 10, opacity: 0.85 }} />
+            style={{ position: 'absolute', right: -(stampSize/2 + 4), top: '50%', marginTop: -(stampSize/2), width: stampSize, height: stampSize, objectFit: 'contain', zIndex: 10, opacity: 0.85 }} />
         )}
       </td>
     </tr>
@@ -840,16 +841,33 @@ export default function RentalContractPage() {
                   </tr>
                   {/* 성명(인) */}
                   <tr>
-                    <td style={{ ...cTd, fontWeight: 600, background: '#fafafa', whiteSpace: 'nowrap' }}>성 명 (인)</td>
+                    <td style={{ ...cTd, fontWeight: 600, background: '#fafafa', whiteSpace: 'nowrap' }}>성 명</td>
                     <td style={{ ...cTd, position: 'relative', overflow: 'visible' }}>
-                      <textarea value={form.lessor_ceo} onChange={e => setF('lessor_ceo', e.target.value)} style={cTA} rows={1} onInput={AR} />
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <textarea value={form.lessor_ceo} onChange={e => setF('lessor_ceo', e.target.value)} style={{ ...cTA, flex: 1 }} rows={1} onInput={AR} />
+                        <span style={{ fontSize: 12, whiteSpace: 'nowrap', color: '#333' }}>(인)</span>
+                      </div>
                       {stampImg && (
-                        <img src={stampImg} alt="도장"
-                          style={{ position: 'absolute', right: -22, top: '50%', marginTop: -22, width: 44, height: 44, objectFit: 'contain', zIndex: 10, opacity: 0.85 }} />
+                        <>
+                          <img src={stampImg} alt="도장"
+                            style={{ position: 'absolute', right: -(stampSize/2 + 4), top: '50%', marginTop: -(stampSize/2), width: stampSize, height: stampSize, objectFit: 'contain', zIndex: 10, opacity: 0.85 }} />
+                          <div className="no-print" style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 2 }}>
+                            <span style={{ fontSize: 10, color: '#999', whiteSpace: 'nowrap' }}>도장크기</span>
+                            <input type="range" min={24} max={120} step={2} value={stampSize}
+                              onChange={e => setStampSize(Number(e.target.value))}
+                              style={{ width: 80, accentColor: '#4a90d9' }} />
+                            <span style={{ fontSize: 10, color: '#666', minWidth: 24 }}>{stampSize}</span>
+                          </div>
+                        </>
                       )}
                     </td>
-                    <td style={{ ...cTd, fontWeight: 600, background: '#fafafa', whiteSpace: 'nowrap' }}>성 명 (인)</td>
-                    <td style={cTd}><textarea value={form.lessee_ceo} onChange={e => setF('lessee_ceo', e.target.value)} style={cTA} rows={1} onInput={AR} /></td>
+                    <td style={{ ...cTd, fontWeight: 600, background: '#fafafa', whiteSpace: 'nowrap' }}>성 명</td>
+                    <td style={cTd}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <textarea value={form.lessee_ceo} onChange={e => setF('lessee_ceo', e.target.value)} style={{ ...cTA, flex: 1 }} rows={1} onInput={AR} />
+                        <span style={{ fontSize: 12, whiteSpace: 'nowrap', color: '#333' }}>(인)</span>
+                      </div>
+                    </td>
                   </tr>
                   {/* 주소 */}
                   <tr>
