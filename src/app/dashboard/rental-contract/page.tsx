@@ -803,44 +803,63 @@ export default function RentalContractPage() {
                   style={{ border: 'none', borderBottom: '1px solid #555', outline: 'none', fontSize: 13, width: 120, textAlign: 'center', minWidth: 0, fontFamily: 'inherit', background: 'transparent' }} />
               </div>
 
-              {/* 서명란 */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                {/* 임대인 */}
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <thead>
-                    <tr><th colSpan={2} style={{ ...cTh, textAlign: 'center', fontSize: 12 }}>임대인 (건설기계 사업자)</th></tr>
-                  </thead>
-                  <tbody>
-                    {sigRow('상 호', 'lessor_name', false,
+              {/* 서명란 — 임대인/임차인 단일 테이블 (행 높이 동기화) */}
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr>
+                    <th colSpan={2} style={{ ...cTh, textAlign: 'center', fontSize: 12, width: '50%' }}>임대인 (건설기계 사업자)</th>
+                    <th colSpan={2} style={{ ...cTh, textAlign: 'center', fontSize: 12, width: '50%' }}>임차인 (건설업자)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {/* 상호 */}
+                  <tr>
+                    <td style={{ ...cTd, width: '12%', fontWeight: 600, background: '#fafafa', whiteSpace: 'nowrap' }}>상 호</td>
+                    <td style={{ ...cTd, width: '38%', position: 'relative', overflow: 'visible', wordBreak: 'break-all' }}>
                       <select className="no-print-sel" style={{ fontFamily: 'inherit' }} value={selectedSupId} onChange={e=>setSelectedSupId(e.target.value)}>
                         <option value="gaon">가온건설중기 (기본)</option>
                         {suppliers.map((s:any)=><option key={s.id} value={s.id}>{s.name}</option>)}
                       </select>
-                    )}
-                    {sigRow('사업자등록번호', 'lessor_biz_no')}
-                    {sigRow('성 명 (인)', 'lessor_ceo', true)}
-                    {sigRow('주 소', 'lessor_addr')}
-                  </tbody>
-                </table>
-
-                {/* 임차인 */}
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <thead>
-                    <tr><th colSpan={2} style={{ ...cTh, textAlign: 'center', fontSize: 12 }}>임차인 (건설업자)</th></tr>
-                  </thead>
-                  <tbody>
-                    {sigRow('상 호', 'lessee_name', false,
+                      <textarea value={form.lessor_name} onChange={e => setF('lessor_name', e.target.value)} style={cTA} rows={1} onInput={AR} />
+                    </td>
+                    <td style={{ ...cTd, width: '12%', fontWeight: 600, background: '#fafafa', whiteSpace: 'nowrap' }}>상 호</td>
+                    <td style={{ ...cTd, width: '38%', wordBreak: 'break-all' }}>
                       <select className="no-print-sel" style={{ fontFamily: 'inherit' }} onChange={e=>{if(e.target.value)setSelectedClientId(e.target.value)}}>
                         <option value="">발주처/임차인 선택▼</option>
                         {clients.map((c:any)=><option key={c.id} value={c.id}>{c.name}</option>)}
                       </select>
-                    )}
-                    {sigRow('사업자등록번호', 'lessee_biz_no')}
-                    {sigRow('성 명 (인)', 'lessee_ceo')}
-                    {sigRow('주 소', 'lessee_addr')}
-                  </tbody>
-                </table>
-              </div>
+                      <textarea value={form.lessee_name} onChange={e => setF('lessee_name', e.target.value)} style={cTA} rows={1} onInput={AR} />
+                    </td>
+                  </tr>
+                  {/* 사업자등록번호 */}
+                  <tr>
+                    <td style={{ ...cTd, fontWeight: 600, background: '#fafafa', whiteSpace: 'nowrap' }}>사업자등록번호</td>
+                    <td style={cTd}><textarea value={form.lessor_biz_no} onChange={e => setF('lessor_biz_no', e.target.value)} style={cTA} rows={1} onInput={AR} /></td>
+                    <td style={{ ...cTd, fontWeight: 600, background: '#fafafa', whiteSpace: 'nowrap' }}>사업자등록번호</td>
+                    <td style={cTd}><textarea value={form.lessee_biz_no} onChange={e => setF('lessee_biz_no', e.target.value)} style={cTA} rows={1} onInput={AR} /></td>
+                  </tr>
+                  {/* 성명(인) */}
+                  <tr>
+                    <td style={{ ...cTd, fontWeight: 600, background: '#fafafa', whiteSpace: 'nowrap' }}>성 명 (인)</td>
+                    <td style={{ ...cTd, position: 'relative', overflow: 'visible' }}>
+                      <textarea value={form.lessor_ceo} onChange={e => setF('lessor_ceo', e.target.value)} style={cTA} rows={1} onInput={AR} />
+                      {stampImg && (
+                        <img src={stampImg} alt="도장"
+                          style={{ position: 'absolute', right: -22, top: '50%', marginTop: -22, width: 44, height: 44, objectFit: 'contain', zIndex: 10, opacity: 0.85 }} />
+                      )}
+                    </td>
+                    <td style={{ ...cTd, fontWeight: 600, background: '#fafafa', whiteSpace: 'nowrap' }}>성 명 (인)</td>
+                    <td style={cTd}><textarea value={form.lessee_ceo} onChange={e => setF('lessee_ceo', e.target.value)} style={cTA} rows={1} onInput={AR} /></td>
+                  </tr>
+                  {/* 주소 */}
+                  <tr>
+                    <td style={{ ...cTd, fontWeight: 600, background: '#fafafa', whiteSpace: 'nowrap' }}>주 소</td>
+                    <td style={{ ...cTd, wordBreak: 'break-all' }}><textarea value={form.lessor_addr} onChange={e => setF('lessor_addr', e.target.value)} style={cTA} rows={1} onInput={AR} /></td>
+                    <td style={{ ...cTd, fontWeight: 600, background: '#fafafa', whiteSpace: 'nowrap' }}>주 소</td>
+                    <td style={{ ...cTd, wordBreak: 'break-all' }}><textarea value={form.lessee_addr} onChange={e => setF('lessee_addr', e.target.value)} style={cTA} rows={1} onInput={AR} /></td>
+                  </tr>
+                </tbody>
+              </table>
 
               {savedId && (
                 <div style={{ marginTop: 12, textAlign: 'right', fontSize: 10, color: '#999' }}>
