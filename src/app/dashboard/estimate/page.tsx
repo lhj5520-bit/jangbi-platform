@@ -175,7 +175,7 @@ export default function EstimatePage() {
   }
 
   function removeRow(id: number) {
-    setRows(prev => prev.filter(r => r.id !== id))
+    setRows(prev => prev.map(r => r.id === id ? { ...newRow(), id: r.id } : r))
   }
 
   function handlePrint() {
@@ -502,6 +502,10 @@ export default function EstimatePage() {
           ::-webkit-scrollbar { display: none !important; }
           .print-area-wrapper { height: auto !important; overflow: visible !important; }
           .print-doc { transform: none !important; width: 186mm !important; }
+          /* select 화살표 숨기기 */
+          select { -webkit-appearance: none; appearance: none; }
+          /* placeholder(직접 입력) 숨기기 */
+          input::placeholder { color: transparent !important; }
         }
       `}</style>
     </div>

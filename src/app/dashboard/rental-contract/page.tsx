@@ -136,6 +136,14 @@ const cTA: React.CSSProperties = {
 const AR = (e: React.FormEvent<HTMLTextAreaElement>) => {
   const t = e.currentTarget; t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px'
 }
+// 같은 tr 안의 모든 textarea를 함께 리사이즈 (셀 높이 동기화)
+const ARrow = (e: React.FormEvent<HTMLTextAreaElement>) => {
+  const tr = (e.currentTarget as HTMLElement).closest('tr')
+  if (!tr) { AR(e); return }
+  tr.querySelectorAll<HTMLTextAreaElement>('textarea').forEach(t => {
+    t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px'
+  })
+}
 
 // ─────────────────────────────────────────────
 // 폼 타입
@@ -668,21 +676,21 @@ export default function RentalContractPage() {
                     </thead>
                     <tbody>
                       <tr>
-                        <td style={cTd}><textarea value={form.site_name} onChange={e => setF('site_name', e.target.value)} style={cTA} rows={1} onInput={AR} /></td>
-                        <td style={cTd}><textarea value={form.site_addr} onChange={e => setF('site_addr', e.target.value)} style={cTA} rows={1} onInput={AR} /></td>
+                        <td style={cTd}><textarea value={form.site_name} onChange={e => setF('site_name', e.target.value)} style={cTA} rows={1} onInput={ARrow} /></td>
+                        <td style={cTd}><textarea value={form.site_addr} onChange={e => setF('site_addr', e.target.value)} style={cTA} rows={1} onInput={ARrow} /></td>
                         <td style={cTd}>
           <select className="no-print-sel" style={{ fontFamily: 'inherit' }} onChange={e=>{if(e.target.value)setF('orderer',e.target.value)}}>
             <option value="">발주처 선택▼</option>
             {clients.map((c:any)=><option key={c.id} value={c.name}>{c.name}</option>)}
           </select>
-          <textarea value={form.orderer} onChange={e=>setF('orderer',e.target.value)} style={cTA} rows={1} onInput={AR} />
+          <textarea value={form.orderer} onChange={e=>setF('orderer',e.target.value)} style={cTA} rows={1} onInput={ARrow} />
         </td>
                         <td style={cTd}>
           <select className="no-print-sel" style={{ fontFamily: 'inherit' }} onChange={e=>{if(e.target.value)setF('contractor',e.target.value)}}>
             <option value="">임차인 선택▼</option>
             {clients.map((c:any)=><option key={c.id} value={c.name}>{c.name}</option>)}
           </select>
-          <textarea value={form.contractor} onChange={e=>setF('contractor',e.target.value)} style={cTA} rows={1} onInput={AR} />
+          <textarea value={form.contractor} onChange={e=>setF('contractor',e.target.value)} style={cTA} rows={1} onInput={ARrow} />
         </td>
                         <td style={{ ...cTd, textAlign: 'center' }}>
                           <select value={form.guarantee_yn} onChange={e => setF('guarantee_yn', e.target.value)}
@@ -690,7 +698,7 @@ export default function RentalContractPage() {
                             {ynOpts.map(v => <option key={v}>{v}</option>)}
                           </select>
                         </td>
-                        <td style={cTd}><textarea value={form.site_note} onChange={e => setF('site_note', e.target.value)} style={cTA} rows={1} onInput={AR} /></td>
+                        <td style={cTd}><textarea value={form.site_note} onChange={e => setF('site_note', e.target.value)} style={cTA} rows={1} onInput={ARrow} /></td>
                       </tr>
                     </tbody>
                   </table>
@@ -794,12 +802,18 @@ export default function RentalContractPage() {
                 ))}
               </div>
 
-              {/* 계약일 */}
+              {/* 계약일 — 사용기간 시작일 고정 */}
               <div style={{ textAlign: 'center', marginBottom: 22, fontSize: 13 }}>
                 <span>계약일 &nbsp;</span>
-                <input value={form.contract_date} onChange={e => setF('contract_date', e.target.value)}
-                  onBlur={e => setF('contract_date', fmtDate(e.target.value))}
-                  style={{ border: 'none', borderBottom: '1px solid #555', outline: 'none', fontSize: 13, width: 120, textAlign: 'center', minWidth: 0, fontFamily: 'inherit', background: 'transparent' }} />
+                <span style={{ borderBottom: '1px solid #555', display: 'inline-block', minWidth: 120, textAlign: 'center', paddingBottom: 1 }}>
+                  {(() => {
+                    const d = form.period_start ? form.period_start.replace(/\./g, '-') : ''
+                    if (!d) return ''
+                    const dt = new Date(d)
+                    if (isNaN(dt.getTime())) return d
+                    return `${dt.getFullYear()}년 ${dt.getMonth() + 1}월 ${dt.getDate()}일`
+                  })()}
+                </span>
               </div>
 
               {/* 서명란 — 임대인/임차인 단일 테이블 (행 높이 동기화) */}
