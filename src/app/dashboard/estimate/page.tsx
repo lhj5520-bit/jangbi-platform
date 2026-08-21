@@ -431,29 +431,37 @@ export default function EstimatePage() {
                     <tr key={r.id}>
                       <td style={{ ...cTd, textAlign: 'center' }}>
                         <select value={r.type} onChange={e => updateRow(r.id, 'type', e.target.value)}
-                          style={{ ...cInp, cursor: 'pointer' }}>
+                          className="no-print" style={{ ...cInp, cursor: 'pointer' }}>
                           <option value=""></option>
                           {TYPE_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
                         </select>
+                        <span className="print-only" style={{ fontSize: 11 }}>{r.type}</span>
                       </td>
                       <td style={{ ...cTd, textAlign: 'center' }}>
                         {(!r.type || r.type === '기타') ? (
-                          <input value={r.spec} onChange={e => updateRow(r.id, 'spec', e.target.value)}
-                            style={cInp} placeholder="직접 입력" />
+                          <>
+                            <input value={r.spec} onChange={e => updateRow(r.id, 'spec', e.target.value)}
+                              className="no-print" style={cInp} placeholder="직접 입력" />
+                            <span className="print-only" style={{ fontSize: 11 }}>{r.spec}</span>
+                          </>
                         ) : (
-                          <select value={r.spec} onChange={e => updateRow(r.id, 'spec', e.target.value)}
-                            style={{ ...cInp, cursor: 'pointer' }}>
-                            <option value=""></option>
-                            {(SPEC_OPTIONS[r.type] ?? []).map(s => <option key={s} value={s}>{s}</option>)}
-                          </select>
+                          <>
+                            <select value={r.spec} onChange={e => updateRow(r.id, 'spec', e.target.value)}
+                              className="no-print" style={{ ...cInp, cursor: 'pointer' }}>
+                              <option value=""></option>
+                              {(SPEC_OPTIONS[r.type] ?? []).map(s => <option key={s} value={s}>{s}</option>)}
+                            </select>
+                            <span className="print-only" style={{ fontSize: 11 }}>{r.spec}</span>
+                          </>
                         )}
                       </td>
                       <td style={{ ...cTd, textAlign: 'center' }}>
                         <select value={r.unit} onChange={e => updateRow(r.id, 'unit', e.target.value)}
-                          style={{ ...cInp, cursor: 'pointer' }}>
+                          className="no-print" style={{ ...cInp, cursor: 'pointer' }}>
                           <option value=""></option>
                           {UNIT_OPTIONS.map(u => <option key={u} value={u}>{u}</option>)}
                         </select>
+                        <span className="print-only" style={{ fontSize: 11 }}>{r.unit}</span>
                       </td>
                       <td style={cTd}>
                         <input type="number" value={r.unit_price} onChange={e => updateRow(r.id, 'unit_price', e.target.value)}
@@ -493,8 +501,10 @@ export default function EstimatePage() {
       </div>
 
       <style>{`
+        .print-only { display: none; }
         @media print {
           .no-print { display: none !important; }
+          .print-only { display: inline !important; }
           header, nav, aside { display: none !important; }
           body, html { margin: 0; padding: 0; background: #fff; overflow: visible !important; }
           @page { size: A4 portrait; margin: 10mm 12mm; }
@@ -502,10 +512,6 @@ export default function EstimatePage() {
           ::-webkit-scrollbar { display: none !important; }
           .print-area-wrapper { height: auto !important; overflow: visible !important; }
           .print-doc { transform: none !important; width: 186mm !important; }
-          /* select 화살표 숨기기 */
-          select { -webkit-appearance: none; appearance: none; }
-          /* placeholder(직접 입력) 숨기기 */
-          input::placeholder { color: transparent !important; }
         }
       `}</style>
     </div>
