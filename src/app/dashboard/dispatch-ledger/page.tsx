@@ -574,7 +574,7 @@ export default function DispatchLedgerPage() {
         log_date: r.log_date,
         equipment_type: [r.equipment_type, r.work_device].filter(Boolean).join(' '),
         plate_no: r.plate_no,
-        work_content: r.work_type_1 ?? '',
+        work_content: r.work_type_1 ?? r.work_type_2 ?? (r as any).work_type_3 ?? '',
         quantity: r.operating_hours > 0 ? String(r.operating_hours) : '',
         unit_price: unitPrice > 0 ? unitPrice.toLocaleString() : '',
         note: '',
