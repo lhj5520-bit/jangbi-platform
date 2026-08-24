@@ -1344,7 +1344,7 @@ function LedgerTableRow({ r, bg, hrs, unitP, sales, isFirstSlot, slotsTotalSales
           </div>
         )}
       </td>
-      <td className={td}>{r.work_type_1 ?? ''}</td>
+      <td className={td}>{r.work_type_1 ?? r.work_type_2 ?? (r as any).work_type_3 ?? ''}</td>
       <td className={tdr}>{hrs > 0 ? hrs + 'h' : r.operating_hours}</td>
       <td className={tdr}>{unitP > 0 ? unitP.toLocaleString() : r.unit_price.toLocaleString()}</td>
       <td className={tdr + ' font-medium text-blue-700'}>{(sales > 0 ? sales : (r.sales_amount || (wages[r.id] ?? 0))).toLocaleString()}</td>
