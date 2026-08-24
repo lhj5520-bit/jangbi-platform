@@ -408,6 +408,16 @@ export default function BankPage() {
             <span className="text-gray-400 text-sm">~</span>
             <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
               className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            <button onClick={() => { const y = new Date().getFullYear(); setDateFrom(`${y}-01-01`); setDateTo(`${y}-12-31`) }}
+              className="px-3 py-2 rounded-lg text-sm border border-gray-300 bg-white hover:bg-gray-50 text-gray-600 shrink-0">
+              당해년도
+            </button>
+            {(dateFrom || dateTo) && (
+              <button onClick={() => { setDateFrom(''); setDateTo('') }}
+                className="px-3 py-2 rounded-lg text-sm border border-gray-200 bg-white hover:bg-gray-50 text-gray-400 shrink-0">
+                전체
+              </button>
+            )}
             <input type="text" placeholder="거래처 검색..." value={search} onChange={e => setSearch(e.target.value)}
               className="flex-1 min-w-[120px] px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
             <div className="flex gap-1 bg-gray-100 rounded-lg p-1 shrink-0">
