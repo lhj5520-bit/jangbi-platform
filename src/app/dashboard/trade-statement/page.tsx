@@ -957,36 +957,39 @@ export default function TradeStatementPage() {
               거 래 명 세 서
             </div>
 
-            {/* 기준일 + 공급자 */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', borderBottom: '1px solid #000' }}>
-              <div style={{ borderRight: '1px solid #000' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr', borderBottom: '1px solid #ccc' }}>
+            {/* 기준일 + 공급자 세로 + 공급사 정보 */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 28px 1fr', borderBottom: '1px solid #000' }}>
+              {/* 좌측: 공급받는자 정보 */}
+              <div style={{ borderRight: '1px solid #ccc' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '72px 1fr', borderBottom: '1px solid #ccc' }}>
                   <div style={{ padding: '5px 8px', borderRight: '1px solid #ccc', fontSize: 13, fontWeight: 'bold', background: '#f5f5f5' }}>기준일</div>
                   <div style={{ padding: '5px 8px', fontSize: 13 }}>{baseDateLabel}</div>
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr', borderBottom: '1px solid #ccc' }}>
-                  <div style={{ padding: '5px 6px', borderRight: '1px solid #ccc', fontSize: 11, fontWeight: 'bold', background: '#f5f5f5', whiteSpace: 'nowrap' }}>공급받는자</div>
-                  <div style={{ display: 'flex', alignItems: 'center', padding: '3px 8px', gap: 4 }}>
-                    <input className="editable-cell" value={recipientName}
-                      onChange={e => setRecipientName(e.target.value)}
-                      style={{ fontSize: 14, fontWeight: 'bold', border: 'none', outline: 'none', flex: 1, minWidth: 0 }} />
-                    <span className="no-print" style={{ fontSize: 10, color: '#ef4444', flexShrink: 0, marginRight: 2 }}>수정가능</span>
-                    <span style={{ fontSize: 14, fontWeight: 'bold', flexShrink: 0 }}>귀하</span>
-                  </div>
+                <div style={{ display: 'flex', alignItems: 'center', padding: '4px 8px', gap: 4, borderBottom: '1px solid #ccc' }}>
+                  <input className="editable-cell" value={recipientName}
+                    onChange={e => setRecipientName(e.target.value)}
+                    style={{ fontSize: 14, fontWeight: 'bold', border: 'none', outline: 'none', flex: 1, minWidth: 0 }} />
+                  <span className="no-print" style={{ fontSize: 10, color: '#ef4444', flexShrink: 0, marginRight: 2 }}>수정가능</span>
+                  <span style={{ fontSize: 14, fontWeight: 'bold', flexShrink: 0 }}>귀하</span>
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr', borderBottom: '1px solid #ccc' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '72px 1fr', borderBottom: '1px solid #ccc' }}>
                   <div style={{ padding: '5px 8px', borderRight: '1px solid #ccc', fontSize: 13, fontWeight: 'bold', background: '#f5f5f5' }}>현장명</div>
                   <div style={{ display: 'flex', alignItems: 'center' }}>
-                  <input className="editable-cell" value={siteName}
-                    onChange={e => setSiteName(e.target.value)}
-                    style={{ padding: '5px 8px', fontSize: 13, border: 'none', outline: 'none', flex: 1, minWidth: 0 }} />
-                  <span className="no-print" style={{ fontSize: 10, color: '#ef4444', flexShrink: 0, paddingRight: 6 }}>수정가능</span>
+                    <input className="editable-cell" value={siteName}
+                      onChange={e => setSiteName(e.target.value)}
+                      style={{ padding: '5px 8px', fontSize: 13, border: 'none', outline: 'none', flex: 1, minWidth: 0 }} />
+                    <span className="no-print" style={{ fontSize: 10, color: '#ef4444', flexShrink: 0, paddingRight: 6 }}>수정가능</span>
                   </div>
                 </div>
                 <div style={{ padding: '6px 10px', fontSize: 14, fontWeight: '500' }}>
                   아래와 같이 청구합니다.
                 </div>
               </div>
+              {/* 가운데: 공급자 세로 레이블 */}
+              <div style={{ borderRight: '1px solid #ccc', background: '#f5f5f5', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 'bold', letterSpacing: 2, writingMode: 'vertical-rl', textOrientation: 'upright' }}>
+                공급자
+              </div>
+              {/* 우측: 공급자 정보 */}
               <div>
                 <div style={{ display: 'grid', gridTemplateColumns: '70px 1fr', borderBottom: '1px solid #ccc' }}>
                   <div style={{ padding: '4px 8px', borderRight: '1px solid #ccc', fontSize: 12, fontWeight: 'bold', background: '#f5f5f5' }}>등록번호</div>
@@ -1015,7 +1018,7 @@ export default function TradeStatementPage() {
                     onChange={e => setCompany(c => ({ ...c, address: e.target.value }))}
                     style={{ padding: '4px 8px', fontSize: 11, border: 'none', outline: 'none', width: '100%', minWidth: 0 }} />
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '70px 1fr 40px 1fr', borderTop: '1px solid #ccc', borderBottom: '1px solid #ccc' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '70px 1fr 40px 1fr', borderBottom: '1px solid #ccc' }}>
                   <div style={{ padding: '4px 8px', borderRight: '1px solid #ccc', fontSize: 12, fontWeight: 'bold', background: '#f5f5f5' }}>업태</div>
                   <input className="editable-cell" value={company.biz_type}
                     onChange={e => setCompany(c => ({ ...c, biz_type: e.target.value }))}

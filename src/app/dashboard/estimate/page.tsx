@@ -340,14 +340,13 @@ export default function EstimatePage() {
                     <td style={{ border: '1px solid #aaa', padding: '5px 8px', fontSize: 11, width: '12%', background: '#e8f4f8', fontWeight: 600, whiteSpace: 'nowrap' }}>
                       견 적 일
                     </td>
-                    <td style={{ border: '1px solid #aaa', padding: '4px 8px', fontSize: 11, width: '30%' }}>
+                    <td colSpan={2} style={{ border: '1px solid #aaa', padding: '4px 8px', fontSize: 11, width: '28%' }}>
                       <span style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
                         <input value={year} onChange={e => setYear(e.target.value)} style={{ ...cInp, width: 36, textAlign: 'right' }} />년
                         <input value={month} onChange={e => setMonth(e.target.value)} style={{ ...cInp, width: 24, textAlign: 'right' }} />월
                         <input value={day} onChange={e => setDay(e.target.value)} style={{ ...cInp, width: 20, textAlign: 'right' }} />일
                       </span>
                     </td>
-                    {/* 우측: 공급자 */}
                     <td style={{ border: '1px solid #aaa', padding: '5px 8px', fontSize: 11, background: '#e8f4f8', fontWeight: 600, whiteSpace: 'nowrap', width: '10%' }}>
                       등록번호
                     </td>
@@ -357,7 +356,7 @@ export default function EstimatePage() {
                   </tr>
                   <tr>
                     <td rowSpan={3} style={{ border: '1px solid #aaa', padding: '5px 8px', fontSize: 11, background: '#e8f4f8', fontWeight: 600, textAlign: 'center', verticalAlign: 'middle' }}>
-                      공<br/>급<br/>자
+                      공<br/>급<br/>받<br/>는<br/>자
                     </td>
                     <td style={{ border: '1px solid #aaa', padding: '4px 8px', fontSize: 11 }}>
                       <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -368,6 +367,9 @@ export default function EstimatePage() {
                       <datalist id="client-list">
                         {clients.map(c => <option key={c} value={c} />)}
                       </datalist>
+                    </td>
+                    <td rowSpan={3} style={{ border: '1px solid #aaa', padding: '5px 8px', fontSize: 11, background: '#e8f4f8', fontWeight: 600, textAlign: 'center', verticalAlign: 'middle', width: '6%' }}>
+                      공<br/>급<br/>자
                     </td>
                     <td style={{ border: '1px solid #aaa', padding: '5px 8px', fontSize: 11, background: '#e8f4f8', fontWeight: 600, whiteSpace: 'nowrap' }}>
                       상 호
