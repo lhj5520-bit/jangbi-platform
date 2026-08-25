@@ -965,15 +965,12 @@ export default function TradeStatementPage() {
                   <div style={{ padding: '5px 8px', borderRight: '1px solid #ccc', fontSize: 13, fontWeight: 'bold', background: '#f5f5f5' }}>기준일</div>
                   <div style={{ padding: '5px 8px', fontSize: 13 }}>{baseDateLabel}</div>
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '72px 1fr', borderBottom: '1px solid #ccc' }}>
-                  <div style={{ padding: '5px 8px', borderRight: '1px solid #ccc', fontSize: 13, fontWeight: 'bold', background: '#f5f5f5' }}>공급받는자</div>
-                  <div style={{ display: 'flex', alignItems: 'center', padding: '4px 8px', gap: 4 }}>
-                    <input className="editable-cell" value={recipientName}
-                      onChange={e => setRecipientName(e.target.value)}
-                      style={{ fontSize: 14, fontWeight: 'bold', border: 'none', outline: 'none', flex: 1, minWidth: 0 }} />
-                    <span className="no-print" style={{ fontSize: 10, color: '#ef4444', flexShrink: 0, marginRight: 2 }}>수정가능</span>
-                    <span style={{ fontSize: 14, fontWeight: 'bold', flexShrink: 0 }}>귀하</span>
-                  </div>
+                <div style={{ display: 'flex', alignItems: 'center', padding: '4px 8px', borderBottom: '1px solid #ccc', gap: 4 }}>
+                  <input className="editable-cell" value={recipientName}
+                    onChange={e => setRecipientName(e.target.value)}
+                    style={{ fontSize: 14, fontWeight: 'bold', border: 'none', outline: 'none', flex: 1, minWidth: 0, textAlign: 'right' }} />
+                  <span className="no-print" style={{ fontSize: 10, color: '#ef4444', flexShrink: 0 }}>수정가능</span>
+                  <span style={{ fontSize: 14, fontWeight: 'bold', flexShrink: 0 }}>귀하</span>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '72px 1fr', borderBottom: '1px solid #ccc' }}>
                   <div style={{ padding: '5px 8px', borderRight: '1px solid #ccc', fontSize: 13, fontWeight: 'bold', background: '#f5f5f5' }}>현장명</div>
