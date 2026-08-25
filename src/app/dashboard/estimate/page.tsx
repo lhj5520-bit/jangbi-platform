@@ -39,8 +39,8 @@ function newRow(): Row {
 const PRESET_ROWS: Omit<Row, 'id'>[] = [
   { type: '굴삭기', spec: '03LC', unit: '시간', unit_price: '', note: '유류비 포함(월 200시간 기준)' },
   { type: '굴삭기', spec: '03W', unit: '일대', unit_price: '', note: '' },
-  { type: '굴삭기', spec: '06W', unit: '', unit_price: '', note: '' },
-  { type: '덤프트럭', spec: '15D/T', unit: '', unit_price: '', note: '' },
+  { type: '굴삭기', spec: '06W', unit: '일대', unit_price: '', note: '' },
+  { type: '덤프트럭', spec: '15D/T', unit: '일대', unit_price: '', note: '' },
 ]
 
 function initRows(): Row[] {
@@ -466,7 +466,8 @@ export default function EstimatePage() {
                         <span className="print-only" style={{ fontSize: 11 }}>{r.unit}</span>
                       </td>
                       <td style={cTd}>
-                        <input type="number" value={r.unit_price} onChange={e => updateRow(r.id, 'unit_price', e.target.value)}
+                        <input type="text" inputMode="numeric" value={r.unit_price ? Number(r.unit_price).toLocaleString() : ''}
+                          onChange={e => updateRow(r.id, 'unit_price', e.target.value.replace(/,/g, ''))}
                           style={{ ...cInp, textAlign: 'right' }} />
                       </td>
                       <td style={{ ...cTd, textAlign: 'right' }}>
