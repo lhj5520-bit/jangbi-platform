@@ -20,7 +20,7 @@ const SPEC_OPTIONS: Record<string, string[]> = {
   '화물차':   ['1T', '2.5T', '3.5T', '5T', '11T', '25T'],
   '기타':     [],
 }
-const UNIT_OPTIONS = ['시간', '일대', '월대', '식', '대', '회']
+const UNIT_OPTIONS = ['시간', '일대', '월대', '식', '대', '회', '기본']
 
 interface Row {
   id: number
