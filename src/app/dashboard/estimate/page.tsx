@@ -80,6 +80,54 @@ export default function EstimatePage() {
   const [docScale, setDocScale] = useState(1)
   const [docHeight, setDocHeight] = useState(0)
 
+  // 저장/불러오기
+  const [savedId, setSavedId] = useState('')
+  const [savedList, setSavedList] = useState<{ id: string; label: string }[]>([])
+
+  async function loadSavedList() {
+    const { data } = await supabase.from('estimates').select('id, receiver, site_name, created_at').order('created_at', { ascending: false }).limit(50)
+    if (data) setSavedList(data.map((d: any) => ({ id: d.id, label: `${(d.created_at ?? '').slice(0, 10)} ${d.receiver ?? ''} ${d.site_name ?? ''}`.trim() })))
+  }
+
+  async function saveEstimate() {
+    const payload = { receiver, site_name: siteName, year, month, day, rows: rows.map(({ id: _, ...r }) => r) }
+    if (savedId) {
+      await supabase.from('estimates').update(payload).eq('id', savedId)
+      alert('저장되었습니다.')
+    } else {
+      const { data, error } = await supabase.from('estimates').insert(payload).select('id').single()
+      if (error) { alert('저장 실패: ' + error.message); return }
+      setSavedId(data.id)
+      await loadSavedList()
+      alert('저장되었습니다.')
+    }
+  }
+
+  async function loadEstimate(id: string) {
+    const { data } = await supabase.from('estimates').select('*').eq('id', id).single()
+    if (!data) return
+    setReceiver(data.receiver ?? '')
+    setSiteName(data.site_name ?? '')
+    setYear(data.year ?? String(new Date().getFullYear()))
+    setMonth(data.month ?? String(new Date().getMonth() + 1))
+    setDay(data.day ?? String(new Date().getDate()))
+    const loaded: Row[] = (data.rows ?? []).map((r: any) => ({ ...r, id: ++_rowId }))
+    while (loaded.length < 12) loaded.push(newRow())
+    setRows(loaded)
+    setSavedId(id)
+  }
+
+  async function deleteEstimate() {
+    if (!savedId) return
+    if (!confirm('이 견적서를 삭제할까요?')) return
+    await supabase.from('estimates').delete().eq('id', savedId)
+    setSavedId('')
+    setRows(initRows())
+    setReceiver('')
+    setSiteName('')
+    await loadSavedList()
+  }
+
   // 클라이언트 목록
   const [clients, setClients] = useState<string[]>([])
 
@@ -98,6 +146,7 @@ export default function EstimatePage() {
     supabase.from('clients').select('name').then(({ data }: { data: any[] | null }) => {
       setClients((data ?? []).map((c: any) => c.name).filter(Boolean).sort())
     })
+    loadSavedList()
   }, [])
 
   // 견적서는 가온 명의 문서라 글로벌 도장(ts_stamp)만 쓴다.
@@ -239,7 +288,7 @@ export default function EstimatePage() {
     <div className="min-h-screen bg-[#f3f0ea]">
       {/* 툴바 */}
       <div className="no-print sticky top-0 z-30 flex flex-wrap gap-2 items-center bg-white border-b border-gray-200 px-3 py-2.5 shadow-sm">
-        <div className="flex gap-1.5 flex-wrap">
+        <div className="flex gap-1.5 flex-wrap items-center">
           <button onClick={addRow}
             className="text-xs px-2.5 py-1.5 rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50">
             + 줄 추가
@@ -252,6 +301,22 @@ export default function EstimatePage() {
             className="text-xs px-2.5 py-1.5 rounded bg-green-600 text-white">
             📷 JPG / 카톡
           </button>
+          <div className="w-px h-5 bg-gray-200" />
+          <select onChange={e => { if (e.target.value) loadEstimate(e.target.value) }} value={savedId}
+            className="text-xs border border-gray-300 rounded px-2 py-1.5 bg-white max-w-[180px] truncate">
+            <option value="">📂 저장된 견적서…</option>
+            {savedList.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
+          </select>
+          <button onClick={saveEstimate}
+            className="text-xs px-2.5 py-1.5 rounded bg-blue-600 text-white hover:bg-blue-700">
+            💾 저장
+          </button>
+          {savedId && (
+            <button onClick={deleteEstimate}
+              className="text-xs px-2.5 py-1.5 rounded bg-red-500 text-white hover:bg-red-600">
+              🗑 삭제
+            </button>
+          )}
         </div>
 
         {/* 도장 등록 */}
