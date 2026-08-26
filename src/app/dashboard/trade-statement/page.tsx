@@ -194,6 +194,7 @@ export default function TradeStatementPage() {
           }
         }
       })
+    loadTsList()
   }, [])
 
   // 업체 변경 시 DB에서 해당 업체 정보 + 도장 직접 로드 (localStorage 오염 방지)
@@ -246,6 +247,26 @@ export default function TradeStatementPage() {
     setEditingCompany(false)
   }
 
+  // 거래명세서 목록 저장/불러오기
+  const [tsSavedId, setTsSavedId] = useState('')
+  const [tsSavedList, setTsSavedList] = useState<{ id: string; label: string }[]>([])
+
+  async function loadTsList() {
+    const { data } = await supabase.from('trade_statements').select('id, client_name, site_name, date_from, created_at').order('created_at', { ascending: false }).limit(60)
+    if (data) setTsSavedList(data.map((d: any) => ({ id: d.id, label: `${(d.date_from ?? '').slice(0, 7)} ${d.client_name ?? ''} ${d.site_name ?? ''}`.trim() })))
+  }
+
+  async function loadTsRecord(id: string) {
+    const { data } = await supabase.from('trade_statements').select('*').eq('id', id).single()
+    if (!data) return
+    setRecipientName(data.client_name ?? '')
+    setSiteName(data.site_name ?? '')
+    if (data.date_from) setDateFrom(data.date_from)
+    if (data.date_to) setDateTo(data.date_to)
+    if (data.rows) setEditRows((data.rows as any[]).map((r: any) => ({ ...r })))
+    setTsSavedId(id)
+  }
+
   const [savingCompany, setSavingCompany] = useState(false)
   async function handleSaveCompanyInline() {
     setSavingCompany(true)
@@ -277,6 +298,21 @@ export default function TradeStatementPage() {
       } else {
         // 업체 선택 안 된 경우에만 전역 키 저장
         localStorage.setItem('ts_company', JSON.stringify(company))
+      }
+      // 거래명세서 목록에도 저장
+      const tsPayload = {
+        client_name: recipientName,
+        site_name: siteName,
+        date_from: dateFrom || null,
+        date_to: dateTo || null,
+        rows: editRows,
+        supplier_id: selectedSupId || null,
+      }
+      if (tsSavedId) {
+        await supabase.from('trade_statements').update(tsPayload).eq('id', tsSavedId)
+      } else {
+        const { data: tsData } = await supabase.from('trade_statements').insert(tsPayload).select('id').single()
+        if (tsData?.id) { setTsSavedId(tsData.id); await loadTsList() }
       }
       alert('저장되었습니다.')
     } catch {
@@ -363,34 +399,7 @@ export default function TradeStatementPage() {
 
       const filename = `거래명세서_${recipientName || ''}${dateFrom ? '_' + dateFrom : ''}.jpg`
 
-      const res = await fetch(dataUrl)
-      const jpgBlob = await res.blob()
-      const file = new File([jpgBlob], filename, { type: 'image/jpeg' })
-
-      // 1순위: Web Share API → 카톡 선택창 직접 오픈 (모바일)
-      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-        try {
-          await navigator.share({ files: [file], title: `거래명세서 ${recipientName || ''}` })
-          return
-        } catch (shareErr: any) {
-          if (shareErr?.name === 'AbortError') return // 사용자가 취소
-        }
-      }
-
-      // 2순위: 클립보드 복사 (데스크탑)
-      try {
-        const canvas = document.createElement('canvas')
-        const img = new Image()
-        await new Promise<void>(resolve => { img.onload = () => resolve(); img.src = dataUrl })
-        canvas.width = img.naturalWidth; canvas.height = img.naturalHeight
-        canvas.getContext('2d')!.drawImage(img, 0, 0)
-        const pngBlob = await new Promise<Blob>(resolve => canvas.toBlob(b => resolve(b!), 'image/png'))
-        await navigator.clipboard.write([new ClipboardItem({ 'image/png': pngBlob })])
-        alert('✅ 이미지가 클립보드에 복사됐습니다!\n카카오톡 채팅창에서 붙여넣기 하세요.')
-        return
-      } catch { }
-
-      // 3순위: 다운로드
+      // 바로 다운로드
       const link = document.createElement('a')
       link.href = dataUrl
       link.download = filename
@@ -788,9 +797,24 @@ export default function TradeStatementPage() {
             className="no-print text-sm font-semibold px-4 py-2 rounded-xl flex items-center gap-2 shadow bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white">
             💾 {savingCompany ? '저장 중...' : '저장반영'}
           </button>
+          <select onChange={e => { if (e.target.value) loadTsRecord(e.target.value) }} value={tsSavedId}
+            className="no-print text-xs border border-gray-300 rounded px-2 py-1.5 bg-white max-w-[180px] truncate">
+            <option value="">📂 저장된 명세서…</option>
+            {tsSavedList.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
+          </select>
+          {tsSavedId && (
+            <button onClick={async () => {
+              if (!confirm('이 거래명세서를 삭제할까요?')) return
+              await supabase.from('trade_statements').delete().eq('id', tsSavedId)
+              setTsSavedId('')
+              await loadTsList()
+            }} className="no-print text-xs px-2.5 py-1.5 rounded bg-red-500 text-white hover:bg-red-600">
+              🗑 삭제
+            </button>
+          )}
           <button onClick={handleSaveJpg}
             className="no-print bg-green-600 hover:bg-green-700 text-white text-sm font-semibold px-4 py-2 rounded-xl flex items-center gap-2 shadow">
-            📤 카톡 공유
+            🖼 JPG 저장
           </button>
           <button onClick={() => window.print()}
             className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700">
