@@ -46,6 +46,9 @@ export default function DispatchModal({ dispatch, equipment, suppliers, onClose,
     memo: dispatch?.memo ?? '',
   })
   const WORK_TYPES = ['버켓', '뿌레카', '집게', '기타']
+  const isDump = equipMode === 'select'
+    ? equipment.find(e => e.id === form.equipment_id)?.type === 'dump'
+    : (form.equipment_text ?? '').includes('덤프')
   const [workItems, setWorkItems] = useState<{ type: string; hours: string; unit_price: string }[]>(
     ((dispatch as any)?.work_items ?? []).map((w: any) => ({
       type: w.type ?? '버켓',
@@ -56,7 +59,10 @@ export default function DispatchModal({ dispatch, equipment, suppliers, onClose,
   const workTotal = workItems.reduce((s, w) => s + (Number(w.hours) || 0) * (Number(w.unit_price) || 0), 0)
 
   function addWorkItem() {
-    setWorkItems(prev => [...prev, { type: '버켓', hours: '', unit_price: '' }])
+    const isDumpNow = equipMode === 'select'
+      ? equipment.find(e => e.id === form.equipment_id)?.type === 'dump'
+      : (form.equipment_text ?? '').includes('덤프')
+    setWorkItems(prev => [...prev, { type: isDumpNow ? '운반' : '버켓', hours: '', unit_price: '' }])
   }
   function removeWorkItem(idx: number) {
     setWorkItems(prev => prev.filter((_, i) => i !== idx))
@@ -245,10 +251,14 @@ export default function DispatchModal({ dispatch, equipment, suppliers, onClose,
             <div className="space-y-2">
               {workItems.map((item, idx) => (
                 <div key={idx} className="flex gap-1.5 items-center">
-                  <select value={item.type} onChange={e => updateWorkItem(idx, 'type', e.target.value)}
-                    className="px-2 py-2 border border-gray-300 rounded-lg text-sm w-20 shrink-0">
-                    {WORK_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-                  </select>
+                  {isDump ? (
+                    <div className="px-2 py-2 border border-gray-200 rounded-lg text-sm w-20 shrink-0 bg-gray-50 text-gray-500 text-center">운반</div>
+                  ) : (
+                    <select value={item.type} onChange={e => updateWorkItem(idx, 'type', e.target.value)}
+                      className="px-2 py-2 border border-gray-300 rounded-lg text-sm w-20 shrink-0">
+                      {WORK_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                    </select>
+                  )}
                   <div className="relative flex-1">
                     <input type="number" value={item.hours}
                       onChange={e => updateWorkItem(idx, 'hours', e.target.value)}
