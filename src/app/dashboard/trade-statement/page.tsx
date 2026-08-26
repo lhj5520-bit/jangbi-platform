@@ -765,14 +765,27 @@ export default function TradeStatementPage() {
           <span className="text-gray-400">~</span>
           <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
             className="px-3 py-2 border border-gray-300 rounded-lg text-sm" />
-          <button onClick={() => {
-            const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - 1)
-            const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0')
-            const last = new Date(y, d.getMonth()+1, 0).getDate()
-            setDateFrom(`${y}-${m}-01`); setDateTo(`${y}-${m}-${String(last).padStart(2,'0')}`)
-          }} className="px-3 py-2 text-sm rounded-lg border border-indigo-400 text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-colors font-medium">
-            전월
-          </button>
+          <div className="flex rounded-lg overflow-hidden border border-indigo-400">
+            <button onClick={() => {
+              const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - 1)
+              const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0')
+              const last = new Date(y, d.getMonth()+1, 0).getDate()
+              setDateFrom(`${y}-${m}-01`); setDateTo(`${y}-${m}-${String(last).padStart(2,'0')}`)
+            }} className="px-3 py-2 text-sm text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-colors font-medium border-r border-indigo-400">
+              전월
+            </button>
+            <button onClick={() => {
+              const now = new Date()
+              const y = now.getFullYear(), m = now.getMonth() + 1
+              // 전월 26일 ~ 당월 25일
+              const prevY = m === 1 ? y - 1 : y
+              const prevM = m === 1 ? 12 : m - 1
+              setDateFrom(`${prevY}-${String(prevM).padStart(2,'0')}-26`)
+              setDateTo(`${y}-${String(m).padStart(2,'0')}-25`)
+            }} className="px-3 py-2 text-sm text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-colors font-medium">
+              25일
+            </button>
+          </div>
           <select value={selectedClient} onChange={e => applyClientFilter(e.target.value)}
             className="px-3 py-2 border border-gray-300 rounded-lg text-sm">
             <option value="">발주처 선택</option>
