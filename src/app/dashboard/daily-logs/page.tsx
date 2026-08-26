@@ -119,7 +119,8 @@ export default function WorkConfirmPage() {
       const driver = ((d as any).driver_name ?? '').toLowerCase()
       const equip = getEquipLabel(d).toLowerCase()
       const sup = ((d.supplier as any)?.name ?? '').toLowerCase()
-      if (!site.includes(q) && !client.includes(q) && !driver.includes(q) && !equip.includes(q) && !sup.includes(q)) return false
+      const plate = ((d as any).equipment?.plate_no ?? '').toLowerCase()
+      if (!site.includes(q) && !client.includes(q) && !driver.includes(q) && !equip.includes(q) && !sup.includes(q) && !plate.includes(q)) return false
     }
     return true
   })
@@ -212,59 +213,40 @@ export default function WorkConfirmPage() {
       </div>
     )
     if (log && hasTimeSlots(log)) {
-      const rows = []
       const fallbackPrice = Number((d as any).client_unit_price) || 0
-      if (log.work_time_1 || log.work_type_1) {
-        const h = parseSlotH(log.work_time_1)
-        const p = slotPrice(log, 'work_price_1', fallbackPrice)
-        rows.push(<tr key={d.id + '_w1'} className="hover:bg-gray-50 transition-colors">
+      // 슬롯 수집
+      const slots: { type: string; h: number; p: number; amt: number }[] = []
+      const addSlot = (typeVal: string | null | undefined, timeVal: string | null | undefined, priceKey: 'work_price_1' | 'work_price_2' | 'work_price_3') => {
+        if (!typeVal && !timeVal) return
+        const h = parseSlotH(timeVal) ?? 0
+        const p = slotPrice(log, priceKey, fallbackPrice)
+        slots.push({ type: typeVal || '버켓', h, p, amt: h && p ? Math.round(h * p) : 0 })
+      }
+      addSlot(log.work_type_1, log.work_time_1, 'work_price_1')
+      addSlot(log.work_type_2, log.work_time_2, 'work_price_2')
+      addSlot((log as any).work_type_3, (log as any).work_time_3, 'work_price_3')
+      // 같은 작업장치 합산
+      const merged: { type: string; h: number; p: number; amt: number }[] = []
+      for (const s of slots) {
+        const exist = merged.find(m => m.type === s.type)
+        if (exist) { exist.h += s.h; exist.amt += s.amt }
+        else merged.push({ ...s })
+      }
+      const rows = merged.map((m, i) => (
+        <tr key={d.id + '_m' + i} className="hover:bg-gray-50 transition-colors">
           <td className="px-4 py-3 text-gray-500 text-xs">{dateTd}</td>
           <td className="px-4 py-3 text-gray-600">{equipTd}</td>
           <td className="px-4 py-3 text-gray-500 text-xs font-medium">{plateTd}</td>
-          <td className="px-4 py-3 text-gray-500"><span className="text-xs font-bold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded">{log.work_type_1 || '버켓'}</span></td>
-          <td className="px-4 py-3 text-right text-gray-500">{h ? `${h}h` : '-'}</td>
-          <td className="px-4 py-3 text-right text-gray-900">{p ? p.toLocaleString() + '원' : '-'}</td>
-          <td className="px-4 py-3 text-right text-blue-700 font-medium">{h && p ? Math.round(h * p).toLocaleString() + '원' : '-'}</td>
+          <td className="px-4 py-3 text-gray-500"><span className="text-xs font-bold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded">{m.type}</span></td>
+          <td className="px-4 py-3 text-right text-gray-500">{m.h ? `${m.h}h` : '-'}</td>
+          <td className="px-4 py-3 text-right text-gray-900">{m.p ? m.p.toLocaleString() + '원' : '-'}</td>
+          <td className="px-4 py-3 text-right text-blue-700 font-medium">{m.amt ? m.amt.toLocaleString() + '원' : '-'}</td>
           <td className="px-4 py-3 text-gray-600">{driverTd}</td>
           <td className="px-4 py-3 text-gray-600">{supTd}</td>
           <td className="px-4 py-3 font-medium text-gray-900">{siteTd}</td>
-          <td className="px-4 py-3">{actionsTd}</td>
-        </tr>)
-      }
-      if (log.work_time_2 || log.work_type_2) {
-        const h = parseSlotH(log.work_time_2)
-        const p = slotPrice(log, 'work_price_2', fallbackPrice)
-        rows.push(<tr key={d.id + '_w2'} className="hover:bg-purple-50 transition-colors">
-          <td className="px-4 py-3 text-gray-500 text-xs">{dateTd}</td>
-          <td className="px-4 py-3 text-gray-600">{equipTd}</td>
-          <td className="px-4 py-3 text-gray-500 text-xs font-medium">{plateTd}</td>
-          <td className="px-4 py-3 text-gray-500"><span className="text-xs font-bold text-purple-700 bg-purple-50 px-1.5 py-0.5 rounded">{log.work_type_2 || '버켓'}</span></td>
-          <td className="px-4 py-3 text-right text-gray-500">{h ? `${h}h` : '-'}</td>
-          <td className="px-4 py-3 text-right text-gray-900">{p ? p.toLocaleString() + '원' : '-'}</td>
-          <td className="px-4 py-3 text-right text-blue-700 font-medium">{h && p ? Math.round(h * p).toLocaleString() + '원' : '-'}</td>
-          <td className="px-4 py-3 text-gray-600">{driverTd}</td>
-          <td className="px-4 py-3 text-gray-600">{supTd}</td>
-          <td className="px-4 py-3 font-medium text-gray-900">{siteTd}</td>
-          <td className="px-4 py-3"></td>
-        </tr>)
-      }
-      if ((log as any).work_time_3 || (log as any).work_type_3) {
-        const h = parseSlotH((log as any).work_time_3)
-        const p = slotPrice(log, 'work_price_3', fallbackPrice)
-        rows.push(<tr key={d.id + '_w3'} className="hover:bg-orange-50 transition-colors">
-          <td className="px-4 py-3 text-gray-500 text-xs">{dateTd}</td>
-          <td className="px-4 py-3 text-gray-600">{equipTd}</td>
-          <td className="px-4 py-3 text-gray-500 text-xs font-medium">{plateTd}</td>
-          <td className="px-4 py-3 text-gray-500"><span className="text-xs font-bold text-orange-700 bg-orange-50 px-1.5 py-0.5 rounded">{(log as any).work_type_3 || '버켓'}</span></td>
-          <td className="px-4 py-3 text-right text-gray-500">{h ? `${h}h` : '-'}</td>
-          <td className="px-4 py-3 text-right text-gray-900">{p ? p.toLocaleString() + '원' : '-'}</td>
-          <td className="px-4 py-3 text-right text-blue-700 font-medium">{h && p ? Math.round(h * p).toLocaleString() + '원' : '-'}</td>
-          <td className="px-4 py-3 text-gray-600">{driverTd}</td>
-          <td className="px-4 py-3 text-gray-600">{supTd}</td>
-          <td className="px-4 py-3 font-medium text-gray-900">{siteTd}</td>
-          <td className="px-4 py-3"></td>
-        </tr>)
-      }
+          <td className="px-4 py-3">{i === 0 ? actionsTd : null}</td>
+        </tr>
+      ))
       if (rows.length > 0) return rows
     }
     const qty = log?.quantity
@@ -316,7 +298,7 @@ export default function WorkConfirmPage() {
         </button>
         <input
           type="text"
-          placeholder="현장명, 발주처, 차주, 현장업체 검색..."
+          placeholder="현장명, 발주처, 차주, 현장업체, 차량번호 검색..."
           value={search}
           onChange={e => setSearch(e.target.value)}
           className="flex-1 min-w-[180px] px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"

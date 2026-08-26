@@ -12,14 +12,12 @@ function MemoWidget() {
   const [saved, setSaved] = useState(false)
   const [open, setOpen] = useState(false)
   useEffect(() => {
-    supabase.from('app_settings').select('value').eq('key', 'dashboard_memo').single()
+    supabase.from('app_settings').select('value').eq('key', 'dashboard_memo').maybeSingle()
       .then(({ data }: any) => {
         if (data?.value != null) setText(data.value)
-        else setText(localStorage.getItem('dashboard_memo') ?? '')
       })
   }, [])
   async function save() {
-    try { localStorage.setItem('dashboard_memo', text) } catch {}
     await supabase.from('app_settings').upsert({ key: 'dashboard_memo', value: text }, { onConflict: 'key' })
     setSaved(true)
     setTimeout(() => setSaved(false), 1500)

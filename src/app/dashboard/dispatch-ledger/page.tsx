@@ -1039,15 +1039,35 @@ export default function DispatchLedgerPage() {
           <span className="text-gray-400 text-sm">~</span>
           <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
             className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-          <button onClick={() => {
-            const base = dateFrom ? new Date(dateFrom) : new Date()
-            base.setDate(1); base.setMonth(base.getMonth() - 1)
-            const y = base.getFullYear(), m = String(base.getMonth()+1).padStart(2,'0')
-            const last = new Date(y, base.getMonth()+1, 0).getDate()
-            setDateFrom(`${y}-${m}-01`); setDateTo(`${y}-${m}-${String(last).padStart(2,'0')}`)
-          }} className="px-3 py-2 text-sm rounded-lg border border-indigo-400 text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-colors font-medium">
-            전월
-          </button>
+          <div className="flex rounded-lg overflow-hidden border border-indigo-400">
+            <button onClick={() => {
+              const base = dateFrom ? new Date(dateFrom) : new Date()
+              base.setDate(1); base.setMonth(base.getMonth() - 1)
+              const y = base.getFullYear(), m = String(base.getMonth()+1).padStart(2,'0')
+              const last = new Date(y, base.getMonth()+1, 0).getDate()
+              setDateFrom(`${y}-${m}-01`); setDateTo(`${y}-${m}-${String(last).padStart(2,'0')}`)
+            }} className="px-3 py-2 text-sm text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-colors font-medium border-r border-indigo-400">
+              전월
+            </button>
+            <button onClick={() => {
+              const now = new Date()
+              const y = now.getFullYear(), m = now.getMonth() + 1
+              const prevY = m === 1 ? y - 1 : y
+              const prevM = m === 1 ? 12 : m - 1
+              setDateFrom(`${prevY}-${String(prevM).padStart(2,'0')}-26`)
+              setDateTo(`${y}-${String(m).padStart(2,'0')}-25`)
+            }} className="px-3 py-2 text-sm text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-colors font-medium border-r border-indigo-400">
+              25일
+            </button>
+            <button onClick={() => {
+              const now = new Date()
+              const y = now.getFullYear(), m = String(now.getMonth()+1).padStart(2,'0')
+              const last = new Date(now.getFullYear(), now.getMonth()+1, 0).getDate()
+              setDateFrom(`${y}-${m}-01`); setDateTo(`${y}-${m}-${String(last).padStart(2,'0')}`)
+            }} className="px-3 py-2 text-sm text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-colors font-medium">
+              당월
+            </button>
+          </div>
           <button onClick={() => { setDateFrom(''); setDateTo('') }}
             className={`px-3 py-2 text-sm rounded-lg border transition-colors ${!dateFrom && !dateTo ? 'bg-blue-600 text-white border-blue-600' : 'border-gray-300 text-gray-600 hover:bg-gray-50'}`}>
             전체

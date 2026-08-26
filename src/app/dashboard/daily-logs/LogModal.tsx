@@ -862,6 +862,8 @@ export default function LogModal({ log, dispatches, equipment = [], suppliers = 
                       className="flex-1 min-w-0 px-1 py-2 border border-blue-400 rounded-lg text-sm focus:outline-none" placeholder="작업명" />
                     <button type="button" onClick={() => toggleDirect(1, false, '버켓')} className="text-gray-400 hover:text-gray-600 text-base px-0.5 leading-none">↩</button>
                   </div>
+                ) : _isDump ? (
+                  <div className="w-[88px] shrink-0 px-1 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 text-gray-500 text-center">운반</div>
                 ) : (
                   <select value={form.work_type_1} onChange={e => {
                     if (e.target.value === '__direct__') { toggleDirect(1, true); setF('work_type_1', '') }
@@ -910,6 +912,8 @@ export default function LogModal({ log, dispatches, equipment = [], suppliers = 
                       className="flex-1 min-w-0 px-1 py-2 border border-blue-400 rounded-lg text-sm focus:outline-none" placeholder="작업명" />
                     <button type="button" onClick={() => toggleDirect(2, false, '버켓')} className="text-gray-400 hover:text-gray-600 text-base px-0.5 leading-none">↩</button>
                   </div>
+                ) : _isDump ? (
+                  <div className="w-[88px] shrink-0 px-1 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 text-gray-500 text-center">운반</div>
                 ) : (
                   <select value={form.work_type_2} onChange={e => {
                     const t = e.target.value
@@ -959,6 +963,8 @@ export default function LogModal({ log, dispatches, equipment = [], suppliers = 
                       className="flex-1 min-w-0 px-1 py-2 border border-blue-400 rounded-lg text-sm focus:outline-none" placeholder="작업명" />
                     <button type="button" onClick={() => toggleDirect(3, false, '버켓')} className="text-gray-400 hover:text-gray-600 text-base px-0.5 leading-none">↩</button>
                   </div>
+                ) : _isDump ? (
+                  <div className="w-[88px] shrink-0 px-1 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 text-gray-500 text-center">운반</div>
                 ) : (
                   <select value={form.work_type_3} onChange={e => {
                     const t = e.target.value
