@@ -31,10 +31,13 @@ function MemoWidget() {
       <button onClick={() => setOpen(o => !o)}
         className="flex w-full items-center gap-2 px-4 py-3 text-left">
         <span className="shrink-0 text-sm font-semibold text-red-600">메모장</span>
-        {!open && (
-          <span className="min-w-0 flex-1 truncate text-sm text-zinc-500">
-            {preview || '메모 없음'}
+        {!open && preview && (
+          <span className="min-w-0 flex-1 truncate" style={{ fontSize: 15, fontWeight: 600, color: '#1d4ed8', animation: 'memo-blink 1.2s ease-in-out infinite' }}>
+            {preview}
           </span>
+        )}
+        {!open && !preview && (
+          <span className="min-w-0 flex-1 truncate text-sm text-zinc-400">메모 없음</span>
         )}
         <span className="ml-auto shrink-0 text-xs text-zinc-400">{open ? '접기 ▲' : '펼치기 ▼'}</span>
       </button>
