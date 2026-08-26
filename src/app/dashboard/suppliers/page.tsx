@@ -7,7 +7,6 @@ import { createClient } from '@/lib/supabase/client'
 import { Supplier } from '@/lib/types'
 import PageHeader from '@/components/PageHeader'
 import SupplierModal from './SupplierModal'
-import CsvUploadModal from './CsvUploadModal'
 import SupplierEquipmentModal from '../equipment/SupplierEquipmentModal'
 
 export default function SuppliersPage() {
@@ -17,7 +16,6 @@ export default function SuppliersPage() {
   const [modalOpen, setModalOpen] = useState(false)   // 신규 등록 (SupplierModal)
   const [editOpen, setEditOpen] = useState(false)      // 수정 (SupplierEquipmentModal)
   const [selected, setSelected] = useState<Supplier | null>(null)
-  const [csvOpen, setCsvOpen] = useState(false)
   const [sortKey, setSortKey] = useState<string>('name')
   const [sortAsc, setSortAsc] = useState(true)
   const supabase = createClient()
@@ -56,6 +54,34 @@ export default function SuppliersPage() {
     return 0
   })
 
+  async function handleExcelDownload() {
+    const XLSX = await import('xlsx')
+    const typeLabel = (t: string) => t === 'excavator' ? '굴삭기' : t === 'dump' ? '덤프트럭' : '화물차'
+    // 업체별 장비 fetch
+    const { data: equipAll } = await supabase.from('equipment').select('*').order('plate_no')
+    const equipMap: Record<string, any[]> = {}
+    ;(equipAll ?? []).forEach((e: any) => {
+      if (!equipMap[e.supplier_id]) equipMap[e.supplier_id] = []
+      equipMap[e.supplier_id].push(e)
+    })
+    const header = ['상호','사업자등록번호','대표자','사업장주소','업태','종목','입금계좌','전화번호','장비종류','규격','차량번호','모델명']
+    const rows: any[][] = []
+    filtered.forEach(s => {
+      const equips = equipMap[s.id] ?? []
+      const bankStr = [s.bank_name, s.bank_account, s.bank_holder ? `예금주:${s.bank_holder}` : ''].filter(Boolean).join(' ')
+      const base = [s.name ?? '', s.business_no ?? '', s.ceo_name ?? '', s.address ?? '', (s as any).biz_type ?? '', (s as any).biz_item ?? '', bankStr, s.contact ?? '']
+      if (equips.length === 0) {
+        rows.push([...base, '', '', '', ''])
+      } else {
+        equips.forEach((e: any) => rows.push([...base, typeLabel(e.type), e.spec ?? '', e.plate_no ?? '', e.model ?? '']))
+      }
+    })
+    const ws = XLSX.utils.aoa_to_sheet([header, ...rows])
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, '중기업체')
+    XLSX.writeFile(wb, '중기업체목록.xlsx')
+  }
+
   function openNew() { setSelected(null); setEditOpen(true) }
   function openEdit(s: Supplier) { setSelected(s); setEditOpen(true) }
 
@@ -71,7 +97,7 @@ export default function SuppliersPage() {
         title="중기업체"
         subtitle={`${filtered.length}곳`}
         primary={{ label: '+ 업체 등록', onClick: openNew }}
-        secondary={[{ label: 'CSV 업로드', onClick: () => setCsvOpen(true) }]}
+        secondary={[{ label: '⬇ 엑셀 다운로드', onClick: handleExcelDownload }]}
       />
 
       <div className="sticky top-0 z-10 -mx-4 mb-4 bg-[#f3f0ea] px-4 py-2 md:static md:mx-0 md:bg-transparent md:p-0 md:pb-4">
@@ -173,10 +199,6 @@ export default function SuppliersPage() {
           onClose={() => setEditOpen(false)}
           onSaved={() => { setEditOpen(false); load() }}
         />
-      )}
-      {csvOpen && (
-        <CsvUploadModal onClose={() => setCsvOpen(false)}
-          onSaved={() => { setCsvOpen(false); load() }} />
       )}
     </div>
   )

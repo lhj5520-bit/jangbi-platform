@@ -6,7 +6,6 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Client } from '@/lib/types'
 import ClientModal from './ClientModal'
-import CsvUploadModal from './CsvUploadModal'
 import PageHeader from '@/components/PageHeader'
 
 export default function ClientsPage() {
@@ -15,7 +14,6 @@ export default function ClientsPage() {
   const [search, setSearch] = useState('')
   const [modalOpen, setModalOpen] = useState(false)
   const [selected, setSelected] = useState<Client | null>(null)
-  const [csvOpen, setCsvOpen] = useState(false)
   const [sortKey, setSortKey] = useState<string>('name')
   const [sortAsc, setSortAsc] = useState(true)
   const supabase = createClient()
@@ -54,6 +52,16 @@ export default function ClientsPage() {
     return 0
   })
 
+  async function handleExcelDownload() {
+    const XLSX = await import('xlsx')
+    const header = ['업체명','대표자','연락처','사업자번호','주소','이메일','메모']
+    const rows = filtered.map(c => [c.name ?? '', c.ceo_name ?? '', c.contact ?? '', c.business_no ?? '', c.address ?? '', (c as any).email ?? '', (c as any).memo ?? ''])
+    const ws = XLSX.utils.aoa_to_sheet([header, ...rows])
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, '발주처')
+    XLSX.writeFile(wb, '발주처목록.xlsx')
+  }
+
   async function handleDelete(id: string) {
     if (!confirm('삭제하시겠습니까?')) return
     await supabase.from('clients').delete().eq('id', id)
@@ -66,7 +74,7 @@ export default function ClientsPage() {
         title="발주처"
         subtitle={`${filtered.length}곳`}
         primary={{ label: '+ 발주처 등록', onClick: () => { setSelected(null); setModalOpen(true) } }}
-        secondary={[{ label: 'CSV 업로드', onClick: () => setCsvOpen(true) }]}
+        secondary={[{ label: '⬇ 엑셀 다운로드', onClick: handleExcelDownload }]}
       />
 
       <div className="sticky top-0 z-10 -mx-4 mb-4 bg-[#f3f0ea] px-4 py-2 md:static md:mx-0 md:bg-transparent md:p-0 md:pb-4">

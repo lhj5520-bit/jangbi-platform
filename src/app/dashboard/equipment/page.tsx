@@ -6,7 +6,6 @@ import React, { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Equipment, Supplier } from '@/lib/types'
 import EquipmentModal from './EquipmentModal'
-import EquipmentExcelUploadModal from './ExcelUploadModal'
 
 const ExcavatorIcon = ({ size = 20 }: { size?: number }) => (
   <img src="/icons/excavator.svg" alt="굴삭기" width={size} height={size} style={{ display: 'inline-block' }} />
@@ -38,7 +37,6 @@ export default function EquipmentPage() {
   const [typeFilter, setTypeFilter] = useState<'all' | 'excavator' | 'dump' | 'truck'>('all')
   const [modalOpen, setModalOpen] = useState(false)
   const [selected, setSelected] = useState<Equipment | null>(null)
-  const [excelOpen, setExcelOpen] = useState(false)
   const [sortKey, setSortKey] = useState<string>('plate_no')
   const [sortAsc, setSortAsc] = useState(true)
   const [sharingId, setSharingId] = useState<string | null>(null)
@@ -154,14 +152,25 @@ export default function EquipmentPage() {
     )
   }
 
+  async function handleExcelDownload() {
+    const XLSX = await import('xlsx')
+    const typeLabel = (t: string) => t === 'excavator' ? '굴삭기' : t === 'dump' ? '덤프트럭' : '화물차'
+    const header = ['차량번호','차종','규격','모델','업체명','검사만료일','메모']
+    const rows = filtered.map(e => [e.plate_no ?? '', typeLabel(e.type), e.spec ?? '', e.model ?? '', (e.supplier as Supplier)?.name ?? '', e.inspection_expire ?? '', (e as any).memo ?? ''])
+    const ws = XLSX.utils.aoa_to_sheet([header, ...rows])
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, '장비')
+    XLSX.writeFile(wb, '장비목록.xlsx')
+  }
+
   return (
     <div className="p-4 md:p-8">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-900">장비</h1>
         <div className="flex gap-2">
-          <button onClick={() => setExcelOpen(true)}
-            className="bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
-            📂 엑셀 업로드
+          <button onClick={handleExcelDownload}
+            className="bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium px-4 py-2 rounded-lg transition-colors">
+            ⬇ 엑셀 다운로드
           </button>
           <button onClick={() => { setSelected(null); setModalOpen(true) }}
             className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
@@ -306,11 +315,6 @@ export default function EquipmentPage() {
         <EquipmentModal equipment={selected} suppliers={suppliers}
           onClose={() => setModalOpen(false)}
           onSaved={() => { setModalOpen(false); load() }} />
-      )}
-      {excelOpen && (
-        <EquipmentExcelUploadModal suppliers={suppliers}
-          onClose={() => setExcelOpen(false)}
-          onSaved={() => { setExcelOpen(false); load() }} />
       )}
     </div>
   )
