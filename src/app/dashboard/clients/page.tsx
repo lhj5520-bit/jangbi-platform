@@ -167,10 +167,6 @@ export default function ClientsPage() {
         <ClientModal client={selected} onClose={() => setModalOpen(false)}
           onSaved={() => { setModalOpen(false); load() }} />
       )}
-      {csvOpen && (
-        <CsvUploadModal onClose={() => setCsvOpen(false)}
-          onSaved={() => { setCsvOpen(false); load() }} />
-      )}
     </div>
   )
 }
