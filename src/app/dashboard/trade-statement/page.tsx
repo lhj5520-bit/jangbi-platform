@@ -802,8 +802,16 @@ export default function TradeStatementPage() {
               const prevM = m === 1 ? 12 : m - 1
               setDateFrom(`${prevY}-${String(prevM).padStart(2,'0')}-26`)
               setDateTo(`${y}-${String(m).padStart(2,'0')}-25`)
-            }} className="px-3 py-2 text-sm text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-colors font-medium">
+            }} className="px-3 py-2 text-sm text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-colors font-medium border-r border-indigo-400">
               25일
+            </button>
+            <button onClick={() => {
+              const now = new Date()
+              const y = now.getFullYear(), m = String(now.getMonth()+1).padStart(2,'0')
+              const last = new Date(now.getFullYear(), now.getMonth()+1, 0).getDate()
+              setDateFrom(`${y}-${m}-01`); setDateTo(`${y}-${m}-${String(last).padStart(2,'0')}`)
+            }} className="px-3 py-2 text-sm text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-colors font-medium">
+              당월
             </button>
           </div>
           <select value={selectedClient} onChange={e => applyClientFilter(e.target.value)}
