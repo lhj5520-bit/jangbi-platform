@@ -252,7 +252,8 @@ export default function TradeStatementPage() {
   const [tsSavedList, setTsSavedList] = useState<{ id: string; label: string }[]>([])
 
   async function loadTsList() {
-    const { data } = await supabase.from('trade_statements').select('id, client_name, site_name, date_from, created_at').order('created_at', { ascending: false }).limit(60)
+    const { data, error } = await supabase.from('trade_statements').select('id, client_name, site_name, date_from, created_at').order('created_at', { ascending: false }).limit(60)
+    if (error) { console.error('trade_statements 로드 오류:', error); return }
     if (data) setTsSavedList(data.map((d: any) => ({ id: d.id, label: `${(d.date_from ?? '').slice(0, 7)} ${d.client_name ?? ''} ${d.site_name ?? ''}`.trim() })))
   }
 
@@ -309,11 +310,14 @@ export default function TradeStatementPage() {
         supplier_id: selectedSupId || null,
       }
       if (tsSavedId) {
-        await supabase.from('trade_statements').update(tsPayload).eq('id', tsSavedId)
+        const { error: updErr } = await supabase.from('trade_statements').update(tsPayload).eq('id', tsSavedId)
+        if (updErr) { console.error('update 오류:', updErr); alert('저장 실패: ' + updErr.message); setSavingCompany(false); return }
       } else {
-        const { data: tsData } = await supabase.from('trade_statements').insert(tsPayload).select('id').single()
-        if (tsData?.id) { setTsSavedId(tsData.id); await loadTsList() }
+        const { data: tsData, error: insErr } = await supabase.from('trade_statements').insert(tsPayload).select('id').single()
+        if (insErr) { console.error('insert 오류:', insErr); alert('저장 실패: ' + insErr.message); setSavingCompany(false); return }
+        if (tsData?.id) setTsSavedId(tsData.id)
       }
+      await loadTsList()
       alert('저장되었습니다.')
     } catch {
       alert('저장 중 오류가 발생했습니다.')
