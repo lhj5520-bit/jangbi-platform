@@ -97,6 +97,7 @@ export default function TradeStatementPage() {
   const [editRows, setEditRows] = useState<EditRow[]>([])
   // 배차내역서에서 넘어온 행 임시 보관 (load()가 덮어쓰기 전에 복원용)
   const fromDispatchRef = useRef<{ rows: EditRow[]; client: string } | null>(null)
+  const loadingFromSavedRef = useRef<{ rows: EditRow[]; client: string; site: string } | null>(null)
 
   const [company, setCompany] = useState(DEFAULT_COMPANY)
   const [editingCompany, setEditingCompany] = useState(false)
@@ -260,12 +261,20 @@ export default function TradeStatementPage() {
   async function loadTsRecord(id: string) {
     const { data } = await supabase.from('trade_statements').select('*').eq('id', id).single()
     if (!data) return
-    setRecipientName(data.client_name ?? '')
-    setSiteName(data.site_name ?? '')
+    const rows = data.rows ? (data.rows as any[]).map((r: any) => ({ ...r })) : []
+    // ref에 미리 저장 → load() 가 dateFrom/dateTo 변경으로 재실행돼도 덮어쓰지 않음
+    loadingFromSavedRef.current = {
+      rows,
+      client: data.client_name ?? '',
+      site: data.site_name ?? '',
+    }
+    setTsSavedId(id)
     if (data.date_from) setDateFrom(data.date_from)
     if (data.date_to) setDateTo(data.date_to)
-    if (data.rows) setEditRows((data.rows as any[]).map((r: any) => ({ ...r })))
-    setTsSavedId(id)
+    // 날짜 변경이 없을 경우 load() 재실행 안 되므로 직접 세팅
+    setRecipientName(data.client_name ?? '')
+    setSiteName(data.site_name ?? '')
+    setEditRows(rows)
   }
 
   const [savingCompany, setSavingCompany] = useState(false)
@@ -643,8 +652,15 @@ export default function TradeStatementPage() {
     setSites(uniqueSites)
     setAllClientRows(filtered)
     setSelectedSite('')
+    // 저장된 거래명세서에서 불러온 데이터가 있으면 DB 행 대신 사용
+    if (loadingFromSavedRef.current) {
+      const { rows, client: savedClient, site: savedSite } = loadingFromSavedRef.current
+      loadingFromSavedRef.current = null
+      setEditRows(rows)
+      if (savedClient) { setSelectedClient(savedClient); setRecipientName(savedClient) }
+      if (savedSite) setSiteName(savedSite)
     // 배차내역서에서 넘어온 데이터가 있으면 DB 행 대신 사용
-    if (fromDispatchRef.current) {
+    } else if (fromDispatchRef.current) {
       const { rows, client: dispClient } = fromDispatchRef.current
       fromDispatchRef.current = null
       setEditRows(rows)
