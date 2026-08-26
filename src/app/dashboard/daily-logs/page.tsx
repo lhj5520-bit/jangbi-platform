@@ -119,7 +119,7 @@ export default function WorkConfirmPage() {
       const driver = ((d as any).driver_name ?? '').toLowerCase()
       const equip = getEquipLabel(d).toLowerCase()
       const sup = ((d.supplier as any)?.name ?? '').toLowerCase()
-      const plate = ((d as any).equipment?.plate_no ?? '').toLowerCase()
+      const plate = (((d as any).equipment?.plate_no ?? '') + ' ' + ((d as any).equipment_text ?? '')).toLowerCase()
       if (!site.includes(q) && !client.includes(q) && !driver.includes(q) && !equip.includes(q) && !sup.includes(q) && !plate.includes(q)) return false
     }
     return true
