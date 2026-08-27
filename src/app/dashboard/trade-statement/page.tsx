@@ -840,12 +840,12 @@ export default function TradeStatementPage() {
               setCompany(DEFAULT_COMPANY)
               setBankText(`입금계좌 : ${DEFAULT_COMPANY.bank}  예금주 : ${DEFAULT_COMPANY.name}(${DEFAULT_COMPANY.phone})`)
             }
-          }} className="no-print text-sm font-semibold px-4 py-2 rounded-xl flex items-center gap-2 shadow bg-gray-600 hover:bg-gray-700 text-white">
+          }} className="no-print text-sm font-semibold px-4 py-2 rounded-xl flex items-center gap-2 shadow bg-white hover:bg-red-50 text-red-600 border border-red-400">
             🏠 기본정보
           </button>
           <button onClick={() => setEditingCompany(true)}
             className="no-print text-sm font-semibold px-4 py-2 rounded-xl flex items-center gap-2 shadow bg-purple-600 hover:bg-purple-700 text-white">
-            ✏️ 회사 정보 수정
+            ✏️ 타업체
           </button>
           <button onClick={handleSaveCompanyInline} disabled={savingCompany}
             className="no-print text-sm font-semibold px-4 py-2 rounded-xl flex items-center gap-2 shadow bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white">
