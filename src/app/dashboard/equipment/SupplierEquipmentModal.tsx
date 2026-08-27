@@ -438,8 +438,8 @@ export default function SupplierEquipmentModal({
 
   // ── 저장 ───────────────────────────────────────────────────
   async function handleSave() {
-    // 업체 선택 없이 장비 신규 저장 시도하면 차단
-    if (!allowCreate && !isEdit && !selectedSupId) {
+    // 업체 선택 없이 장비 신규 저장 시도하면 차단 (타사는 업체 필수, 자차는 선택사항)
+    if (!allowCreate && !isEdit && !selectedSupId && ownership !== 'own') {
       alert('중기업체를 선택해 주세요.')
       return
     }
@@ -490,10 +490,10 @@ export default function SupplierEquipmentModal({
 
     // 장비 → DB 저장 (규격/차량번호/모델명 중 하나라도 있을 때)
     const eqSupplierId = form.supplier_id || activeSupId
-    if (eqSupplierId && (form.plate_no || form.spec || form.model)) {
+    if ((eqSupplierId || ownership === 'own') && (form.plate_no || form.spec || form.model)) {
       // ownership은 신규 등록 시에만 지정 — 기존 장비의 자차/타사 구분을 덮어쓰지 않음
       const payload = {
-        supplier_id: eqSupplierId,
+        supplier_id: eqSupplierId || null,
         type: form.type,
         plate_no: form.plate_no || null,
         model: form.model || null,
