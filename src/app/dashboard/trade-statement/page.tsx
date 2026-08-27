@@ -830,6 +830,19 @@ export default function TradeStatementPage() {
             className="px-3 py-2 border border-dashed border-gray-400 text-gray-600 text-sm rounded-lg hover:bg-gray-50">
             + 행 추가
           </button>
+          <button onClick={() => {
+            const sup = supplierList.find((s: any) => s.name === '㈜가온건설중기' || s.name === '(주)가온건설중기')
+            if (sup) {
+              setSelectedSupId(sup.id)
+              try { localStorage.setItem('ts_last_sup_id', sup.id) } catch {}
+            } else {
+              setSelectedSupId('')
+              setCompany(DEFAULT_COMPANY)
+              setBankText(`입금계좌 : ${DEFAULT_COMPANY.bank}  예금주 : ${DEFAULT_COMPANY.name}(${DEFAULT_COMPANY.phone})`)
+            }
+          }} className="no-print text-sm font-semibold px-4 py-2 rounded-xl flex items-center gap-2 shadow bg-gray-600 hover:bg-gray-700 text-white">
+            🏠 기본정보
+          </button>
           <button onClick={() => setEditingCompany(true)}
             className="no-print text-sm font-semibold px-4 py-2 rounded-xl flex items-center gap-2 shadow bg-purple-600 hover:bg-purple-700 text-white">
             ✏️ 회사 정보 수정

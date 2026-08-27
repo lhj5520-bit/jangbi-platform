@@ -237,7 +237,12 @@ export default function WorkConfirmPage() {
           <td className="px-4 py-3 text-gray-500 text-xs">{dateTd}</td>
           <td className="px-4 py-3 text-gray-600">{equipTd}</td>
           <td className="px-4 py-3 text-gray-500 text-xs font-medium">{plateTd}</td>
-          <td className="px-4 py-3 text-gray-500"><span className="text-xs font-bold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded">{m.type}</span></td>
+          <td className="px-4 py-3 text-gray-500"><span className={`text-xs font-bold px-1.5 py-0.5 rounded ${
+            m.type === '운반' ? 'text-green-700 bg-green-50' :
+            m.type === '뿌레카' ? 'text-purple-700 bg-purple-50' :
+            m.type === '집게' ? 'text-orange-700 bg-orange-50' :
+            'text-blue-700 bg-blue-50'
+          }`}>{m.type}</span></td>
           <td className="px-4 py-3 text-right text-gray-500">{m.h ? `${m.h}h` : '-'}</td>
           <td className="px-4 py-3 text-right text-gray-900">{m.p ? m.p.toLocaleString() + '원' : '-'}</td>
           <td className="px-4 py-3 text-right text-blue-700 font-medium">{m.amt ? m.amt.toLocaleString() + '원' : '-'}</td>
