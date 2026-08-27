@@ -253,7 +253,7 @@ export default function TradeStatementPage() {
   const [tsSavedList, setTsSavedList] = useState<{ id: string; label: string }[]>([])
 
   async function loadTsList() {
-    const { data, error } = await supabase.from('trade_statements').select('id, client_name, site_name, date_from, created_at').order('created_at', { ascending: false }).limit(60)
+    const { data, error } = await supabase.from('trade_statements').select('id, client_name, site_name, date_from, created_at').order('date_from', { ascending: false }).limit(60)
     if (error) { console.error('trade_statements 로드 오류:', error); return }
     if (data) setTsSavedList(data.map((d: any) => ({ id: d.id, label: `${(d.date_from ?? '').slice(0, 7)} ${d.client_name ?? ''} ${d.site_name ?? ''}`.trim() })))
   }
