@@ -13,8 +13,18 @@ function MemoWidget() {
   const [open, setOpen] = useState(false)
   useEffect(() => {
     supabase.from('app_settings').select('value').eq('key', 'dashboard_memo').maybeSingle()
-      .then(({ data }: any) => {
-        if (data?.value != null) setText(data.value)
+      .then(async ({ data }: any) => {
+        if (data?.value != null) {
+          setText(data.value)
+        } else {
+          // 기존 auth 메타데이터 또는 localStorage에서 마이그레이션
+          const { data: { user } } = await supabase.auth.getUser()
+          const oldMemo = user?.user_metadata?.dashboard_memo ?? localStorage.getItem('dashboard_memo') ?? ''
+          if (oldMemo) {
+            setText(oldMemo)
+            await supabase.from('app_settings').upsert({ key: 'dashboard_memo', value: oldMemo }, { onConflict: 'key' })
+          }
+        }
       })
   }, [])
   async function save() {
