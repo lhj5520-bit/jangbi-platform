@@ -275,6 +275,7 @@ export default function EquipmentList({ ownership }: Props) {
                 { key: 'ceo', label: '대표자', align: 'left' },
                 { key: 'inspection_expire', label: '정기검사', align: 'left' },
                 { key: 'insurance_expire', label: '보험만기', align: 'left' },
+                { key: 'memo', label: '비고', align: 'left' },
               ].map(col => (
                 <th key={col.key}
                   className={`px-5 py-3 font-semibold text-gray-600 cursor-pointer hover:text-blue-600 select-none text-${col.align}`}
@@ -287,9 +288,9 @@ export default function EquipmentList({ ownership }: Props) {
           </thead>
           <tbody className="divide-y divide-gray-100">
             {loading ? (
-              <tr><td colSpan={8} className="px-5 py-8 text-center text-gray-400">불러오는 중...</td></tr>
+              <tr><td colSpan={9} className="px-5 py-8 text-center text-gray-400">불러오는 중...</td></tr>
             ) : filtered.length === 0 ? (
-              <tr><td colSpan={8} className="px-5 py-8 text-center text-gray-400">등록된 장비가 없습니다.</td></tr>
+              <tr><td colSpan={9} className="px-5 py-8 text-center text-gray-400">등록된 장비가 없습니다.</td></tr>
             ) : filtered.map(e => (
               <tr key={e.id} className="hover:bg-gray-50 transition-colors">
                 <td className="px-5 py-3">{e.type === 'excavator' ? <span className="flex items-center gap-1"><ExcavatorIcon size={18} />굴삭기</span> : e.type === 'dump' ? '🚛 덤프' : '🚚 화물차'}</td>
@@ -303,6 +304,7 @@ export default function EquipmentList({ ownership }: Props) {
                 <td className="px-5 py-3 text-sm">
                   {(e as any).insurance_expire ? checkExpire((e as any).insurance_expire) : <span className="text-gray-300">-</span>}
                 </td>
+                <td className="px-5 py-3 text-sm text-gray-500">{e.memo ?? ''}</td>
                 <td className="px-5 py-3">
                   <div className="flex gap-2 justify-end">
                     <button onClick={() => { setSelected(e); setModalOpen(true) }} className="text-xs text-blue-600 hover:underline">수정</button>
