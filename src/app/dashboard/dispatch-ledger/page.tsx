@@ -1123,7 +1123,7 @@ export default function DispatchLedgerPage() {
             ) : tableRows}
             {!loading && filtered.length > 0 && (
               <tr className="bg-gray-50 font-semibold border-t-2 border-gray-300">
-                <td className={td}>합계{selectedRows.size > 0 ? ` (선택 ${selectedRows.size}건)` : ''}</td>
+                <td className={td}>합계{selectedRows.size > 0 ? ` (선택 ${exportRows.length}건)` : ''}</td>
                 <td className={td + ' text-gray-500'}>{exportRows.length}일</td>
                 <td colSpan={5}></td>
                 <td className={tdr + ' text-blue-700'}>{totalSales.toLocaleString()}</td>
