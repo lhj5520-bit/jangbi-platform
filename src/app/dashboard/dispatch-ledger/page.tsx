@@ -1197,7 +1197,8 @@ export default function DispatchLedgerPage() {
         const period = `${dateFrom.slice(0, 7).replace('-', '년 ')}월`
 
         function handleKakao() {
-          const lines = [`[${driverDetailName}] ${period} 정산 안내\n`]
+          const clientNames = [...new Set(sorted.map(r => r.client_name).filter(Boolean))].join(', ')
+          const lines = [`[${driverDetailName}] ${period} 정산 안내${clientNames ? ` - ${clientNames}` : ''}\n`]
           sorted.forEach(r => {
             const sales = r.sales_amount || (wages[r.id] ?? 0)
             const comm = commissions[r.id] ?? r.commission_amount ?? 0
