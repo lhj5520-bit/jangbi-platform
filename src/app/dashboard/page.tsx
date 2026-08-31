@@ -32,18 +32,20 @@ function MemoWidget() {
     setSaved(true)
     setTimeout(() => setSaved(false), 1500)
   }
-  const preview = text.trim().split('\n')[0]
+  const previewLines = text.trim().split('\n').filter(l => l.trim()).slice(0, 2)
   return (
     <div className="mb-5 rounded-lg border border-red-300 bg-white shadow-sm">
       <button onClick={() => setOpen(o => !o)}
-        className="flex w-full items-center gap-2 px-4 py-3 text-left">
-        <span className="shrink-0 text-sm font-semibold text-red-600">메모장</span>
-        {!open && preview && (
-          <span className="min-w-0 flex-1 truncate" style={{ fontSize: 15, fontWeight: 600, color: '#1d4ed8', animation: 'memo-blink 1.2s ease-in-out infinite' }}>
-            {preview}
+        className="flex w-full items-start gap-2 px-4 py-3 text-left">
+        <span className="shrink-0 text-sm font-semibold text-red-600 mt-0.5">메모장</span>
+        {!open && previewLines.length > 0 && (
+          <span className="min-w-0 flex-1" style={{ animation: 'memo-blink 1.2s ease-in-out infinite' }}>
+            {previewLines.map((line, i) => (
+              <span key={i} className="block truncate" style={{ fontSize: 15, fontWeight: 600, color: '#1d4ed8' }}>{line}</span>
+            ))}
           </span>
         )}
-        {!open && !preview && (
+        {!open && previewLines.length === 0 && (
           <span className="min-w-0 flex-1 truncate text-sm text-zinc-400">메모 없음</span>
         )}
         <span className="ml-auto shrink-0 text-xs text-zinc-400">{open ? '접기 ▲' : '펼치기 ▼'}</span>
