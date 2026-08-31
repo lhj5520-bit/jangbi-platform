@@ -1038,12 +1038,12 @@ export default function LogModal({ log, dispatches, equipment = [], suppliers = 
               </div>
             </Row>
 
-            <Row label="수수료">
+            <Row label="공제액">
               <div className="relative">
                 <input type="number" value={dispatch.commission_amount}
                   onChange={e => handlePriceChange('commission_amount', e.target.value)}
                   onWheel={e => e.currentTarget.blur()}
-                  className={inp} placeholder="수수료" />
+                  className={inp} placeholder="공제액" />
                 <span className="absolute right-3 top-2 text-sm text-gray-400">원</span>
               </div>
             </Row>

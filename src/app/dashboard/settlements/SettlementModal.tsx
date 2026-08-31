@@ -98,7 +98,7 @@ export default function SettlementModal({ settlement, suppliers, month, onClose,
               <span className="absolute right-3 top-2 text-sm text-gray-400">원</span>
             </div>
           </Row>
-          <Row label="수수료">
+          <Row label="공제액">
             <div className="relative">
               <input type="number" value={form.commission_amount} onChange={e => handleCommissionChange(e.target.value)}
                 className={inp} placeholder="0" />

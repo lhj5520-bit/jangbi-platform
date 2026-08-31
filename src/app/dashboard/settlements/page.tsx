@@ -172,7 +172,7 @@ export default function SettlementsPage() {
             </div>
             <div className="grid grid-cols-3 gap-2 text-center bg-gray-50 rounded-lg p-2 mb-3">
               <div><div className="text-xs text-gray-400">청구</div><div className="text-sm font-medium">{s.gross_amount?.toLocaleString()}</div></div>
-              <div><div className="text-xs text-gray-400">수수료</div><div className="text-sm font-medium text-orange-600">{s.commission_amount?.toLocaleString()}</div></div>
+              <div><div className="text-xs text-gray-400">공제액</div><div className="text-sm font-medium text-orange-600">{s.commission_amount?.toLocaleString()}</div></div>
               <div><div className="text-xs text-gray-400">지급</div><div className="text-sm font-bold">{s.net_amount?.toLocaleString()}</div></div>
             </div>
             {s.paid_at && <div className="text-xs text-gray-400 mb-2">지급일: {new Date(s.paid_at).toLocaleDateString('ko-KR')}</div>}
@@ -198,7 +198,7 @@ export default function SettlementsPage() {
               <th className="text-left px-5 py-3 font-semibold text-gray-600">중기업체</th>
               <th className="text-left px-5 py-3 font-semibold text-gray-600">정산기간</th>
               <th className="text-right px-5 py-3 font-semibold text-gray-600">청구금액</th>
-              <th className="text-right px-5 py-3 font-semibold text-gray-600">수수료</th>
+              <th className="text-right px-5 py-3 font-semibold text-gray-600">공제액</th>
               <th className="text-right px-5 py-3 font-semibold text-gray-600">지급금액</th>
               <th className="text-left px-5 py-3 font-semibold text-gray-600">상태</th>
               <th className="text-left px-5 py-3 font-semibold text-gray-600">지급일</th>

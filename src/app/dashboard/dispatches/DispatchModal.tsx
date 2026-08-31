@@ -213,7 +213,7 @@ export default function DispatchModal({ dispatch, equipment, suppliers, onClose,
               {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
             {selectedSupplier && (
-              <p className="text-xs text-gray-400 mt-1">기본 수수료: {selectedSupplier.commission_rate?.toLocaleString()}원</p>
+              <p className="text-xs text-gray-400 mt-1">기본 공제액: {selectedSupplier.commission_rate?.toLocaleString()}원</p>
             )}
           </Row>
 
@@ -314,7 +314,7 @@ export default function DispatchModal({ dispatch, equipment, suppliers, onClose,
               </div>
             </Row>
 
-            <Row label="수수료 금액">
+            <Row label="공제액">
               <div className="relative">
                 <input type="number" value={form.commission_amount}
                   onChange={e => handlePriceChange(String(form.client_unit_price), e.target.value)}
@@ -332,7 +332,7 @@ export default function DispatchModal({ dispatch, equipment, suppliers, onClose,
               <span className="absolute right-3 top-2 text-sm text-gray-400">원</span>
             </div>
             {workItems.length === 0 && (
-              <p className="text-xs text-gray-400 mt-1">청구단가 - 수수료 = 자동계산</p>
+              <p className="text-xs text-gray-400 mt-1">청구단가 - 공제액 = 자동계산</p>
             )}
           </Row>
 

@@ -398,7 +398,7 @@ export default function DispatchLedgerPage() {
       '기사명': r.engineer_name,
       '배차금액': r.sales_amount || wages[r.id] || 0,
       '미수금': paid[r.id] ? 0 : (r.sales_amount || wages[r.id] || 0),
-      '수수료': commissions[r.id] ?? r.commission_amount ?? 0,
+      '공제액': commissions[r.id] ?? r.commission_amount ?? 0,
       '노무비': wages[r.id] ?? r.engineer_daily_wage ?? 0,
       '비고': r.memo ?? '',
     }))
@@ -978,11 +978,11 @@ export default function DispatchLedgerPage() {
             급여 일괄입력
           </button>
           <input type="text" value={bulkCommission} onChange={e => setBulkCommission(e.target.value)}
-            placeholder="수수료 입력..."
+            placeholder="공제액 입력..."
             className="px-3 py-1.5 border border-orange-300 rounded-lg text-sm focus:outline-none w-32" />
           <button onClick={handleBulkCommission} disabled={!bulkCommission.trim()}
             className="bg-orange-500 hover:bg-orange-600 disabled:opacity-40 text-white text-sm font-medium px-3 py-1.5 rounded-lg">
-            수수료 일괄입력
+            공제액 일괄입력
           </button>
           <button onClick={() => handleBulkInvoice(true)}
             className="bg-green-600 hover:bg-green-700 text-white text-sm font-medium px-3 py-1.5 rounded-lg">
@@ -1109,7 +1109,7 @@ export default function DispatchLedgerPage() {
               <th className={th} onClick={() => handleSort('client_name')}>발주처명{arrow('client_name')}</th>
               <th className={th} onClick={() => handleSort('site_name')}>현장명{arrow('site_name')}</th>
               <th className={th} onClick={() => handleSort('engineer_name')}>운전자명{arrow('engineer_name')}</th>
-              <th className={thR}>수수료</th>
+              <th className={thR}>공제액</th>
               <th className={thR} onClick={() => handleSort('engineer_daily_wage')}>급여{arrow('engineer_daily_wage')}</th>
               <th className={th}>비고</th>
               <th className={th} onClick={() => handleSort('invoice_status')}>청구{arrow('invoice_status')}</th>
@@ -1160,7 +1160,7 @@ export default function DispatchLedgerPage() {
                   <th className="px-4 py-2 text-left text-xs text-gray-500 font-medium">차주명</th>
                   <th className="px-4 py-2 text-right text-xs text-gray-500 font-medium">건수</th>
                   <th className="px-4 py-2 text-right text-xs text-gray-500 font-medium">매출액</th>
-                  <th className="px-4 py-2 text-right text-xs text-gray-500 font-medium">수수료</th>
+                  <th className="px-4 py-2 text-right text-xs text-gray-500 font-medium">공제액</th>
                   <th className="px-4 py-2 text-right text-xs text-gray-500 font-medium">공급가액</th>
                 </tr>
               </thead>
@@ -1190,30 +1190,26 @@ export default function DispatchLedgerPage() {
       {/* 차주 상세 모달 */}
       {driverDetailName && (() => {
         const driverRows = exportRows.filter(r => (r.driver_name || '(미지정)') === driverDetailName)
-        const byClient: Record<string, { count: number; sales: number; commission: number }> = {}
-        driverRows.forEach(r => {
-          const c = r.client_name || '(미지정)'
-          if (!byClient[c]) byClient[c] = { count: 0, sales: 0, commission: 0 }
-          byClient[c].count += 1
-          byClient[c].sales += r.sales_amount || (wages[r.id] ?? 0)
-          byClient[c].commission += commissions[r.id] ?? r.commission_amount ?? 0
-        })
-        const clients = Object.entries(byClient).sort((a, b) => b[1].sales - a[1].sales)
-        const totalSup = clients.reduce((s, [, v]) => s + v.sales - v.commission, 0)
+        const sorted = [...driverRows].sort((a, b) => a.log_date < b.log_date ? -1 : 1)
+        const totalSales = sorted.reduce((s, r) => s + (r.sales_amount || (wages[r.id] ?? 0)), 0)
+        const totalComm = sorted.reduce((s, r) => s + (commissions[r.id] ?? r.commission_amount ?? 0), 0)
+        const totalSup = totalSales - totalComm
         const period = `${dateFrom.slice(0, 7).replace('-', '년 ')}월`
 
         function handleKakao() {
           const lines = [`[${driverDetailName}] ${period} 정산 안내\n`]
-          clients.forEach(([c, v]) => {
-            const sup = v.sales - v.commission
-            lines.push(`• ${c}: ${sup.toLocaleString()}원`)
+          sorted.forEach(r => {
+            const sales = r.sales_amount || (wages[r.id] ?? 0)
+            const comm = commissions[r.id] ?? r.commission_amount ?? 0
+            const sup = sales - comm
+            const date = r.log_date.slice(5)
+            lines.push(`${date} ${r.equipment_type || ''} ${r.plate_no || ''} ${(r.work_type_1 || '')} ${r.operating_hours}h → ${sup.toLocaleString()}원`)
           })
           lines.push(`\n총 공급가액: ${totalSup.toLocaleString()}원`)
           const text = lines.join('\n')
           if (navigator.share) {
             navigator.share({ text }).catch(() => {})
           } else {
-            window.open(`https://open.kakao.com/`)
             navigator.clipboard?.writeText(text)
             alert('클립보드에 복사되었습니다. 카카오톡에서 붙여넣기 해주세요.')
           }
@@ -1221,33 +1217,52 @@ export default function DispatchLedgerPage() {
 
         return (
           <div className="fixed inset-0 bg-black/40 flex items-end md:items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl w-full max-w-sm shadow-xl overflow-hidden">
-              <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
+            <div className="bg-white rounded-2xl w-full max-w-md shadow-xl overflow-hidden flex flex-col max-h-[85vh]">
+              <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 shrink-0">
                 <div>
                   <div className="font-bold text-gray-900 text-base">{driverDetailName}</div>
-                  <div className="text-xs text-gray-400 mt-0.5">{period} 공급가액 내역</div>
+                  <div className="text-xs text-gray-400 mt-0.5">{period} · {sorted.length}건 · 공급가액 <span className="text-blue-600 font-semibold">{totalSup.toLocaleString()}원</span></div>
                 </div>
                 <button onClick={() => setDriverDetailName(null)} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
               </div>
-              <div className="px-5 py-4 space-y-2">
-                {clients.map(([c, v]) => {
-                  const sup = v.sales - v.commission
-                  return (
-                    <div key={c} className="flex items-start justify-between gap-2">
-                      <div>
-                        <div className="text-sm font-medium text-gray-800">{c}</div>
-                        <div className="text-xs text-gray-400">{v.count}건 · 매출 {v.sales.toLocaleString()}{v.commission > 0 ? ` - 수수료 ${v.commission.toLocaleString()}` : ''}</div>
-                      </div>
-                      <div className="text-sm font-semibold text-blue-700 shrink-0">{sup.toLocaleString()}원</div>
-                    </div>
-                  )
-                })}
-                <div className="pt-3 border-t border-gray-200 flex items-center justify-between">
-                  <span className="text-sm font-semibold text-gray-700">총 공급가액</span>
-                  <span className="text-base font-bold text-blue-700">{totalSup.toLocaleString()}원</span>
-                </div>
+              <div className="overflow-y-auto flex-1">
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-50 sticky top-0">
+                    <tr>
+                      <th className="px-3 py-2 text-left text-xs text-gray-500 font-medium">날짜</th>
+                      <th className="px-3 py-2 text-left text-xs text-gray-500 font-medium">차량/작업</th>
+                      <th className="px-3 py-2 text-left text-xs text-gray-500 font-medium">발주처</th>
+                      <th className="px-3 py-2 text-right text-xs text-gray-500 font-medium">공급가액</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {sorted.map(r => {
+                      const sales = r.sales_amount || (wages[r.id] ?? 0)
+                      const comm = commissions[r.id] ?? r.commission_amount ?? 0
+                      const sup = sales - comm
+                      return (
+                        <tr key={r.id} className="hover:bg-gray-50">
+                          <td className="px-3 py-2 text-gray-600 whitespace-nowrap">{r.log_date.slice(5)}</td>
+                          <td className="px-3 py-2">
+                            <div className="text-gray-800 font-medium">{r.plate_no || r.equipment_type}</div>
+                            <div className="text-xs text-gray-400">{r.work_type_1 || ''} {r.operating_hours}h</div>
+                          </td>
+                          <td className="px-3 py-2 text-xs text-gray-500">{r.client_name || '-'}</td>
+                          <td className="px-3 py-2 text-right font-semibold text-blue-700 whitespace-nowrap">{sup.toLocaleString()}</td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                  <tfoot className="bg-gray-50 border-t-2 border-gray-200 sticky bottom-0">
+                    <tr>
+                      <td colSpan={2} className="px-3 py-2 text-sm font-semibold text-gray-700">합계</td>
+                      <td className="px-3 py-2 text-xs text-red-400 text-right">-{totalComm.toLocaleString()}</td>
+                      <td className="px-3 py-2 text-right font-bold text-blue-700">{totalSup.toLocaleString()}</td>
+                    </tr>
+                  </tfoot>
+                </table>
               </div>
-              <div className="px-5 pb-5">
+              <div className="px-5 py-4 border-t border-gray-200 shrink-0">
                 <button onClick={handleKakao}
                   className="w-full py-3 rounded-xl bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-bold text-sm flex items-center justify-center gap-2">
                   💬 카톡 보내기
