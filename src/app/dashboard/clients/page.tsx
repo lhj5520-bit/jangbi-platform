@@ -14,8 +14,8 @@ export default function ClientsPage() {
   const [search, setSearch] = useState('')
   const [modalOpen, setModalOpen] = useState(false)
   const [selected, setSelected] = useState<Client | null>(null)
-  const [sortKey, setSortKey] = useState<string>('name')
-  const [sortAsc, setSortAsc] = useState(true)
+  const [sortKey, setSortKey] = useState<string>('')
+  const [sortAsc, setSortAsc] = useState(false)
   const supabase = createClient()
 
   function toggleSort(key: string) {
