@@ -143,16 +143,14 @@ export default function ClientsPage() {
             ) : filtered.length === 0 ? (
               <tr><td colSpan={6} className="px-5 py-8 text-center text-gray-400">등록된 발주처가 없습니다.</td></tr>
             ) : filtered.map(c => (
-              <tr key={c.id} className="hover:bg-gray-50">
-                <td className="px-5 py-3 font-medium text-gray-900">{c.name}</td>
+              <tr key={c.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => { setSelected(c); setModalOpen(true) }}>
+                <td className="px-5 py-3 font-medium text-blue-600 hover:underline">{c.name}</td>
                 <td className="px-5 py-3 text-gray-600">{c.ceo_name ?? '-'}</td>
                 <td className="px-5 py-3 text-gray-600">{c.contact ?? '-'}</td>
                 <td className="px-5 py-3 text-gray-500">{c.business_no ?? '-'}</td>
                 <td className="px-5 py-3 text-gray-500">{c.address ?? '-'}</td>
-                <td className="px-5 py-3">
+                <td className="px-5 py-3" onClick={e => e.stopPropagation()}>
                   <div className="flex gap-2 justify-end">
-                    <button onClick={() => { setSelected(c); setModalOpen(true) }}
-                      className="text-xs text-blue-600 hover:underline">수정</button>
                     <button onClick={() => handleDelete(c.id)}
                       className="text-xs text-red-500 hover:underline">삭제</button>
                   </div>
