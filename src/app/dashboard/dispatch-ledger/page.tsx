@@ -1090,6 +1090,54 @@ export default function DispatchLedgerPage() {
         </div>
       </div>
 
+      {/* 차주별 합계 */}
+      {(() => {
+        const byDriver: Record<string, { count: number; sales: number; commission: number }> = {}
+        exportRows.forEach(r => {
+          const name = r.driver_name || '(미지정)'
+          if (!byDriver[name]) byDriver[name] = { count: 0, sales: 0, commission: 0 }
+          byDriver[name].count += 1
+          byDriver[name].sales += r.sales_amount || (wages[r.id] ?? 0)
+          byDriver[name].commission += commissions[r.id] ?? r.commission_amount ?? 0
+        })
+        const entries = Object.entries(byDriver).sort((a, b) => b[1].sales - a[1].sales)
+        if (entries.length === 0) return null
+        return (
+          <div className="mb-4 bg-white rounded-xl border border-gray-200 overflow-hidden">
+            <div className="px-4 py-2 bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-500">차주별 합계</div>
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-gray-50 border-b border-gray-100">
+                  <th className="px-4 py-2 text-left text-xs text-gray-500 font-medium">차주명</th>
+                  <th className="px-4 py-2 text-right text-xs text-gray-500 font-medium">건수</th>
+                  <th className="px-4 py-2 text-right text-xs text-gray-500 font-medium">매출액</th>
+                  <th className="px-4 py-2 text-right text-xs text-gray-500 font-medium">수수료</th>
+                  <th className="px-4 py-2 text-right text-xs text-gray-500 font-medium">공급가액</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {entries.map(([name, v]) => (
+                  <tr key={name} className="hover:bg-gray-50">
+                    <td className="px-4 py-2 font-medium text-gray-800">{name}</td>
+                    <td className="px-4 py-2 text-right text-gray-600">{v.count}건</td>
+                    <td className="px-4 py-2 text-right text-gray-700">{v.sales.toLocaleString()}</td>
+                    <td className="px-4 py-2 text-right text-red-500">{v.commission > 0 ? `-${v.commission.toLocaleString()}` : '-'}</td>
+                    <td className="px-4 py-2 text-right font-semibold text-blue-700">{(v.sales - v.commission).toLocaleString()}</td>
+                  </tr>
+                ))}
+                <tr className="bg-gray-50 font-semibold border-t-2 border-gray-200">
+                  <td className="px-4 py-2 text-gray-700">합계</td>
+                  <td className="px-4 py-2 text-right text-gray-600">{entries.reduce((s, [, v]) => s + v.count, 0)}건</td>
+                  <td className="px-4 py-2 text-right text-gray-700">{entries.reduce((s, [, v]) => s + v.sales, 0).toLocaleString()}</td>
+                  <td className="px-4 py-2 text-right text-red-500">-{entries.reduce((s, [, v]) => s + v.commission, 0).toLocaleString()}</td>
+                  <td className="px-4 py-2 text-right text-blue-700">{entries.reduce((s, [, v]) => s + v.sales - v.commission, 0).toLocaleString()}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        )
+      })()}
+
       <div ref={tableScrollRef} className="overflow-x-auto rounded-xl border border-gray-200 bg-white">
         <table className="min-w-full text-sm">
           <thead className="bg-gray-50">
