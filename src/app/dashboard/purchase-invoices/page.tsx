@@ -178,10 +178,20 @@ export default function PurchaseInvoicesPage() {
             className="rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 md:py-2" />
           <div className="flex rounded-lg overflow-hidden border border-indigo-400">
             <button onClick={() => {
-              const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - 1)
-              const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0')
-              const last = new Date(y, d.getMonth()+1, 0).getDate()
-              setDateFrom(`${y}-${m}-01`); setDateTo(`${y}-${m}-${String(last).padStart(2,'0')}`)
+              const [fy, fm] = dateFrom.split('-').map(Number)
+              const [ty, tm] = dateTo.split('-').map(Number)
+              const lastOfTo = new Date(ty, tm, 0).getDate()
+              const isMonthPeriod = dateFrom.slice(8) === '01' && Number(dateTo.slice(8)) === lastOfTo && dateFrom.slice(0,7) === dateTo.slice(0,7)
+              if (isMonthPeriod) {
+                const pm = fm === 1 ? 12 : fm - 1; const py = fm === 1 ? fy - 1 : fy
+                const last = new Date(py, pm, 0).getDate()
+                setDateFrom(`${py}-${String(pm).padStart(2,'0')}-01`); setDateTo(`${py}-${String(pm).padStart(2,'0')}-${String(last).padStart(2,'0')}`)
+              } else {
+                const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - 1)
+                const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0')
+                const last = new Date(y, d.getMonth()+1, 0).getDate()
+                setDateFrom(`${y}-${m}-01`); setDateTo(`${y}-${m}-${String(last).padStart(2,'0')}`)
+              }
             }} className="px-3 py-2 text-sm text-indigo-600 bg-indigo-50 hover:bg-indigo-100 font-medium border-r border-indigo-400">전월</button>
             <button onClick={() => {
               const now = new Date()

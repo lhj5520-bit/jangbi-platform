@@ -323,8 +323,17 @@ export default function ExpensesPage() {
             <input type="month" value={month} onChange={e => setMonth(e.target.value)}
               className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
             <button onClick={() => {
-              const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - 1)
-              setMonth(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`)
+              const now = new Date()
+              const prevM = now.getMonth() === 0 ? 12 : now.getMonth()
+              const prevY = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear()
+              const prevMonthStr = `${prevY}-${String(prevM).padStart(2,'0')}`
+              if (month === prevMonthStr) {
+                const [y, m] = month.split('-').map(Number)
+                const pm = m === 1 ? 12 : m - 1; const py = m === 1 ? y - 1 : y
+                setMonth(`${py}-${String(pm).padStart(2,'0')}`)
+              } else {
+                setMonth(prevMonthStr)
+              }
             }} className="px-3 py-2 text-sm rounded-lg border border-indigo-400 text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-colors font-medium">
               전월
             </button>
