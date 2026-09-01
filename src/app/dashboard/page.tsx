@@ -253,9 +253,9 @@ export default function DashboardPage() {
       const invoicedAmt = (prevMonthInvoiceLogs??[]).filter((l:any)=>l.invoice_issued).reduce((s:number,l:any)=>s+calcLogAmt(l),0)
       const unpaidInvoiceAmt = (salesInvoices??[]).filter((r:any)=>r.status==='issued').reduce((s:number,r:any)=>s+(r.total_amount??0),0)
       setUnpaidInvoiceAmt(unpaidInvoiceAmt)
-      // 이번 달 매출/매입 계산서 합계
-      const mSales = (salesInvoices??[]).filter((r:any)=>r.issue_date>=monthStart&&r.issue_date<=today)
-      const mPurch = (purchaseInvoices??[]).filter((r:any)=>r.issue_date>=monthStart&&r.issue_date<=today)
+      // 전월 매출/매입 계산서 합계
+      const mSales = (salesInvoices??[]).filter((r:any)=>r.issue_date>=prevMonthStart&&r.issue_date<=prevMonthEnd)
+      const mPurch = (purchaseInvoices??[]).filter((r:any)=>r.issue_date>=prevMonthStart&&r.issue_date<=prevMonthEnd)
       const sSupply = mSales.reduce((s:number,r:any)=>s+(r.supply_amount??r.total_amount??0),0)
       const sVat    = mSales.reduce((s:number,r:any)=>s+(r.vat_amount??0),0)
       const pSupply = mPurch.reduce((s:number,r:any)=>s+(r.supply_amount??0),0)
@@ -734,8 +734,8 @@ export default function DashboardPage() {
       {/* 이번 달 계산서 — 매출/매입을 카드 2개로 나누면 같은 표가 두 번 반복돼 한 표로 합침 */}
       <Card className="mt-4 overflow-hidden">
         <div className="flex items-center gap-2 border-b border-zinc-100 bg-zinc-50 px-4 py-3">
-          <span className="text-sm font-bold text-zinc-800">이번 달 계산서</span>
-          <span className="ml-auto text-xs text-zinc-400">{monthStart.slice(0,7)}</span>
+          <span className="text-sm font-bold text-zinc-800">전월 계산서</span>
+          <span className="ml-auto text-xs text-zinc-400">{prevMonthStart.slice(0,7)}</span>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
