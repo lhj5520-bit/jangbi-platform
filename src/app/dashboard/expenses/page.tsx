@@ -80,6 +80,10 @@ export default function ExpensesPage() {
   const [bankSearch, setBankSearch] = useState('')
   const [bankDateFrom, setBankDateFrom] = useState(() => new Date().toISOString().slice(0, 7) + '-01')
   const [bankDateTo, setBankDateTo] = useState(() => new Date().toISOString().slice(0, 10))
+  const [importOpen, setImportOpen] = useState(false)
+  const [importCosts, setImportCosts] = useState<any[]>([])
+  const [importSelected, setImportSelected] = useState<Set<string>>(new Set())
+  const [importing, setImporting] = useState(false)
 
   useEffect(() => {
     const saved = localStorage.getItem('expense_categories')
@@ -146,6 +150,37 @@ export default function ExpensesPage() {
       .order('transaction_at', { ascending: false })
     setBankTxs(data ?? [])
     setSelectedBankIds(new Set())
+  }
+
+  async function openImport() {
+    const [y, m] = month.split('-')
+    const start = `${y}-${m}-01`
+    const end = `${y}-${m}-${String(new Date(Number(y), Number(m), 0).getDate()).padStart(2,'0')}`
+    const { data: eqData } = await supabase.from('equipment').select('id, plate_no, type').eq('ownership', 'own')
+    const { data: costData } = await supabase.from('equipment_costs').select('*').gte('cost_date', start).lte('cost_date', end).order('cost_date')
+    const eqMap: Record<string, string> = {}
+    for (const e of (eqData ?? [])) eqMap[e.id] = e.plate_no ?? '번호없음'
+    const withPlate = (costData ?? []).map((c: any) => ({ ...c, plate_no: eqMap[c.equipment_id] ?? '' }))
+    setImportCosts(withPlate)
+    setImportSelected(new Set(withPlate.map((c: any) => c.id)))
+    setImportOpen(true)
+  }
+
+  async function handleImport() {
+    const toImport = importCosts.filter(c => importSelected.has(c.id))
+    if (!toImport.length) return
+    setImporting(true)
+    const rows = toImport.map(c => ({
+      category: c.category === '수리·정비비' ? '수리비' : c.category,
+      amount: c.amount,
+      expense_date: c.cost_date,
+      memo: c.plate_no ? `[${c.plate_no}] ${c.memo ?? ''}`.trim() : (c.memo ?? ''),
+      note: '장비비용에서 가져옴',
+    }))
+    await supabase.from('expenses').insert(rows)
+    setImporting(false)
+    setImportOpen(false)
+    load()
   }
 
   function openNew() {
@@ -265,6 +300,7 @@ export default function ExpensesPage() {
         title="관리비"
         primary={{ label: '+ 지출 등록', onClick: openNew }}
         secondary={[
+          { label: '📥 장비비용 가져오기', onClick: openImport },
           { label: '항목 추가', onClick: () => setAddCatOpen(true) },
           { label: '엑셀 업로드', onClick: () => setExcelOpen(true) },
           { label: '인쇄 / PDF', onClick: () => window.print(), desktopOnly: true },
@@ -601,6 +637,61 @@ export default function ExpensesPage() {
           onClose={() => setExcelOpen(false)}
           onSaved={() => { setExcelOpen(false); load() }}
         />
+      )}
+
+      {importOpen && (
+        <div className="fixed inset-0 bg-black/40 flex items-end md:items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-lg shadow-xl overflow-hidden flex flex-col max-h-[85vh]">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 shrink-0">
+              <div>
+                <div className="font-bold text-gray-900">장비비용 가져오기</div>
+                <div className="text-xs text-gray-400 mt-0.5">{month} · {importCosts.length}건</div>
+              </div>
+              <button onClick={() => setImportOpen(false)} className="text-gray-400 text-xl">✕</button>
+            </div>
+            {importCosts.length === 0 ? (
+              <div className="px-5 py-10 text-center text-gray-400 text-sm">해당 월 장비비용이 없습니다.</div>
+            ) : (
+              <div className="overflow-y-auto flex-1">
+                <div className="px-4 py-2 border-b border-gray-100 flex items-center gap-2">
+                  <input type="checkbox"
+                    checked={importSelected.size === importCosts.length}
+                    onChange={() => setImportSelected(s => s.size === importCosts.length ? new Set() : new Set(importCosts.map((c:any)=>c.id)))}
+                    className="w-4 h-4 accent-blue-600" />
+                  <span className="text-xs text-gray-500">전체선택</span>
+                </div>
+                {importCosts.map((c: any) => (
+                  <label key={c.id} className={`flex items-center gap-3 px-4 py-3 cursor-pointer border-b border-gray-50 hover:bg-gray-50 ${importSelected.has(c.id) ? 'bg-blue-50/50' : ''}`}>
+                    <input type="checkbox" checked={importSelected.has(c.id)}
+                      onChange={() => setImportSelected(s => { const n = new Set(s); n.has(c.id) ? n.delete(c.id) : n.add(c.id); return n })}
+                      className="w-4 h-4 accent-blue-600 shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-gray-400">{c.cost_date.slice(5)}</span>
+                        <span className="text-xs font-medium text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded">{c.category}</span>
+                        {c.plate_no && <span className="text-xs text-gray-500">{c.plate_no}</span>}
+                      </div>
+                      {c.memo && <div className="text-xs text-gray-400 mt-0.5 truncate">{c.memo}</div>}
+                    </div>
+                    <span className="text-sm font-semibold text-gray-800 shrink-0">{(c.amount ?? 0).toLocaleString()}원</span>
+                  </label>
+                ))}
+              </div>
+            )}
+            <div className="px-5 py-4 border-t border-gray-200 shrink-0">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-sm text-gray-500">선택 {importSelected.size}건</span>
+                <span className="text-sm font-bold text-blue-700">
+                  {importCosts.filter((c:any)=>importSelected.has(c.id)).reduce((s:number,c:any)=>s+(c.amount??0),0).toLocaleString()}원
+                </span>
+              </div>
+              <button onClick={handleImport} disabled={importing || importSelected.size === 0}
+                className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white font-bold text-sm">
+                {importing ? '가져오는 중...' : `📥 관리비로 가져오기 (${importSelected.size}건)`}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
 
