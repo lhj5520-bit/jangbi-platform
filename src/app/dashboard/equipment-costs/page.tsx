@@ -185,16 +185,9 @@ export default function EquipmentCostsPage() {
           {Array.from({ length: 12 }, (_, i) => i + 1).map(m => <option key={m} value={m}>{m}월</option>)}
         </select>
         <button onClick={() => {
-          // 현재 전월 상태면 한 달 더 앞으로 (사이클)
-          const now = new Date()
-          const prevM = now.getMonth() === 0 ? 12 : now.getMonth()
-          const prevY = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear()
-          if (year === prevY && month === prevM) {
-            const pm = month === 1 ? 12 : month - 1; const py = month === 1 ? year - 1 : year
-            setYear(py); setMonth(pm)
-          } else {
-            setYear(prevY); setMonth(prevM)
-          }
+          const pm = month === 1 ? 12 : month - 1
+          const py = month === 1 ? year - 1 : year
+          setYear(py); setMonth(pm)
         }} className="px-3 py-2 text-sm rounded-lg border border-indigo-400 text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-colors font-medium">
           전월
         </button>
