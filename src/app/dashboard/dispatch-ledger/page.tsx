@@ -2,7 +2,7 @@
 export const dynamic = 'force-dynamic'
 
 import { useEffect, useRef, useState } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import LedgerExcelUploadModal from './LedgerExcelUploadModal'
 import LogModal from '../daily-logs/LogModal'
@@ -33,11 +33,14 @@ export default function DispatchLedgerPage() {
   const [driverSearch, setDriverSearch] = useState('')
   const [invoiceFilter, setInvoiceFilter] = useState<'all' | 'notIssued'>('all')
   const today = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}` })()
-  const [dateFrom, setDateFrom] = useState(() => searchParams.get('from') || today.slice(0, 7) + '-01')
-  const [dateTo, setDateTo] = useState(() => searchParams.get('to') || today)
+  const [dateFrom, setDateFrom] = useState(today.slice(0, 7) + '-01')
+  const [dateTo, setDateTo] = useState(today)
 
   useEffect(() => {
-    if (searchParams.get('invoice') === 'notIssued') setInvoiceFilter('notIssued')
+    const p = new URLSearchParams(window.location.search)
+    if (p.get('invoice') === 'notIssued') setInvoiceFilter('notIssued')
+    if (p.get('from')) setDateFrom(p.get('from')!)
+    if (p.get('to')) setDateTo(p.get('to')!)
   }, [])
   const [wages, setWages] = useState<Record<string, number>>({})
   const [paid, setPaid] = useState<Record<string, boolean>>({})
