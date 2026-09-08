@@ -26,7 +26,6 @@ const tdr = 'px-3 py-2 text-sm text-gray-700 whitespace-nowrap text-right'
 export default function DispatchLedgerPage() {
   const supabase = createClient()
   const router = useRouter()
-  const searchParams = useSearchParams()
   const [rows, setRows] = useState<LedgerRow[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
