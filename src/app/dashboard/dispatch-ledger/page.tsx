@@ -2,7 +2,7 @@
 export const dynamic = 'force-dynamic'
 
 import { useEffect, useRef, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import LedgerExcelUploadModal from './LedgerExcelUploadModal'
 import LogModal from '../daily-logs/LogModal'
@@ -26,13 +26,19 @@ const tdr = 'px-3 py-2 text-sm text-gray-700 whitespace-nowrap text-right'
 export default function DispatchLedgerPage() {
   const supabase = createClient()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [rows, setRows] = useState<LedgerRow[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [driverSearch, setDriverSearch] = useState('')
+  const [invoiceFilter, setInvoiceFilter] = useState<'all' | 'notIssued'>('all')
   const today = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}` })()
-  const [dateFrom, setDateFrom] = useState(today.slice(0, 7) + '-01')
-  const [dateTo, setDateTo] = useState(today)
+  const [dateFrom, setDateFrom] = useState(() => searchParams.get('from') || today.slice(0, 7) + '-01')
+  const [dateTo, setDateTo] = useState(() => searchParams.get('to') || today)
+
+  useEffect(() => {
+    if (searchParams.get('invoice') === 'notIssued') setInvoiceFilter('notIssued')
+  }, [])
   const [wages, setWages] = useState<Record<string, number>>({})
   const [paid, setPaid] = useState<Record<string, boolean>>({})
   const [invoiced, setInvoiced] = useState<Record<string, boolean>>({})
@@ -669,6 +675,7 @@ export default function DispatchLedgerPage() {
       const dq = driverSearch.toLowerCase()
       if (!r.driver_name.toLowerCase().includes(dq) && !r.engineer_name.toLowerCase().includes(dq)) return false
     }
+    if (invoiceFilter === 'notIssued' && invoiced[r.id]) return false
     return true
   })
   const exportRows = selectedRows.size > 0 ? filtered.filter(r => selectedRows.has(r.id)) : filtered
@@ -1094,6 +1101,10 @@ export default function DispatchLedgerPage() {
           className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 flex-1 min-w-48" />
         <input type="text" placeholder="차주명 필터..." value={driverSearch} onChange={e => setDriverSearch(e.target.value)}
           className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-36" />
+        <button onClick={() => setInvoiceFilter(v => v === 'notIssued' ? 'all' : 'notIssued')}
+          className={`px-3 py-2 text-sm rounded-lg border font-medium transition-colors ${invoiceFilter === 'notIssued' ? 'bg-orange-500 text-white border-orange-500' : 'border-orange-300 text-orange-600 bg-orange-50 hover:bg-orange-100'}`}>
+          미청구만
+        </button>
       </div>
 
       <div className="grid grid-cols-2 gap-3 mb-4">

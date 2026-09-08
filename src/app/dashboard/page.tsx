@@ -523,7 +523,10 @@ export default function DashboardPage() {
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white/70 text-lg">📋</div>
             <p className="text-2xl font-bold text-zinc-950">청구완료 {Math.round(kpi.invoiced/10000).toLocaleString()}만원</p>
           </div>
-          <p className="text-xs font-semibold text-amber-800">미청구 {Math.round(kpi.notInvoiced/10000).toLocaleString()}만원</p>
+          <a href={`/dashboard/dispatch-ledger?invoice=notIssued&from=${prevMonthStart}&to=${(() => { const d = new Date(today); d.setDate(0); return d.toISOString().slice(0,10) })()}`}
+            className="text-xs font-semibold text-amber-800 hover:underline cursor-pointer">
+            미청구 {Math.round(kpi.notInvoiced/10000).toLocaleString()}만원 →
+          </a>
         </Card>
       </div>
       {/* 통장잔액 + 당월관리비 */}
