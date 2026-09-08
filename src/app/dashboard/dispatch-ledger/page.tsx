@@ -40,6 +40,7 @@ export default function DispatchLedgerPage() {
     if (p.get('invoice') === 'notIssued') setInvoiceFilter('notIssued')
     if (p.get('from')) setDateFrom(p.get('from')!)
     if (p.get('to')) setDateTo(p.get('to')!)
+    if (window.location.search) window.history.replaceState(null, '', window.location.pathname)
   }, [])
   const [wages, setWages] = useState<Record<string, number>>({})
   const [paid, setPaid] = useState<Record<string, boolean>>({})
