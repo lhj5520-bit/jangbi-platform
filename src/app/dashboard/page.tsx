@@ -365,12 +365,12 @@ export default function DashboardPage() {
       const profit = totalDispatch - totalExpenses
       const profitRate = totalDispatch > 0 ? profit / totalDispatch * 100 : 0
 
-      // 002어6110 합계 (equipment.plate_no 또는 equipment_text 기준)
+      // 6110 합계 (equipment.plate_no 또는 equipment_text 기준)
       let plate002Amt = 0
       for (const d of (plate002Dispatches??[])) {
         const plateNo = (d.equipment as any)?.plate_no ?? ''
         const eqText = (d as any).equipment_text ?? ''
-        if (!plateNo.includes('002어6110') && !eqText.includes('002어6110')) continue
+        if (!plateNo.includes('6110') && !eqText.includes('6110')) continue
         const log = (d.daily_logs as any[]|null)?.[0]
         if (!log) continue
         const qty = log.quantity ?? 0
@@ -684,7 +684,7 @@ export default function DashboardPage() {
         </div>
         <div className="grid grid-cols-1 gap-3 px-5 pb-5 md:grid-cols-2">
           <div className="rounded-lg border border-amber-300 bg-amber-100 p-4">
-            <p className="mb-2 text-xs font-semibold text-zinc-700">002어6110 배차 합계</p>
+            <p className="mb-2 text-xs font-semibold text-zinc-700">6110 배차 합계</p>
             <p className="text-lg font-bold text-zinc-950">{profitData ? profitData.plate002Amt.toLocaleString()+' 원' : '-'}</p>
           </div>
           <div className="rounded-lg border border-amber-300 bg-amber-100 p-4">
