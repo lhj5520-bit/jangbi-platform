@@ -62,6 +62,7 @@ export default function ExpensesPage() {
   const [catFilter, setCatFilter] = useState('all')
   const [modalOpen, setModalOpen] = useState(false)
   const [editItem, setEditItem] = useState<Expense | null>(null)
+  const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null)
   const [addCatOpen, setAddCatOpen] = useState(false)
   const [newCat, setNewCat] = useState('')
   const [excelOpen, setExcelOpen] = useState(false)
@@ -234,6 +235,12 @@ export default function ExpensesPage() {
     }
     setModalOpen(false)
     load()
+  }
+
+  async function updateCategory(id: string, category: string) {
+    setExpenses(prev => prev.map(e => e.id === id ? { ...e, category } : e))
+    setEditingCategoryId(null)
+    await supabase.from('expenses').update({ category }).eq('id', id)
   }
 
   async function handleDelete(id: string) {
@@ -465,7 +472,22 @@ export default function ExpensesPage() {
               <tr key={e.id} className="hover:bg-gray-50 transition-colors">
                 <td className="px-4 py-3 text-gray-400 text-xs">{e.expense_date}</td>
                 <td className="px-4 py-3">
-                  <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${getColor(e.category).badge}`}>{e.category}</span>
+                  {editingCategoryId === e.id ? (
+                    <select
+                      autoFocus
+                      value={e.category}
+                      onChange={ev => updateCategory(e.id, ev.target.value)}
+                      onBlur={() => setEditingCategoryId(null)}
+                      className="text-xs rounded border border-blue-400 px-1.5 py-1 focus:outline-none focus:ring-1 focus:ring-blue-400">
+                      {categories.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                  ) : (
+                    <span
+                      onClick={() => setEditingCategoryId(e.id)}
+                      className={`px-2.5 py-1 rounded-full text-xs font-medium cursor-pointer hover:opacity-75 ${getColor(e.category).badge}`}>
+                      {e.category}
+                    </span>
+                  )}
                 </td>
                 <td className="px-4 py-3 text-right font-bold text-gray-900 tabular-nums">{e.amount.toLocaleString()}원</td>
                 <td className="px-4 py-3 text-gray-600 truncate">{e.memo ?? <span className="text-gray-300">-</span>}</td>
