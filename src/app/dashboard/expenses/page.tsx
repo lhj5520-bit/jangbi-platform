@@ -414,69 +414,30 @@ export default function ExpensesPage() {
 
       {/* 월별 관리비 현황 */}
       <div className="bg-white rounded-xl border border-gray-200 px-5 py-4 flex-1 min-w-[320px]">
+        <div className="flex items-center justify-between mb-4">
+          <span className="text-sm text-gray-400 font-medium">월별 관리비</span>
+          <span className="text-xs text-gray-400">{month.slice(0,4)}년 누계 {Math.round(yearTotal/10000).toLocaleString()}만원</span>
+        </div>
         {(() => {
           const curYear = month.slice(0, 4)
-          const months = Array.from({ length: 12 }, (_, i) => ({ key: `${curYear}-${String(i+1).padStart(2,'0')}`, label: `${i+1}` }))
-          const maxAmt = Math.max(...months.map(({ key }) => yearData[key] ?? 0), 1)
-          const totalFmt = yearTotal >= 100000000
-            ? (yearTotal / 100000000).toFixed(1) + '억'
-            : Math.round(yearTotal / 10000).toLocaleString() + '만'
+          const months = Array.from({ length: 12 }, (_, i) => ({ key: `${curYear}-${String(i+1).padStart(2,'0')}`, label: i+1 }))
           return (
-            <>
-              <div className="flex items-end justify-between mb-4">
-                <div>
-                  <p className="text-xs text-gray-400 mb-0.5">월별 관리비</p>
-                  <p className="text-lg font-bold text-gray-800">{totalFmt}원 <span className="text-xs font-normal text-gray-400">{curYear}년 누계</span></p>
-                </div>
-              </div>
-              {/* 세로 막대 차트 */}
-              <div className="flex items-end gap-1.5 h-28 mb-1">
-                {months.map(({ key, label }) => {
-                  const amt = yearData[key] ?? 0
-                  const pct = amt > 0 ? Math.max((amt / maxAmt) * 100, 4) : 0
-                  const isCur = key === month
-                  const hasFuture = amt === 0 && parseInt(label) > new Date().getMonth() + 1
-                  return (
-                    <div key={key} className="flex-1 flex flex-col items-center gap-0.5 cursor-pointer group"
-                      onClick={() => { if (!hasFuture) { setViewMode('month'); setMonth(key) } }}>
-                      <div className="w-full flex flex-col justify-end" style={{ height: '100%' }}>
-                        <div
-                          className={`w-full rounded-t-sm transition-all ${
-                            isCur ? 'bg-blue-500' : amt > 0 ? 'bg-indigo-200 group-hover:bg-indigo-300' : 'bg-gray-100'
-                          }`}
-                          style={{ height: `${pct}%` }}
-                        />
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-              {/* 월 레이블 */}
-              <div className="flex gap-1.5 mb-3">
-                {months.map(({ key, label }) => {
-                  const isCur = key === month
-                  return (
-                    <div key={key} className="flex-1 text-center cursor-pointer" onClick={() => { setViewMode('month'); setMonth(key) }}>
-                      <span className={`text-[10px] ${isCur ? 'font-bold text-blue-600' : 'text-gray-400'}`}>{label}</span>
-                    </div>
-                  )
-                })}
-              </div>
-              {/* 금액 테이블 */}
-              <div className="border-t border-gray-100 pt-3 grid grid-cols-4 gap-x-2 gap-y-1.5">
-                {months.filter(({ key }) => yearData[key] > 0).map(({ key, label }) => {
-                  const amt = yearData[key]
-                  const isCur = key === month
-                  return (
-                    <div key={key} className={`flex items-center justify-between col-span-1 cursor-pointer rounded px-1 py-0.5 ${isCur ? 'bg-blue-50' : 'hover:bg-gray-50'}`}
-                      onClick={() => { setViewMode('month'); setMonth(key) }}>
-                      <span className={`text-[10px] ${isCur ? 'text-blue-600 font-bold' : 'text-gray-400'}`}>{label}월</span>
-                      <span className={`text-[10px] tabular-nums ml-1 ${isCur ? 'text-blue-700 font-bold' : 'text-gray-600'}`}>{Math.round(amt/10000).toLocaleString()}만</span>
-                    </div>
-                  )
-                })}
-              </div>
-            </>
+            <div className="grid grid-cols-3 gap-2">
+              {months.map(({ key, label }) => {
+                const amt = yearData[key] ?? 0
+                const isCur = key === month
+                return (
+                  <div key={key}
+                    onClick={() => { setViewMode('month'); setMonth(key) }}
+                    className={`cursor-pointer rounded-lg px-3 py-2.5 transition-colors ${isCur ? 'bg-blue-50 border border-blue-200' : 'hover:bg-gray-50 border border-transparent'}`}>
+                    <p className={`text-xs mb-1 ${isCur ? 'text-blue-500 font-semibold' : 'text-gray-400'}`}>{label}월</p>
+                    <p className={`text-sm font-bold tabular-nums ${isCur ? 'text-blue-700' : amt > 0 ? 'text-gray-800' : 'text-gray-300'}`}>
+                      {amt > 0 ? Math.round(amt/10000).toLocaleString()+'만' : '-'}
+                    </p>
+                  </div>
+                )
+              })}
+            </div>
           )
         })()}
       </div>
