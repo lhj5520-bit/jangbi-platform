@@ -374,8 +374,9 @@ export default function ExpensesPage() {
         </div>
       </div>
 
-      {/* 관리비 대시보드 */}
-      <div className="bg-white rounded-xl border border-gray-200 px-4 py-4 mb-4 max-w-lg">
+      {/* 관리비 대시보드 + 월별 현황 */}
+      <div className="flex flex-wrap gap-4 mb-4">
+      <div className="bg-white rounded-xl border border-gray-200 px-4 py-4 flex-shrink-0 w-full max-w-sm">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <span className="text-sm text-gray-400 font-medium">관리비 현황</span>
@@ -410,6 +411,44 @@ export default function ExpensesPage() {
           )
         })()}
       </div>
+
+      {/* 월별 관리비 현황 */}
+      <div className="bg-white rounded-xl border border-gray-200 px-4 py-4 flex-1 min-w-[280px]">
+        <div className="flex items-center justify-between mb-3">
+          <span className="text-sm text-gray-400 font-medium">월별 관리비</span>
+          <span className="text-xs text-gray-400">{month.slice(0,4)}년</span>
+        </div>
+        {(() => {
+          const curYear = month.slice(0, 4)
+          const months = Array.from({ length: 12 }, (_, i) => `${curYear}-${String(i+1).padStart(2,'0')}`)
+          const maxAmt = Math.max(...months.map(m => yearData[m] ?? 0), 1)
+          return (
+            <div className="space-y-1.5">
+              {months.map(m => {
+                const amt = yearData[m] ?? 0
+                const pct = Math.round((amt / maxAmt) * 100)
+                const isCurrentMonth = m === month
+                return (
+                  <div key={m} className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 rounded px-1 py-0.5" onClick={() => { setViewMode('month'); setMonth(m) }}>
+                    <span className={`text-xs w-10 shrink-0 ${isCurrentMonth ? 'font-bold text-blue-600' : 'text-gray-400'}`}>{m.slice(5)}월</span>
+                    <div className="flex-1 bg-gray-100 rounded-full h-2">
+                      <div className={`h-2 rounded-full ${isCurrentMonth ? 'bg-blue-400' : 'bg-indigo-300'}`} style={{ width: amt > 0 ? `${pct}%` : '0%' }} />
+                    </div>
+                    <span className={`text-xs tabular-nums w-20 text-right shrink-0 ${isCurrentMonth ? 'font-bold text-blue-700' : 'text-gray-500'}`}>
+                      {amt > 0 ? (amt / 10000).toFixed(0) + '만' : '-'}
+                    </span>
+                  </div>
+                )
+              })}
+              <div className="border-t border-gray-100 mt-2 pt-2 flex justify-between">
+                <span className="text-xs text-gray-400">연간 합계</span>
+                <span className="text-xs font-bold text-gray-700">{(yearTotal / 10000).toFixed(0)}만원</span>
+              </div>
+            </div>
+          )
+        })()}
+      </div>
+      </div>{/* end flex wrapper */}
 
       {catFilter !== 'all' && (
         <div className="mb-4 bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 flex justify-between">
