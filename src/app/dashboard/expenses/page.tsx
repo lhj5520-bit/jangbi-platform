@@ -416,7 +416,7 @@ export default function ExpensesPage() {
       <div className="bg-white rounded-xl border border-gray-200 px-5 py-4 flex-1 min-w-[320px]">
         <div className="flex items-center justify-between mb-4">
           <span className="text-sm text-gray-400 font-medium">월별 관리비</span>
-          <span className="text-xs text-gray-400">{month.slice(0,4)}년 누계 {Math.round(yearTotal/10000).toLocaleString()}만원</span>
+          <span className="text-xs text-gray-500">{month.slice(0,4)}년 누계 <span className="text-base font-bold text-indigo-600">{Math.round(yearTotal/10000).toLocaleString()}만원</span></span>
         </div>
         {(() => {
           const curYear = month.slice(0, 4)
