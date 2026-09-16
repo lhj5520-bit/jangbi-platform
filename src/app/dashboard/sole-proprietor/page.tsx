@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 
 interface Company { id: string; name: string; ceo_name: string; business_no: string; revenue_limit: number; sort_order: number }
-interface Rec { id?: string; sole_proprietor_id: string; year: number; month: number; invoice_amount: number; purchase_amount: number; paid_vat: number; refund_vat?: number; card_vat?: number }
+interface Rec { id?: string; sole_proprietor_id: string; year: number; month: number; invoice_amount: number; purchase_amount: number; paid_vat: number; refund_vat?: number; card_vat?: number; vehicle_purchase?: number }
 
 const MONTHS = [1,2,3,4,5,6,7,8,9,10,11,12]
 
@@ -184,6 +184,7 @@ export default function SoleProprietorPage() {
   function getCurPaidVat(cid: string) { return getRec(cid, year, 0)?.paid_vat ?? 0 }
   function getCurRefundVat(cid: string) { return getRec(cid, year, 0)?.refund_vat ?? 0 }
   function getCurCardVat(cid: string) { return getRec(cid, year, 0)?.card_vat ?? 0 }
+  function getCurVehiclePurchase(cid: string) { return getRec(cid, year, 0)?.vehicle_purchase ?? 0 }
 
   async function saveRec(cid: string, yr: number, m: number, field: 'invoice_amount' | 'purchase_amount' | 'paid_vat', val: number) {
     const existing = getRec(cid, yr, m)
@@ -386,6 +387,18 @@ export default function SoleProprietorPage() {
                 {companies.map(c => (
                   <td key={c.id} className={td}>
                     <EditCell value={getCurPurchase(c.id)} onSave={v => saveRec(c.id, year, 0, 'purchase_amount', v)} />
+                  </td>
+                ))}
+              </tr>
+
+              {/* 차량구입액 */}
+              <tr className="hover:bg-gray-50">
+                <td className={lbl}>차량구입액</td>
+                {companies.map(c => (
+                  <td key={c.id} className={td}>
+                    <EditCell value={getCurVehiclePurchase(c.id)}
+                      onSave={v => saveRec(c.id, year, 0, 'vehicle_purchase' as any, v)}
+                    />
                   </td>
                 ))}
               </tr>
