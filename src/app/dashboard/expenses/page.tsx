@@ -5,7 +5,6 @@ export const dynamic = 'force-dynamic'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import ExpensesExcelUploadModal from './ExpensesExcelUploadModal'
-import PageHeader from '@/components/PageHeader'
 
 interface Expense {
   id: string
@@ -85,6 +84,11 @@ export default function ExpensesPage() {
   const [importCosts, setImportCosts] = useState<any[]>([])
   const [importSelected, setImportSelected] = useState<Set<string>>(new Set())
   const [importing, setImporting] = useState(false)
+  const [page, setPage] = useState(1)
+  const [chartMode, setChartMode] = useState<'amount' | 'cumulative'>('amount')
+  const [importMenuOpen, setImportMenuOpen] = useState(false)
+  const [exportMenuOpen, setExportMenuOpen] = useState(false)
+  const [actionMenuId, setActionMenuId] = useState<string | null>(null)
 
   useEffect(() => {
     const saved = localStorage.getItem('expense_categories')
@@ -289,6 +293,40 @@ export default function ExpensesPage() {
 
   const printTotal = filtered.reduce((s, e) => s + e.amount, 0)
 
+  function navigateMonth(dir: 1 | -1) {
+    const [y, m] = month.split('-').map(Number)
+    const nm = m + dir
+    if (nm > 12) setMonth(`${y + 1}-01`)
+    else if (nm < 1) setMonth(`${y - 1}-12`)
+    else setMonth(`${y}-${String(nm).padStart(2, '0')}`)
+  }
+
+  const pageSize = 10
+  const totalPages = Math.ceil(filtered.length / pageSize)
+  const paginated = filtered.slice((page - 1) * pageSize, page * pageSize)
+
+  // KPI
+  const thisMonthTotal = totalAll
+  const prevPct = prevMonthTotal > 0 ? Math.round((thisMonthTotal - prevMonthTotal) / prevMonthTotal * 100) : 0
+  const curYear = month.slice(0, 4)
+  const curMonthNum = parseInt(month.slice(5, 7))
+  const pastMonths = Object.keys(yearData).filter(k => k.startsWith(curYear) && parseInt(k.slice(5, 7)) <= curMonthNum && (yearData[k] ?? 0) > 0).length
+  const monthlyAvg = pastMonths > 0 ? Math.round(yearTotal / pastMonths) : 0
+
+  // Bar chart data
+  const barMonths = Array.from({ length: 12 }, (_, i) => {
+    const key = `${curYear}-${String(i + 1).padStart(2, '0')}`
+    return { key, label: i + 1, amount: yearData[key] ?? 0 }
+  })
+  const cumulativeMonths = barMonths.reduce<{ key: string; label: number; amount: number; value: number }[]>((acc, bm, i) => {
+    const prev = i > 0 ? acc[i - 1].value : 0
+    return [...acc, { ...bm, value: prev + bm.amount }]
+  }, [])
+  const chartData = chartMode === 'amount'
+    ? barMonths.map(bm => ({ ...bm, value: bm.amount }))
+    : cumulativeMonths
+  const maxVal = Math.max(...chartData.map(d => d.value), 1)
+
   return (
     <>
     <style>{`
@@ -302,160 +340,177 @@ export default function ExpensesPage() {
       }
       .print-only { display: none; }
     `}</style>
-    <div className="p-4 md:p-8 no-print">
-      <PageHeader
-        title="관리비"
-        primary={{ label: '+ 지출 등록', onClick: openNew }}
-        secondary={[
-          { label: '📥 장비비용 가져오기', onClick: openImport },
-          { label: '항목 추가', onClick: () => setAddCatOpen(true) },
-          { label: '엑셀 업로드', onClick: () => setExcelOpen(true) },
-          { label: '인쇄 / PDF', onClick: () => window.print(), desktopOnly: true },
-        ]}
-      />
+    <div className="p-4 md:p-6 no-print" onClick={() => { setImportMenuOpen(false); setExportMenuOpen(false); setActionMenuId(null) }}>
 
-      <div className="flex flex-wrap gap-2 mb-4 items-center">
-        <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
-          <button onClick={() => setViewMode('month')}
-            className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${viewMode === 'month' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
-            월별
-          </button>
-          <button onClick={() => setViewMode('year')}
-            className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${viewMode === 'year' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
-            연도
+      {/* ── 상단 헤더 ── */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">관리비</h1>
+          <p className="text-xs text-gray-400 mt-0.5">회사의 모든 지출을 한눈에 관리하세요.</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center border border-gray-200 rounded-lg bg-white overflow-hidden">
+            <button onClick={() => navigateMonth(-1)} className="px-3 py-2 hover:bg-gray-50 text-gray-500 text-base leading-none">‹</button>
+            <span className="px-3 text-sm font-semibold text-gray-800 whitespace-nowrap">
+              {parseInt(month.slice(0, 4))}년 {parseInt(month.slice(5, 7))}월
+            </span>
+            <button onClick={() => navigateMonth(1)} className="px-3 py-2 hover:bg-gray-50 text-gray-500 text-base leading-none">›</button>
+          </div>
+          <button onClick={() => setMonth(new Date().toISOString().slice(0, 7))}
+            className="px-3 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-600">오늘</button>
+          <div className="relative" onClick={e => e.stopPropagation()}>
+            <button onClick={() => { setImportMenuOpen(p => !p); setExportMenuOpen(false) }}
+              className="px-3 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-600 flex items-center gap-1">
+              가져오기 <span className="text-[10px]">▼</span>
+            </button>
+            {importMenuOpen && (
+              <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-20 min-w-[170px]">
+                <button onClick={() => { openImport(); setImportMenuOpen(false) }}
+                  className="w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 rounded-t-xl">📥 장비비용 가져오기</button>
+                <button onClick={() => { setExcelOpen(true); setImportMenuOpen(false) }}
+                  className="w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 rounded-b-xl">📊 엑셀 업로드</button>
+              </div>
+            )}
+          </div>
+          <div className="relative" onClick={e => e.stopPropagation()}>
+            <button onClick={() => { setExportMenuOpen(p => !p); setImportMenuOpen(false) }}
+              className="px-3 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-600 flex items-center gap-1">
+              내보내기 <span className="text-[10px]">▼</span>
+            </button>
+            {exportMenuOpen && (
+              <div className="absolute top-full right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-20 min-w-[150px]">
+                <button onClick={() => { window.print(); setExportMenuOpen(false) }}
+                  className="w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 rounded-t-xl">🖨️ 인쇄 / PDF</button>
+                <button onClick={() => { setAddCatOpen(true); setExportMenuOpen(false) }}
+                  className="w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 rounded-b-xl">🏷️ 항목 관리</button>
+              </div>
+            )}
+          </div>
+          <button onClick={openNew}
+            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg">
+            + 지출 등록
           </button>
         </div>
-        {viewMode === 'month' && (
-          <>
-            <input type="month" value={month} onChange={e => setMonth(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-            <button onClick={() => {
-              const now = new Date()
-              const prevM = now.getMonth() === 0 ? 12 : now.getMonth()
-              const prevY = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear()
-              const prevMonthStr = `${prevY}-${String(prevM).padStart(2,'0')}`
-              if (month === prevMonthStr) {
-                const [y, m] = month.split('-').map(Number)
-                const pm = m === 1 ? 12 : m - 1; const py = m === 1 ? y - 1 : y
-                setMonth(`${py}-${String(pm).padStart(2,'0')}`)
-              } else {
-                setMonth(prevMonthStr)
-              }
-            }} className="px-3 py-2 text-sm rounded-lg border border-indigo-400 text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-colors font-medium">
-              전월
-            </button>
-          </>
-        )}
-        {viewMode === 'year' && (
-          <select value={selYear} onChange={e => setSelYear(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-            {[2024, 2025, 2026, 2027].map(y => <option key={y} value={y}>{y}년</option>)}
-          </select>
-        )}
-        <input type="text" value={search} onChange={e => setSearch(e.target.value)}
-          placeholder="메모, 항목, 날짜 검색..."
-          className="flex-1 min-w-[180px] px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
       </div>
 
+      {/* ── KPI 카드 4개 ── */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div className="bg-white rounded-xl border border-gray-200 px-5 py-4">
+          <p className="text-xs text-gray-400 mb-1">이번 달 관리비</p>
+          <p className="text-2xl font-bold text-gray-900 tabular-nums">{Math.round(thisMonthTotal / 10000).toLocaleString()}<span className="text-base font-semibold text-gray-500 ml-1">만원</span></p>
+          <p className="text-xs text-gray-400 mt-1">{thisMonthTotal.toLocaleString()}원</p>
+        </div>
+        <div className="bg-white rounded-xl border border-gray-200 px-5 py-4">
+          <p className="text-xs text-gray-400 mb-1">전월 대비</p>
+          <p className={`text-2xl font-bold tabular-nums ${prevPct > 0 ? 'text-rose-500' : prevPct < 0 ? 'text-emerald-500' : 'text-gray-500'}`}>
+            {prevPct > 0 ? '+' : ''}{prevPct}<span className="text-base ml-0.5">%</span>
+          </p>
+          <p className="text-xs text-gray-400 mt-1">전월 {Math.round(prevMonthTotal / 10000).toLocaleString()}만원</p>
+        </div>
+        <div className="bg-white rounded-xl border border-gray-200 px-5 py-4">
+          <p className="text-xs text-gray-400 mb-1">올해 누계</p>
+          <p className="text-2xl font-bold text-indigo-600 tabular-nums">{Math.round(yearTotal / 10000).toLocaleString()}<span className="text-base font-semibold text-indigo-400 ml-1">만원</span></p>
+          <p className="text-xs text-gray-400 mt-1">{curYear}년 {pastMonths}개월 합계</p>
+        </div>
+        <div className="bg-white rounded-xl border border-gray-200 px-5 py-4">
+          <p className="text-xs text-gray-400 mb-1">월 평균 관리비</p>
+          <p className="text-2xl font-bold text-gray-900 tabular-nums">{Math.round(monthlyAvg / 10000).toLocaleString()}<span className="text-base font-semibold text-gray-500 ml-1">만원</span></p>
+          <p className="text-xs text-gray-400 mt-1">{monthlyAvg.toLocaleString()}원</p>
+        </div>
+      </div>
 
+      {/* ── 차트 2열 ── */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        {/* 지출 구성 */}
+        <div className="bg-white rounded-xl border border-gray-200 px-5 py-4">
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-sm font-semibold text-gray-800">{parseInt(month.slice(5, 7))}월 지출 구성</p>
+            <span className="text-xs text-gray-400">{thisMonthTotal.toLocaleString()}원</span>
+          </div>
+          {sortedCategories.length === 0 ? (
+            <p className="text-sm text-gray-300 text-center py-6">데이터 없음</p>
+          ) : (
+            <div className="space-y-3">
+              {sortedCategories.map(([cat, amt]) => {
+                const pct = thisMonthTotal > 0 ? Math.round((amt / thisMonthTotal) * 100) : 0
+                const color = getColor(cat)
+                return (
+                  <div key={cat}>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${color.badge}`}>{cat}</span>
+                      <span className="text-xs text-gray-600 font-medium tabular-nums">{Math.round(amt / 10000).toLocaleString()}만원 <span className="text-gray-300 ml-1">{pct}%</span></span>
+                    </div>
+                    <div className="bg-gray-100 rounded-full h-1.5">
+                      <div className={`${color.bar} h-1.5 rounded-full transition-all`} style={{ width: `${pct}%` }} />
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
 
-      <div className="flex flex-wrap gap-2 mb-4 items-center">
-        <div className="flex flex-wrap gap-1">
-          <button onClick={() => setCatFilter('all')}
+        {/* 월별 추이 바 차트 */}
+        <div className="bg-white rounded-xl border border-gray-200 px-5 py-4">
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-sm font-semibold text-gray-800">월별 관리비 추이</p>
+            <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-0.5">
+              <button onClick={() => setChartMode('amount')}
+                className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${chartMode === 'amount' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'}`}>금액</button>
+              <button onClick={() => setChartMode('cumulative')}
+                className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${chartMode === 'cumulative' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'}`}>누계</button>
+            </div>
+          </div>
+          <div className="flex items-end gap-1 h-28">
+            {chartData.map((d, i) => {
+              const h = maxVal > 0 ? Math.round((d.value / maxVal) * 100) : 0
+              const isCur = d.key === month
+              const isActive = d.value > 0
+              return (
+                <div key={d.key} className="flex-1 flex flex-col items-center gap-0.5 cursor-pointer group"
+                  onClick={() => { setViewMode('month'); setMonth(d.key) }}>
+                  <span className={`text-[9px] tabular-nums font-medium ${isCur ? 'text-indigo-600' : 'text-gray-400'} opacity-0 group-hover:opacity-100 transition-opacity`} style={{ fontSize: '8px' }}>
+                    {isActive ? Math.round(d.value / 10000) + '만' : ''}
+                  </span>
+                  <div className="w-full flex items-end" style={{ height: '80px' }}>
+                    <div
+                      className={`w-full rounded-t transition-all ${isCur ? 'bg-indigo-500' : isActive ? 'bg-indigo-200 group-hover:bg-indigo-300' : 'bg-gray-100'}`}
+                      style={{ height: `${Math.max(h, isActive ? 4 : 0)}%` }} />
+                  </div>
+                  <span className={`text-[9px] ${isCur ? 'text-indigo-600 font-bold' : 'text-gray-400'}`}>{d.label}월</span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* ── 카테고리 탭 + 검색 ── */}
+      <div className="flex items-center gap-2 mb-4 flex-wrap">
+        <div className="flex flex-wrap gap-1 flex-1">
+          <button onClick={() => { setCatFilter('all'); setPage(1) }}
             className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${catFilter === 'all' ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
-            전체
+            전체 {catFilter === 'all' && <span className="ml-1 opacity-60">{filtered.length}</span>}
           </button>
           {categories.map(cat => (
-            <button key={cat} onClick={() => setCatFilter(cat)}
+            <button key={cat} onClick={() => { setCatFilter(cat); setPage(1) }}
               className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${catFilter === cat ? 'bg-gray-800 text-white' : getColor(cat).badge + ' hover:opacity-80'}`}>
               {cat}
             </button>
           ))}
         </div>
+        <input type="text" value={search} onChange={e => { setSearch(e.target.value); setPage(1) }}
+          placeholder="검색..."
+          className="w-48 px-3 py-1.5 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-indigo-300" />
       </div>
 
-      {/* 관리비 대시보드 + 월별 현황 */}
-      <div className="flex flex-wrap gap-4 mb-4">
-      <div className="bg-white rounded-xl border border-gray-200 px-4 py-4 flex-shrink-0 w-full max-w-sm">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-400 font-medium">관리비 현황</span>
-            <span className="text-sm font-bold text-gray-800">{expenses.reduce((s,e)=>s+e.amount,0).toLocaleString()}원</span>
-          </div>
-          <span className="text-xs text-gray-400">{viewMode === 'month' ? month : '전체'}</span>
-        </div>
-        {(() => {
-          const dashTotal = expenses.reduce((s, e) => s + e.amount, 0)
-          const byCat: Record<string, number> = {}
-          for (const e of expenses) byCat[e.category] = (byCat[e.category] ?? 0) + e.amount
-          const sorted = Object.entries(byCat).sort(([,a],[,b]) => b - a)
-          if (sorted.length === 0) return <p className="text-sm text-gray-300 text-center py-2">데이터 없음</p>
-          return (
-            <div className="space-y-2.5">
-              {sorted.map(([cat, amt]) => {
-                const pct = dashTotal > 0 ? Math.round((amt / dashTotal) * 100) : 0
-                const color = getColor(cat)
-                return (
-                  <div key={cat}>
-                    <div className="flex items-center justify-between mb-1">
-                      <span className={`text-xs px-2 py-0.5 rounded-full shrink-0 ${color.badge}`}>{cat}</span>
-                      <span className="text-xs text-gray-500">{amt.toLocaleString()}원 <span className="text-gray-300">{pct}%</span></span>
-                    </div>
-                    <div className="bg-gray-100 rounded-full h-1.5">
-                      <div className={`${color.bar} h-1.5 rounded-full`} style={{ width: `${pct}%` }} />
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          )
-        })()}
-      </div>
-
-      {/* 월별 관리비 현황 */}
-      <div className="bg-white rounded-xl border border-gray-200 px-5 py-4 flex-1 min-w-[320px]">
-        <div className="flex items-center justify-between mb-4">
-          <span className="text-sm text-gray-400 font-medium">월별 관리비</span>
-          <span className="text-xs text-gray-500">{month.slice(0,4)}년 누계 <span className="text-base font-bold text-indigo-600">{Math.round(yearTotal/10000).toLocaleString()}만원</span></span>
-        </div>
-        {(() => {
-          const curYear = month.slice(0, 4)
-          const months = Array.from({ length: 12 }, (_, i) => ({ key: `${curYear}-${String(i+1).padStart(2,'0')}`, label: i+1 }))
-          return (
-            <div className="grid grid-cols-3 gap-2">
-              {months.map(({ key, label }) => {
-                const amt = yearData[key] ?? 0
-                const isCur = key === month
-                return (
-                  <div key={key}
-                    onClick={() => { setViewMode('month'); setMonth(key) }}
-                    className={`cursor-pointer rounded-lg px-3 py-2.5 transition-colors ${isCur ? 'bg-blue-50 border border-blue-200' : 'hover:bg-gray-50 border border-transparent'}`}>
-                    <p className={`text-xs mb-1 ${isCur ? 'text-blue-500 font-semibold' : 'text-gray-400'}`}>{label}월</p>
-                    <p className={`text-sm font-bold tabular-nums ${isCur ? 'text-blue-700' : amt > 0 ? 'text-gray-800' : 'text-gray-300'}`}>
-                      {amt > 0 ? Math.round(amt/10000).toLocaleString()+'만' : '-'}
-                    </p>
-                  </div>
-                )
-              })}
-            </div>
-          )
-        })()}
-      </div>
-      </div>{/* end flex wrapper */}
-
-      {catFilter !== 'all' && (
-        <div className="mb-4 bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 flex justify-between">
-          <span><span className={`px-2 py-0.5 rounded-full text-xs font-medium mr-2 ${getColor(catFilter).badge}`}>{catFilter}</span>필터 적용 중</span>
-          <span className="font-bold">{totalFiltered.toLocaleString()}원</span>
-        </div>
-      )}
-
-      <div className="touch-list md:hidden space-y-3">
+      {/* ── 모바일 카드 목록 ── */}
+      <div className="md:hidden space-y-3 mb-4">
         {loading ? (
           <div className="text-center py-8 text-gray-400">불러오는 중...</div>
         ) : filtered.length === 0 ? (
           <div className="text-center py-8 text-gray-400">등록된 항목이 없습니다.</div>
-        ) : filtered.map(e => (
+        ) : paginated.map(e => (
           <div key={e.id} className="bg-white rounded-xl border border-gray-200 p-4">
             <div className="flex items-start justify-between">
               <div>
@@ -463,77 +518,108 @@ export default function ExpensesPage() {
                 <div className="text-xs text-gray-400 mt-1">{e.expense_date}</div>
                 {e.memo && <div className="text-xs text-gray-500 mt-0.5">{e.memo}</div>}
               </div>
-              <div className="font-bold text-gray-900">{e.amount.toLocaleString()}원</div>
+              <div className="font-bold text-gray-900 tabular-nums">{e.amount.toLocaleString()}원</div>
             </div>
             <div className="mt-3 flex gap-3 pt-3 border-t border-gray-100">
-              <button onClick={() => openEdit(e)}
-                className="flex-[2] rounded-lg bg-blue-600 py-2.5 text-sm font-bold text-white">수정</button>
-              <button onClick={() => handleDelete(e.id)}
-                className="flex-1 rounded-lg border border-gray-200 py-2.5 text-sm font-medium text-gray-500">삭제</button>
+              <button onClick={() => openEdit(e)} className="flex-[2] rounded-lg bg-indigo-600 py-2.5 text-sm font-bold text-white">수정</button>
+              <button onClick={() => handleDelete(e.id)} className="flex-1 rounded-lg border border-gray-200 py-2.5 text-sm font-medium text-gray-500">삭제</button>
             </div>
           </div>
         ))}
       </div>
 
-      <div className="hidden md:block bg-white rounded-xl border border-gray-200 overflow-x-auto">
-        <table className="w-full text-sm table-fixed">
-          <colgroup>
-            <col style={{width: '110px'}} />{/* 날짜 */}
-            <col style={{width: '110px'}} />{/* 항목 */}
-            <col style={{width: '130px'}} />{/* 금액 */}
-            <col style={{width: '30%'}} /> {/* 메모 */}
-            <col />{/* 비고 */}
-            <col style={{width: '90px'}} />{/* 액션 */}
-          </colgroup>
+      {/* ── 데스크톱 테이블 ── */}
+      <div className="hidden md:block bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+          <p className="text-sm font-semibold text-gray-700">지출 내역 <span className="text-gray-400 font-normal ml-1">총 {filtered.length}건</span></p>
+          <div className="flex items-center gap-2 text-xs text-gray-400">
+            <span>{pageSize}개씩 보기</span>
+            {totalFiltered > 0 && catFilter !== 'all' && (
+              <span className="font-semibold text-gray-700">{totalFiltered.toLocaleString()}원</span>
+            )}
+          </div>
+        </div>
+        <div className="overflow-x-auto">
+        <table className="w-full text-sm">
           <thead>
-            <tr className="bg-gray-50 border-b border-gray-200">
-              <th className="text-left px-4 py-3 font-semibold text-gray-500 text-xs uppercase tracking-wide">날짜</th>
-              <th className="text-left px-4 py-3 font-semibold text-gray-500 text-xs uppercase tracking-wide">항목</th>
-              <th className="text-right px-4 py-3 font-semibold text-gray-500 text-xs uppercase tracking-wide">금액</th>
-              <th className="text-left px-4 py-3 font-semibold text-gray-500 text-xs uppercase tracking-wide">메모</th>
-              <th className="text-left px-4 py-3 font-semibold text-gray-500 text-xs uppercase tracking-wide">비고</th>
-              <th className="px-4 py-3"></th>
+            <tr className="bg-gray-50 border-b border-gray-100">
+              <th className="text-left px-4 py-3 font-medium text-gray-400 text-xs w-10">
+                <input type="checkbox" className="rounded accent-indigo-600" />
+              </th>
+              <th className="text-left px-4 py-3 font-medium text-gray-400 text-xs whitespace-nowrap">날짜 ↓</th>
+              <th className="text-left px-4 py-3 font-medium text-gray-400 text-xs">항목</th>
+              <th className="text-right px-4 py-3 font-medium text-gray-400 text-xs">금액</th>
+              <th className="text-left px-4 py-3 font-medium text-gray-400 text-xs">내용/메모</th>
+              <th className="text-left px-4 py-3 font-medium text-gray-400 text-xs">출처</th>
+              <th className="text-left px-4 py-3 font-medium text-gray-400 text-xs whitespace-nowrap">등록일</th>
+              <th className="px-4 py-3 text-xs w-10"></th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100">
+          <tbody className="divide-y divide-gray-50">
             {loading ? (
-              <tr><td colSpan={6} className="px-5 py-10 text-center text-gray-400">불러오는 중...</td></tr>
-            ) : filtered.length === 0 ? (
-              <tr><td colSpan={6} className="px-5 py-10 text-center text-gray-400">등록된 항목이 없습니다.</td></tr>
-            ) : filtered.map(e => (
+              <tr><td colSpan={8} className="px-5 py-10 text-center text-gray-400">불러오는 중...</td></tr>
+            ) : paginated.length === 0 ? (
+              <tr><td colSpan={8} className="px-5 py-10 text-center text-gray-400">등록된 항목이 없습니다.</td></tr>
+            ) : paginated.map(e => (
               <tr key={e.id} className="hover:bg-gray-50 transition-colors">
-                <td className="px-4 py-3 text-gray-400 text-xs">{e.expense_date}</td>
+                <td className="px-4 py-3">
+                  <input type="checkbox" className="rounded accent-indigo-600" />
+                </td>
+                <td className="px-4 py-3 text-gray-500 text-xs whitespace-nowrap">{e.expense_date}</td>
                 <td className="px-4 py-3">
                   {editingCategoryId === e.id ? (
-                    <select
-                      autoFocus
-                      value={e.category}
+                    <select autoFocus value={e.category}
                       onChange={ev => updateCategory(e.id, ev.target.value)}
                       onBlur={() => setEditingCategoryId(null)}
-                      className="text-xs rounded border border-blue-400 px-1.5 py-1 focus:outline-none focus:ring-1 focus:ring-blue-400">
+                      className="text-xs rounded border border-indigo-400 px-1.5 py-1 focus:outline-none focus:ring-1 focus:ring-indigo-400">
                       {categories.map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
                   ) : (
-                    <span
-                      onClick={() => setEditingCategoryId(e.id)}
+                    <span onClick={() => setEditingCategoryId(e.id)}
                       className={`px-2.5 py-1 rounded-full text-xs font-medium cursor-pointer hover:opacity-75 ${getColor(e.category).badge}`}>
                       {e.category}
                     </span>
                   )}
                 </td>
-                <td className="px-4 py-3 text-right font-bold text-gray-900 tabular-nums">{e.amount.toLocaleString()}원</td>
-                <td className="px-4 py-3 text-gray-600 truncate">{e.memo ?? <span className="text-gray-300">-</span>}</td>
-                <td className="px-4 py-3 text-gray-400 text-xs truncate">{e.note ?? ''}</td>
-                <td className="px-4 py-3">
-                  <div className="flex gap-2 justify-end">
-                    <button onClick={() => openEdit(e)} className="text-xs px-2 py-1 rounded bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors">수정</button>
-                    <button onClick={() => handleDelete(e.id)} className="text-xs px-2 py-1 rounded bg-red-50 text-red-500 hover:bg-red-100 transition-colors">삭제</button>
-                  </div>
+                <td className="px-4 py-3 text-right font-semibold text-gray-900 tabular-nums whitespace-nowrap">{e.amount.toLocaleString()}원</td>
+                <td className="px-4 py-3 text-gray-600 text-xs max-w-[200px] truncate">{e.memo ?? <span className="text-gray-300">-</span>}</td>
+                <td className="px-4 py-3 text-gray-400 text-xs max-w-[120px] truncate">{e.note ?? <span className="text-gray-200">-</span>}</td>
+                <td className="px-4 py-3 text-gray-400 text-xs whitespace-nowrap">{e.created_at ? e.created_at.slice(0, 10) : '-'}</td>
+                <td className="px-4 py-3 relative" onClick={e2 => e2.stopPropagation()}>
+                  <button onClick={() => setActionMenuId(prev => prev === e.id ? null : e.id)}
+                    className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-400 font-bold text-base">
+                    ···
+                  </button>
+                  {actionMenuId === e.id && (
+                    <div className="absolute right-2 top-8 bg-white border border-gray-200 rounded-xl shadow-lg z-20 min-w-[100px]">
+                      <button onClick={() => { openEdit(e); setActionMenuId(null) }}
+                        className="w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 rounded-t-xl">수정</button>
+                      <button onClick={() => { handleDelete(e.id); setActionMenuId(null) }}
+                        className="w-full text-left px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 rounded-b-xl">삭제</button>
+                    </div>
+                  )}
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
+        </div>
+
+        {/* 페이지네이션 */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-center gap-1 px-4 py-3 border-t border-gray-100">
+            <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
+              className="px-3 py-1.5 rounded-lg text-xs border border-gray-200 disabled:opacity-30 hover:bg-gray-50">‹</button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+              <button key={p} onClick={() => setPage(p)}
+                className={`w-8 h-8 rounded-lg text-xs font-medium transition-colors ${p === page ? 'bg-indigo-600 text-white' : 'hover:bg-gray-100 text-gray-600'}`}>
+                {p}
+              </button>
+            ))}
+            <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
+              className="px-3 py-1.5 rounded-lg text-xs border border-gray-200 disabled:opacity-30 hover:bg-gray-50">›</button>
+          </div>
+        )}
       </div>
 
       {modalOpen && (
