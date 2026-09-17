@@ -195,6 +195,7 @@ export default function DashboardPage() {
   const [profitYear, setProfitYear] = useState<number>(new Date().getFullYear())
   const [profitData, setProfitData] = useState<{totalDispatch:number,totalExpenses:number,profit:number,profitRate:number,plate002Amt:number,jeiaAmt:number,fuelAmt:number,fuelRate:number,categoryBreakdown:{category:string,amount:number}[]}|null>(null)
   const [weather, setWeather] = useState<{temp:number,code:number,wind:number}|null>(null)
+  const [prevMonthAvgBalance, setPrevMonthAvgBalance] = useState<number | null>(null)
 
   useEffect(() => {
     fetch('https://api.open-meteo.com/v1/forecast?latitude=36.6424&longitude=127.4890&current=temperature_2m,weather_code,wind_speed_10m&timezone=Asia%2FSeoul')
@@ -228,6 +229,7 @@ export default function DashboardPage() {
         {data:prevMonthInvoiceLogs},
         {data:lastBankTx},
         {data:monthExpenseRows},
+        {data:prevMonthBankTxs},
       ] = await Promise.all([
         supabase.from('dispatches').select('id').eq('start_date', today),
         supabase.from('dispatches').select('id').eq('start_date', yesterday),
@@ -244,6 +246,7 @@ export default function DashboardPage() {
         supabase.from('daily_logs').select('invoice_issued,quantity,work_price_1,work_price_2,work_time_1,work_time_2,dispatch:dispatches(client_unit_price)').gte('log_date',prevMonthStart).lte('log_date',prevMonthEnd),
         supabase.from('bank_transactions').select('balance,transaction_at').order('transaction_at',{ascending:false}).limit(1),
         supabase.from('expenses').select('amount').gte('expense_date',monthStart).lte('expense_date',today),
+        supabase.from('bank_transactions').select('balance,transaction_at').gte('transaction_at', prevMonthStart.replace(/-/g,'/')).lte('transaction_at', (()=>{const d=new Date(today);d.setDate(0);return d.toISOString().slice(0,10)})().replace(/-/g,'/') + ' 99:99:99').order('transaction_at',{ascending:true}),
       ])
 
       const rev = (r:any[]) => r.reduce((s,l) => s+Math.round((l.quantity??0)*(l.dispatch?.client_unit_price??0)),0)
@@ -268,6 +271,31 @@ export default function DashboardPage() {
       const lastTx = (lastBankTx??[])[0]
       setBankBalance(lastTx?.balance ?? null)
       setBankBalanceDate(lastTx?.transaction_at?.slice(0,10) ?? '')
+
+      // 전월 일평균잔액: 각 날짜의 마지막 거래 잔액을 모아 월 일수로 나눔
+      if (prevMonthBankTxs && prevMonthBankTxs.length > 0) {
+        const prevEnd = new Date(today); prevEnd.setDate(0)
+        const prevStart2 = new Date(prevEnd.getFullYear(), prevEnd.getMonth(), 1)
+        const daysInPrevMonth = prevEnd.getDate()
+        // 날짜별 마지막 잔액 추출
+        const dayBalMap: Record<string, number> = {}
+        for (const tx of prevMonthBankTxs) {
+          const d = (tx.transaction_at as string).slice(0, 10).replace(/\//g, '-')
+          if (tx.balance != null) dayBalMap[d] = tx.balance
+        }
+        // 거래가 있는 날 기준 누적 carry-forward
+        let carried = 0
+        let totalBal = 0
+        for (let i = 0; i < daysInPrevMonth; i++) {
+          const d = new Date(prevStart2.getFullYear(), prevStart2.getMonth(), i + 1)
+          const key = d.toISOString().slice(0, 10)
+          if (dayBalMap[key] != null) carried = dayBalMap[key]
+          totalBal += carried
+        }
+        setPrevMonthAvgBalance(Math.round(totalBal / daysInPrevMonth))
+      } else {
+        setPrevMonthAvgBalance(null)
+      }
       setMonthExpenses((monthExpenseRows??[]).reduce((s:number,e:any)=>s+(e.amount??0),0))
 
       const byType:Record<string,number>={}
@@ -542,7 +570,15 @@ export default function DashboardPage() {
               {bankBalance !== null ? bankBalance.toLocaleString() + '원' : '데이터 없음'}
             </p>
           </div>
-          <p className="mt-3 text-xs text-zinc-500">최근 입출금내역 기준 잔액 · <a href="/dashboard/bank" className="font-semibold text-zinc-950 hover:underline">통장내역 보기 →</a></p>
+          <div className="mt-3 flex items-center justify-between">
+            <p className="text-xs text-zinc-500">최근 입출금내역 기준 잔액 · <a href="/dashboard/bank" className="font-semibold text-zinc-950 hover:underline">통장내역 보기 →</a></p>
+            {prevMonthAvgBalance !== null && (
+              <div className="text-right">
+                <p className="text-[10px] text-zinc-400">전월 일평균잔액</p>
+                <p className="text-sm font-bold text-zinc-700">{Math.round(prevMonthAvgBalance/10000).toLocaleString()}만원</p>
+              </div>
+            )}
+          </div>
           </div>
         </Card>
         <Card className="overflow-hidden border-0 bg-white shadow-lg">
