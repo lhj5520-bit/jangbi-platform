@@ -103,6 +103,7 @@ export default function DispatchLedgerPage() {
     }
   }, [])
   const [driverDetailName, setDriverDetailName] = useState<string | null>(null)
+  const [kakaoText, setKakaoText] = useState<string | null>(null)
   const [deleteConfirm, setDeleteConfirm] = useState<LedgerRow | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [copyDate, setCopyDate] = useState(today)
@@ -1226,7 +1227,7 @@ export default function DispatchLedgerPage() {
         const totalSup = totalSales - totalComm
         const period = `${dateFrom.slice(0, 7).replace('-', '년 ')}월`
 
-        function handleKakao() {
+        const buildKakaoText = () => {
           const clientNames = [...new Set(sorted.map(r => r.client_name).filter(Boolean))].join(', ')
           const lines = [`[${driverDetailName}] ${period} 정산 안내${clientNames ? ` - ${clientNames}` : ''}\n`]
           sorted.forEach(r => {
@@ -1234,15 +1235,19 @@ export default function DispatchLedgerPage() {
             const comm = commissions[r.id] ?? r.commission_amount ?? 0
             const sup = sales - comm
             const date = r.log_date.slice(5)
-            lines.push(`${date} ${r.equipment_type || ''} ${r.plate_no || ''} ${(r.work_type_1 || '')} ${r.operating_hours}h → ${sup.toLocaleString()}원`)
+            lines.push(`${date} ${r.plate_no || r.equipment_type || ''} ${r.work_type_1 || ''} ${r.operating_hours}h → ${sup.toLocaleString()}원`)
           })
-          lines.push(`\n총 공급가액: ${totalSup.toLocaleString()}원`)
-          const text = lines.join('\n')
+          lines.push(`\n합계: ${totalSup.toLocaleString()}원`)
+          return lines.join('\n')
+        }
+
+        function handleKakao() {
+          const text = buildKakaoText()
           if (navigator.share) {
-            navigator.share({ text }).catch(() => {})
+            navigator.share({ text }).catch(() => { setKakaoText(text) })
           } else {
-            navigator.clipboard?.writeText(text)
-            alert('클립보드에 복사되었습니다. 카카오톡에서 붙여넣기 해주세요.')
+            setKakaoText(text)
+            navigator.clipboard?.writeText(text).catch(() => {})
           }
         }
 
@@ -1254,51 +1259,82 @@ export default function DispatchLedgerPage() {
                   <div className="font-bold text-gray-900 text-base">{driverDetailName}</div>
                   <div className="text-xs text-gray-400 mt-0.5">{period} · {sorted.length}건 · 공급가액 <span className="text-blue-600 font-semibold">{totalSup.toLocaleString()}원</span></div>
                 </div>
-                <button onClick={() => setDriverDetailName(null)} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
+                <button onClick={() => { setDriverDetailName(null); setKakaoText(null) }} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
               </div>
-              <div className="overflow-y-auto flex-1">
-                <table className="w-full text-sm">
-                  <thead className="bg-gray-50 sticky top-0">
-                    <tr>
-                      <th className="px-3 py-2 text-left text-xs text-gray-500 font-medium">날짜</th>
-                      <th className="px-3 py-2 text-left text-xs text-gray-500 font-medium">차량/작업</th>
-                      <th className="px-3 py-2 text-left text-xs text-gray-500 font-medium">발주처</th>
-                      <th className="px-3 py-2 text-right text-xs text-gray-500 font-medium">공급가액</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {sorted.map(r => {
-                      const sales = r.sales_amount || (wages[r.id] ?? 0)
-                      const comm = commissions[r.id] ?? r.commission_amount ?? 0
-                      const sup = sales - comm
-                      return (
-                        <tr key={r.id} className="hover:bg-gray-50">
-                          <td className="px-3 py-2 text-gray-600 whitespace-nowrap">{r.log_date.slice(5)}</td>
-                          <td className="px-3 py-2">
-                            <div className="text-gray-800 font-medium">{r.plate_no || r.equipment_type}</div>
-                            <div className="text-xs text-gray-400">{r.work_type_1 || ''} {r.operating_hours}h</div>
-                          </td>
-                          <td className="px-3 py-2 text-xs text-gray-500">{r.client_name || '-'}</td>
-                          <td className="px-3 py-2 text-right font-semibold text-blue-700 whitespace-nowrap">{sup.toLocaleString()}</td>
+
+              {/* 카톡 텍스트 패널 (PC 폴백 또는 공유 실패 시) */}
+              {kakaoText ? (
+                <div className="flex flex-col flex-1 overflow-hidden">
+                  <div className="px-4 pt-3 pb-2 bg-yellow-50 border-b border-yellow-100 shrink-0">
+                    <p className="text-xs text-yellow-700 font-medium mb-1">아래 텍스트를 복사해서 카카오톡에 붙여넣기 하세요.</p>
+                  </div>
+                  <textarea
+                    readOnly
+                    value={kakaoText}
+                    className="flex-1 p-4 text-sm text-gray-800 font-mono resize-none border-0 outline-none bg-white"
+                    onFocus={e => e.target.select()}
+                  />
+                  <div className="px-5 py-4 border-t border-gray-200 shrink-0 flex gap-2">
+                    <button onClick={() => {
+                      navigator.clipboard?.writeText(kakaoText).then(() => {
+                        alert('✅ 복사됐습니다! 카카오톡에서 Ctrl+V 로 붙여넣기 하세요.')
+                      }).catch(() => alert('직접 텍스트를 선택해서 복사해주세요.'))
+                    }} className="flex-1 py-3 rounded-xl bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-bold text-sm">
+                      📋 복사하기
+                    </button>
+                    <button onClick={() => setKakaoText(null)}
+                      className="px-4 py-3 rounded-xl border border-gray-200 text-gray-500 text-sm">
+                      뒤로
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="overflow-y-auto flex-1">
+                    <table className="w-full text-sm">
+                      <thead className="bg-gray-50 sticky top-0">
+                        <tr>
+                          <th className="px-3 py-2 text-left text-xs text-gray-500 font-medium">날짜</th>
+                          <th className="px-3 py-2 text-left text-xs text-gray-500 font-medium">차량/작업</th>
+                          <th className="px-3 py-2 text-left text-xs text-gray-500 font-medium">발주처</th>
+                          <th className="px-3 py-2 text-right text-xs text-gray-500 font-medium">공급가액</th>
                         </tr>
-                      )
-                    })}
-                  </tbody>
-                  <tfoot className="bg-gray-50 border-t-2 border-gray-200 sticky bottom-0">
-                    <tr>
-                      <td colSpan={2} className="px-3 py-2 text-sm font-semibold text-gray-700">합계</td>
-                      <td className="px-3 py-2 text-xs text-red-400 text-right">-{totalComm.toLocaleString()}</td>
-                      <td className="px-3 py-2 text-right font-bold text-blue-700">{totalSup.toLocaleString()}</td>
-                    </tr>
-                  </tfoot>
-                </table>
-              </div>
-              <div className="px-5 py-4 border-t border-gray-200 shrink-0">
-                <button onClick={handleKakao}
-                  className="w-full py-3 rounded-xl bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-bold text-sm flex items-center justify-center gap-2">
-                  💬 카톡 보내기
-                </button>
-              </div>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {sorted.map(r => {
+                          const sales = r.sales_amount || (wages[r.id] ?? 0)
+                          const comm = commissions[r.id] ?? r.commission_amount ?? 0
+                          const sup = sales - comm
+                          return (
+                            <tr key={r.id} className="hover:bg-gray-50">
+                              <td className="px-3 py-2 text-gray-600 whitespace-nowrap">{r.log_date.slice(5)}</td>
+                              <td className="px-3 py-2">
+                                <div className="text-gray-800 font-medium">{r.plate_no || r.equipment_type}</div>
+                                <div className="text-xs text-gray-400">{r.work_type_1 || ''} {r.operating_hours}h</div>
+                              </td>
+                              <td className="px-3 py-2 text-xs text-gray-500">{r.client_name || '-'}</td>
+                              <td className="px-3 py-2 text-right font-semibold text-blue-700 whitespace-nowrap">{sup.toLocaleString()}</td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                      <tfoot className="bg-gray-50 border-t-2 border-gray-200 sticky bottom-0">
+                        <tr>
+                          <td colSpan={2} className="px-3 py-2 text-sm font-semibold text-gray-700">합계</td>
+                          <td className="px-3 py-2 text-xs text-red-400 text-right">-{totalComm.toLocaleString()}</td>
+                          <td className="px-3 py-2 text-right font-bold text-blue-700">{totalSup.toLocaleString()}</td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+                  <div className="px-5 py-4 border-t border-gray-200 shrink-0">
+                    <button onClick={handleKakao}
+                      className="w-full py-3 rounded-xl bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-bold text-sm flex items-center justify-center gap-2">
+                      💬 카톡 보내기
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         )
