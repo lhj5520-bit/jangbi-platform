@@ -193,7 +193,7 @@ export default function DashboardPage() {
   const [monthSales, setMonthSales] = useState<{supply:number;vat:number;total:number}>({supply:0,vat:0,total:0})
   const [monthPurchase, setMonthPurchase] = useState<{supply:number;vat:number;total:number}>({supply:0,vat:0,total:0})
   const [profitYear, setProfitYear] = useState<number>(new Date().getFullYear())
-  const [profitData, setProfitData] = useState<{totalDispatch:number,totalExpenses:number,profit:number,profitRate:number,plate002Amt:number,jeiaAmt:number,fuelAmt:number,fuelRate:number,categoryBreakdown:{category:string,amount:number}[]}|null>(null)
+  const [profitData, setProfitData] = useState<{totalDispatch:number,totalExpenses:number,profit:number,profitRate:number,plate002Amt:number,jeiaAmt:number,fuelAmt:number,fuelRate:number,categoryBreakdown:{category:string,amount:number}[],byPlate:Record<string,number>}|null>(null)
   const [weather, setWeather] = useState<{temp:number,code:number,wind:number}|null>(null)
   const [prevMonthAvgBalance, setPrevMonthAvgBalance] = useState<number | null>(null)
 
@@ -354,7 +354,7 @@ export default function DashboardPage() {
       ] = await Promise.all([
         // 이영규 차주 배차건만 (driver_name 필터)
         supabase.from('dispatches')
-          .select('client_unit_price, daily_logs(quantity,work_price_1,work_price_2,work_price_3,work_time_1,work_time_2,work_time_3,engineer_daily_wage)')
+          .select('client_unit_price, equipment:equipment(plate_no), equipment_text, daily_logs(quantity,work_price_1,work_price_2,work_price_3,work_time_1,work_time_2,work_time_3,engineer_daily_wage)')
           .eq('driver_name', '이영규')
           .gte('start_date', yearStart)
           .lte('start_date', yearEnd),
@@ -378,6 +378,7 @@ export default function DashboardPage() {
         return Math.max(0,(Number(m[3])*60+Number(m[4])-Number(m[1])*60-Number(m[2]))/60)
       }
       let totalDispatch = 0
+      const byPlate: Record<string, number> = {}
       for (const d of (yearDispatches??[])) {
         const log = (d.daily_logs as any[]|null)?.[0]
         if (!log) continue
@@ -387,7 +388,12 @@ export default function DashboardPage() {
           (log.work_time_1?Math.round(parseH(log.work_time_1)*p1):0)+
           (log.work_time_2?Math.round(parseH(log.work_time_2)*p2):0)+
           (log.work_time_3?Math.round(parseH(log.work_time_3)*p3):0)
-        totalDispatch += slotAmt || Math.round(qty*(d.client_unit_price??0)) || (log.engineer_daily_wage??0)
+        const amt = slotAmt || Math.round(qty*(d.client_unit_price??0)) || (log.engineer_daily_wage??0)
+        totalDispatch += amt
+        // 차량별 집계
+        const pn: string = (d.equipment as any)?.plate_no
+          || ((d as any).equipment_text?.split(/\s+/).pop()) || '미상'
+        byPlate[pn] = (byPlate[pn] ?? 0) + amt
       }
       const totalExpenses = (yearExpenses??[]).reduce((s:number,e:any)=>s+(e.amount??0),0)
       const profit = totalDispatch - totalExpenses
@@ -426,7 +432,7 @@ export default function DashboardPage() {
         catMap[cat] = (catMap[cat]??0) + (e.amount??0)
       }
       const categoryBreakdown = Object.entries(catMap).sort((a,b)=>b[1]-a[1]).map(([category,amount])=>({category,amount}))
-      setProfitData({ totalDispatch, totalExpenses, profit, profitRate, plate002Amt, jeiaAmt, fuelAmt, fuelRate, categoryBreakdown })
+      setProfitData({ totalDispatch, totalExpenses, profit, profitRate, plate002Amt, jeiaAmt, fuelAmt, fuelRate, categoryBreakdown, byPlate })
     }
     loadProfit()
   }, [profitYear])
@@ -718,14 +724,39 @@ export default function DashboardPage() {
             </p>
           </div>
         </div>
-        <div className="grid grid-cols-1 gap-3 px-5 pb-5 md:grid-cols-2">
-          <div className="rounded-lg border border-amber-300 bg-amber-100 p-4">
-            <p className="mb-2 text-xs font-semibold text-zinc-700">6110 배차 합계</p>
-            <p className="text-lg font-bold text-zinc-950">{profitData ? profitData.plate002Amt.toLocaleString()+' 원' : '-'}</p>
+        <div className="px-5 pb-5 space-y-3">
+          {/* 이영규 차별 합계 */}
+          <div className="rounded-lg border border-amber-300 bg-amber-50 p-4">
+            <p className="mb-3 text-xs font-semibold text-zinc-600">이영규 차주 배차 합계 (차별)</p>
+            {profitData && Object.keys(profitData.byPlate).length > 0 ? (
+              <div className="space-y-1.5 mb-3">
+                {Object.entries(profitData.byPlate)
+                  .sort((a, b) => b[1] - a[1])
+                  .map(([plate, amt]) => (
+                    <div key={plate} className="flex items-center justify-between text-sm">
+                      <span className="font-medium text-zinc-700">{plate}</span>
+                      <span className="font-semibold text-zinc-900">{amt.toLocaleString()} 원</span>
+                    </div>
+                  ))}
+                <div className="flex items-center justify-between border-t border-amber-300 pt-2 mt-2">
+                  <span className="text-xs font-bold text-zinc-600">전체 합계</span>
+                  <span className="text-base font-bold text-amber-700">{profitData.totalDispatch.toLocaleString()} 원</span>
+                </div>
+              </div>
+            ) : (
+              <p className="text-lg font-bold text-zinc-950">{profitData ? profitData.totalDispatch.toLocaleString()+' 원' : '-'}</p>
+            )}
           </div>
-          <div className="rounded-lg border border-amber-300 bg-amber-100 p-4">
-            <p className="mb-2 text-xs font-semibold text-zinc-700">(주)제이에이건설 배차 합계</p>
-            <p className="text-lg font-bold text-zinc-950">{profitData ? profitData.jeiaAmt.toLocaleString()+' 원' : '-'}</p>
+          {/* 기존 카드들 */}
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <div className="rounded-lg border border-amber-300 bg-amber-100 p-4">
+              <p className="mb-2 text-xs font-semibold text-zinc-700">6110 배차 합계</p>
+              <p className="text-lg font-bold text-zinc-950">{profitData ? profitData.plate002Amt.toLocaleString()+' 원' : '-'}</p>
+            </div>
+            <div className="rounded-lg border border-amber-300 bg-amber-100 p-4">
+              <p className="mb-2 text-xs font-semibold text-zinc-700">(주)제이에이건설 배차 합계</p>
+              <p className="text-lg font-bold text-zinc-950">{profitData ? profitData.jeiaAmt.toLocaleString()+' 원' : '-'}</p>
+            </div>
           </div>
         </div>
       </Card>
