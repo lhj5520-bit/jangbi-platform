@@ -730,17 +730,19 @@ export default function DashboardPage() {
             <p className="mb-3 text-xs font-semibold text-zinc-600">이영규 차주 배차 합계 (차별)</p>
             {profitData && Object.keys(profitData.byPlate).length > 0 ? (
               <div>
-                <div className="grid gap-x-3 gap-y-1.5" style={{ gridTemplateColumns: 'auto auto' }}>
-                  {Object.entries(profitData.byPlate)
-                    .sort((a, b) => b[1] - a[1])
-                    .map(([plate, amt]) => (
-                      <>
-                        <span key={plate+'-k'} className="text-sm font-medium text-zinc-700">{plate}</span>
-                        <span key={plate+'-v'} className="text-sm font-semibold text-zinc-900 text-right">{amt.toLocaleString()}원</span>
-                      </>
-                    ))}
-                </div>
-                <div className="flex items-center justify-between border-t border-amber-300 pt-2 mt-2">
+                <table className="text-sm">
+                  <tbody>
+                    {Object.entries(profitData.byPlate)
+                      .sort((a, b) => b[1] - a[1])
+                      .map(([plate, amt]) => (
+                        <tr key={plate}>
+                          <td className="pr-6 py-0.5 font-medium text-zinc-700">{plate}</td>
+                          <td className="py-0.5 font-semibold text-zinc-900 text-right whitespace-nowrap">{amt.toLocaleString()}원</td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+                <div className="flex items-center gap-6 border-t border-amber-300 pt-2 mt-2">
                   <span className="text-xs font-bold text-zinc-600">전체 합계</span>
                   <span className="text-base font-bold text-amber-700">{profitData.totalDispatch.toLocaleString()} 원</span>
                 </div>
