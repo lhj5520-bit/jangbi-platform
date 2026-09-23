@@ -4,7 +4,7 @@
 **작업 폴더**: `D:\claude-test\jangbi-platform`  
 **배포 URL**: https://jangbi-platform.vercel.app  
 **Supabase**: https://qeurmytrzghonavsiqwa.supabase.co  
-**최종 정리**: 2026-08-13
+**최종 정리**: 2026-09-22
 
 ---
 
@@ -221,6 +221,12 @@ if (error) {
   8. 이번 달 계산서 (매출/매입 한 표)
   9. 세무일정 (기본 접힘, 임박 건 있으면 자동 펼침)
 - 연간 이윤 분석에 하드코딩된 값 있음: 차주 `이영규`, 차량 `002어6110`, 발주처 `제이에이건설`.
+- **전월 일평균잔액** (2026-09-22 추가):
+  - 통장잔액 카드 우측 하단에 `전월 일평균잔액` 표시.
+  - `bank_transactions`에서 전월 전체 거래 조회 → 각 날짜의 마지막 `balance`를 하루 잔액으로 사용.
+  - 거래 없는 날은 직전 거래일 잔액을 이월(carry-forward).
+  - `transaction_at`은 슬래시 형식(`2026/08/15 22:06:34`) → `.replace(/\//g, '-')` 후 날짜 키 사용.
+  - 계산: `총 일별 잔액 합계 / 전월 일수`.
 
 ### 사이드바 / 모바일 메뉴
 파일: `src/app/dashboard/layout.tsx`
@@ -445,6 +451,44 @@ GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated;
 ---
 
 ## 8. 최근 중요 수정 이력
+
+### 2026-09-22 수정
+
+#### 관리비 전면 리디자인 (`expenses/page.tsx`)
+- 인라인 헤더로 교체: `< year년 month월 >` 월 이동 네비게이션, 오늘 버튼, 가져오기▼ / 내보내기▼ 드롭다운, `+ 지출 등록`.
+- 4개 KPI 카드: 이번 달 합계 / 전월 대비 증감(%) / 월 평균 / 연간 합계.
+- 2열 차트:
+  - 왼쪽: 카테고리별 진행 바 (비율 표시)
+  - 오른쪽: CSS 막대 차트 (월별 12개 막대), 금액/누계 토글 버튼 (`chartMode` state)
+  - 현재 월 막대는 `indigo-500`, 나머지는 `indigo-200`
+  - 막대 클릭 시 해당 월로 이동
+- 카테고리 필터 탭 + 검색 입력 (기존 필터 대체).
+- 테이블 신규 컬럼: `출처`(note 필드), `등록일`(created_at).
+- `···` 액션 드롭다운: 수정/삭제 (기존 행 클릭 수정 + 버튼 방식 통합).
+- 10건 페이지네이션 (`page` state, `paginated` slice).
+- 드롭다운 3종 (`importMenuOpen`, `exportMenuOpen`, `actionMenuId`) — 외부 클릭 시 닫힘.
+- **주의**: `PageHeader` 컴포넌트 제거, 인라인 헤더로 대체.
+- div 균형 확인: 셀프클로징 `<div ... />` 제외 기준으로 85 open = 85 close 검증함.
+
+#### 대시보드 전월 일평균잔액 (`page.tsx`)
+- 상세는 위 Section 3 "대시보드" 참고.
+- state: `prevMonthAvgBalance: number | null`
+- 통장잔액 카드 내 `flex justify-between` 레이아웃으로 기존 링크와 나란히 배치.
+
+#### 배차내역서 카톡 보내기 PC 폴백 (`dispatch-ledger/page.tsx`)
+- `navigator.share`는 모바일 전용이라 PC에서 조용히 실패했던 문제 수정.
+- `kakaoText: string | null` state 추가.
+- `buildKakaoText()` 함수로 텍스트 생성 분리.
+- `handleKakao()` 로직:
+  - `navigator.share` 가능 → share 시도, 실패 시 `setKakaoText`로 폴백.
+  - `navigator.share` 불가 → 즉시 `setKakaoText` + clipboard 복사.
+- `kakaoText` 설정 시 모달 내부가 텍스트 패널로 교체됨:
+  - 황색 안내 배너 + `<textarea readOnly>` (포커스 시 전체 선택)
+  - 📋 복사하기 버튼 (Ctrl+V 안내 alert)
+  - 뒤로 버튼 → `setKakaoText(null)`
+- 모달 닫기 버튼도 `setKakaoText(null)` 추가.
+
+---
 
 ### 2026-08-13 수정
 

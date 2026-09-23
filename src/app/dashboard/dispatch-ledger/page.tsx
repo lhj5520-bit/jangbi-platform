@@ -104,6 +104,27 @@ export default function DispatchLedgerPage() {
   }, [])
   const [driverDetailName, setDriverDetailName] = useState<string | null>(null)
   const [kakaoText, setKakaoText] = useState<string | null>(null)
+  const [driverPayment, setDriverPayment] = useState<Record<string, string>>({})
+
+  // 날짜 범위 바뀔 때 입금여부 localStorage 로드
+  useEffect(() => {
+    try {
+      const key = `jangbi:driver-payment:${dateFrom}~${dateTo}`
+      const saved = localStorage.getItem(key)
+      setDriverPayment(saved ? JSON.parse(saved) : {})
+    } catch { setDriverPayment({}) }
+  }, [dateFrom, dateTo])
+
+  const setDriverPaymentStatus = (driver: string, status: string) => {
+    setDriverPayment(prev => {
+      const next = { ...prev, [driver]: status }
+      try {
+        const key = `jangbi:driver-payment:${dateFrom}~${dateTo}`
+        localStorage.setItem(key, JSON.stringify(next))
+      } catch {}
+      return next
+    })
+  }
   const [deleteConfirm, setDeleteConfirm] = useState<LedgerRow | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [copyDate, setCopyDate] = useState(today)
@@ -1193,24 +1214,44 @@ export default function DispatchLedgerPage() {
                   <th className="px-4 py-2 text-right text-xs text-gray-500 font-medium">매출액</th>
                   <th className="px-4 py-2 text-right text-xs text-gray-500 font-medium">공제액</th>
                   <th className="px-4 py-2 text-right text-xs text-gray-500 font-medium">공급가액</th>
+                  <th className="px-4 py-2 text-center text-xs text-gray-500 font-medium">입금여부</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {entries.map(([name, v]) => (
-                  <tr key={name} className="hover:bg-gray-50">
-                    <td className="px-4 py-2 font-medium text-blue-600 cursor-pointer underline-offset-2 hover:underline" onClick={() => setDriverDetailName(name)}>{name}</td>
-                    <td className="px-4 py-2 text-right text-gray-600">{v.count}건</td>
-                    <td className="px-4 py-2 text-right text-gray-700">{v.sales.toLocaleString()}</td>
-                    <td className="px-4 py-2 text-right text-red-500">{v.commission > 0 ? `-${v.commission.toLocaleString()}` : '-'}</td>
-                    <td className="px-4 py-2 text-right font-semibold text-blue-700">{(v.sales - v.commission).toLocaleString()}</td>
-                  </tr>
-                ))}
+                {entries.map(([name, v]) => {
+                  const ps = driverPayment[name] || '미입금'
+                  const psColor = ps === '입금완료' ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                    : ps === '일부입금' ? 'bg-amber-50 text-amber-700 border-amber-200'
+                    : 'bg-red-50 text-red-600 border-red-200'
+                  return (
+                    <tr key={name} className="hover:bg-gray-50">
+                      <td className="px-4 py-2 font-medium text-blue-600 cursor-pointer underline-offset-2 hover:underline" onClick={() => setDriverDetailName(name)}>{name}</td>
+                      <td className="px-4 py-2 text-right text-gray-600">{v.count}건</td>
+                      <td className="px-4 py-2 text-right text-gray-700">{v.sales.toLocaleString()}</td>
+                      <td className="px-4 py-2 text-right text-red-500">{v.commission > 0 ? `-${v.commission.toLocaleString()}` : '-'}</td>
+                      <td className="px-4 py-2 text-right font-semibold text-blue-700">{(v.sales - v.commission).toLocaleString()}</td>
+                      <td className="px-4 py-2 text-center">
+                        <select
+                          value={ps}
+                          onChange={e => { e.stopPropagation(); setDriverPaymentStatus(name, e.target.value) }}
+                          onClick={e => e.stopPropagation()}
+                          className={`text-xs font-semibold px-2 py-1 rounded-lg border cursor-pointer outline-none ${psColor}`}
+                        >
+                          <option value="미입금">미입금</option>
+                          <option value="일부입금">일부입금</option>
+                          <option value="입금완료">입금완료</option>
+                        </select>
+                      </td>
+                    </tr>
+                  )
+                })}
                 <tr className="bg-gray-50 font-semibold border-t-2 border-gray-200">
                   <td className="px-4 py-2 text-gray-700">합계</td>
                   <td className="px-4 py-2 text-right text-gray-600">{entries.reduce((s, [, v]) => s + v.count, 0)}건</td>
                   <td className="px-4 py-2 text-right text-gray-700">{entries.reduce((s, [, v]) => s + v.sales, 0).toLocaleString()}</td>
                   <td className="px-4 py-2 text-right text-red-500">-{entries.reduce((s, [, v]) => s + v.commission, 0).toLocaleString()}</td>
                   <td className="px-4 py-2 text-right text-blue-700">{entries.reduce((s, [, v]) => s + v.sales - v.commission, 0).toLocaleString()}</td>
+                  <td></td>
                 </tr>
               </tbody>
             </table>
