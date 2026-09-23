@@ -181,15 +181,18 @@ export default function EquipmentCostsPage() {
           {[2023, 2024, 2025, 2026, 2027].map(y => <option key={y} value={y}>{y}년</option>)}
         </select>
         <select value={month} onChange={e => setMonth(Number(e.target.value))} className={inp}>
-          <option value={0}>연간</option>
           {Array.from({ length: 12 }, (_, i) => i + 1).map(m => <option key={m} value={m}>{m}월</option>)}
         </select>
         <button onClick={() => {
-          const pm = month === 1 ? 12 : month - 1
-          const py = month === 1 ? year - 1 : year
+          const pm = month <= 1 ? 12 : month - 1
+          const py = month <= 1 ? year - 1 : year
           setYear(py); setMonth(pm)
         }} className="px-3 py-2 text-sm rounded-lg border border-indigo-400 text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition-colors font-medium">
           전월
+        </button>
+        <button onClick={() => setMonth(0)}
+          className={`px-3 py-2 text-sm rounded-lg border font-medium transition-colors ${month === 0 ? 'bg-indigo-500 border-indigo-500 text-white' : 'border-indigo-400 text-indigo-600 bg-indigo-50 hover:bg-indigo-100'}`}>
+          전체
         </button>
         <select value={equipFilter} onChange={e => setEquipFilter(e.target.value)} className={inp + ' min-w-[160px]'}>
           <option value="">전체 장비</option>

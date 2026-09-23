@@ -734,40 +734,37 @@ export default function DashboardPage() {
             <p className="mb-3 text-xs font-semibold text-zinc-600">이영규 차주 배차 합계 (차별)</p>
             {profitData && Object.keys(profitData.byPlate).length > 0 ? (
               <div>
-                <div className="flex gap-10">
-                  {/* 차별 */}
-                  <div>
-                    <p className="text-[10px] text-zinc-400 font-semibold mb-1">차별</p>
+                {(() => {
+                  const plateRows = Object.entries(profitData.byPlate).sort((a,b)=>b[1]-a[1])
+                  const monthRows = Object.entries(profitData.byMonth).sort((a,b)=>a[0].localeCompare(b[0]))
+                  const maxLen = Math.max(plateRows.length, monthRows.length)
+                  return (
                     <table className="text-sm">
+                      <thead>
+                        <tr className="border-b border-amber-300">
+                          <th className="text-left text-[10px] font-semibold text-zinc-400 pb-1 pr-4">차량번호</th>
+                          <th className="text-right text-[10px] font-semibold text-zinc-400 pb-1 pr-8">합계금액</th>
+                          <th className="text-left text-[10px] font-semibold text-zinc-400 pb-1 pr-4">월</th>
+                          <th className="text-right text-[10px] font-semibold text-zinc-400 pb-1">합계금액</th>
+                        </tr>
+                      </thead>
                       <tbody>
-                        {Object.entries(profitData.byPlate)
-                          .sort((a, b) => b[1] - a[1])
-                          .map(([plate, amt]) => (
-                            <tr key={plate}>
-                              <td className="pr-5 py-0.5 font-medium text-zinc-700">{plate}</td>
-                              <td className="py-0.5 font-semibold text-zinc-900 text-right whitespace-nowrap">{amt.toLocaleString()}원</td>
+                        {Array.from({length: maxLen}).map((_,i)=>{
+                          const [plate, pAmt] = plateRows[i] ?? ['','']
+                          const [mo, mAmt] = monthRows[i] ?? ['','']
+                          return (
+                            <tr key={i}>
+                              <td className="pr-4 py-0.5 font-medium text-zinc-700 whitespace-nowrap">{plate}</td>
+                              <td className="pr-8 py-0.5 font-semibold text-zinc-900 text-right whitespace-nowrap">{plate ? (pAmt as number).toLocaleString()+'원' : ''}</td>
+                              <td className="pr-4 py-0.5 font-medium text-zinc-700 whitespace-nowrap">{mo ? mo.slice(5)+'월' : ''}</td>
+                              <td className="py-0.5 font-semibold text-zinc-900 text-right whitespace-nowrap">{mo ? (mAmt as number).toLocaleString()+'원' : ''}</td>
                             </tr>
-                          ))}
+                          )
+                        })}
                       </tbody>
                     </table>
-                  </div>
-                  {/* 월별 */}
-                  <div>
-                    <p className="text-[10px] text-zinc-400 font-semibold mb-1">월별</p>
-                    <table className="text-sm">
-                      <tbody>
-                        {Object.entries(profitData.byMonth)
-                          .sort((a, b) => a[0].localeCompare(b[0]))
-                          .map(([mo, amt]) => (
-                            <tr key={mo}>
-                              <td className="pr-5 py-0.5 font-medium text-zinc-700">{mo.slice(5)}월</td>
-                              <td className="py-0.5 font-semibold text-zinc-900 text-right whitespace-nowrap">{amt.toLocaleString()}원</td>
-                            </tr>
-                          ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
+                  )
+                })()}
                 <div className="flex items-center gap-6 border-t border-amber-300 pt-2 mt-3">
                   <span className="text-xs font-bold text-zinc-600">전체 합계</span>
                   <span className="text-base font-bold text-amber-700">{profitData.totalDispatch.toLocaleString()} 원</span>
