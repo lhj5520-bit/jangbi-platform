@@ -193,7 +193,7 @@ export default function DashboardPage() {
   const [monthSales, setMonthSales] = useState<{supply:number;vat:number;total:number}>({supply:0,vat:0,total:0})
   const [monthPurchase, setMonthPurchase] = useState<{supply:number;vat:number;total:number}>({supply:0,vat:0,total:0})
   const [profitYear, setProfitYear] = useState<number>(new Date().getFullYear())
-  const [profitData, setProfitData] = useState<{totalDispatch:number,totalExpenses:number,profit:number,profitRate:number,plate002Amt:number,jeiaAmt:number,fuelAmt:number,fuelRate:number,categoryBreakdown:{category:string,amount:number}[],byPlate:Record<string,number>,byMonth:Record<string,number>}|null>(null)
+  const [profitData, setProfitData] = useState<{totalDispatch:number,totalExpenses:number,profit:number,profitRate:number,plate002Amt:number,jeiaAmt:number,fuelAmt:number,fuelRate:number,categoryBreakdown:{category:string,amount:number}[],byPlate:Record<string,number>,byMonth:Record<string,number>,byPlateMonth:Record<string,Record<string,number>>}|null>(null)
   const [weather, setWeather] = useState<{temp:number,code:number,wind:number}|null>(null)
   const [prevMonthAvgBalance, setPrevMonthAvgBalance] = useState<number | null>(null)
 
@@ -380,6 +380,7 @@ export default function DashboardPage() {
       let totalDispatch = 0
       const byPlate: Record<string, number> = {}
       const byMonth: Record<string, number> = {}
+      const byPlateMonth: Record<string, Record<string, number>> = {}
       for (const d of (yearDispatches??[])) {
         const log = (d.daily_logs as any[]|null)?.[0]
         if (!log) continue
@@ -391,13 +392,14 @@ export default function DashboardPage() {
           (log.work_time_3?Math.round(parseH(log.work_time_3)*p3):0)
         const amt = slotAmt || Math.round(qty*(d.client_unit_price??0)) || (log.engineer_daily_wage??0)
         totalDispatch += amt
-        // 차량별 집계
         const pn: string = (d.equipment as any)?.plate_no
           || ((d as any).equipment_text?.split(/\s+/).pop()) || '미상'
         byPlate[pn] = (byPlate[pn] ?? 0) + amt
-        // 월별 집계
         const mo: string = ((d as any).start_date ?? '').slice(0, 7) || '미상'
         byMonth[mo] = (byMonth[mo] ?? 0) + amt
+        // 차량×월 피벗
+        if (!byPlateMonth[pn]) byPlateMonth[pn] = {}
+        byPlateMonth[pn][mo] = (byPlateMonth[pn][mo] ?? 0) + amt
       }
       const totalExpenses = (yearExpenses??[]).reduce((s:number,e:any)=>s+(e.amount??0),0)
       const profit = totalDispatch - totalExpenses
@@ -436,7 +438,7 @@ export default function DashboardPage() {
         catMap[cat] = (catMap[cat]??0) + (e.amount??0)
       }
       const categoryBreakdown = Object.entries(catMap).sort((a,b)=>b[1]-a[1]).map(([category,amount])=>({category,amount}))
-      setProfitData({ totalDispatch, totalExpenses, profit, profitRate, plate002Amt, jeiaAmt, fuelAmt, fuelRate, categoryBreakdown, byPlate, byMonth })
+      setProfitData({ totalDispatch, totalExpenses, profit, profitRate, plate002Amt, jeiaAmt, fuelAmt, fuelRate, categoryBreakdown, byPlate, byMonth, byPlateMonth })
     }
     loadProfit()
   }, [profitYear])
@@ -733,42 +735,45 @@ export default function DashboardPage() {
           <div className="rounded-lg border border-amber-300 bg-amber-50 p-4">
             <p className="mb-3 text-xs font-semibold text-zinc-600">이영규 차주 배차 합계 (차별)</p>
             {profitData && Object.keys(profitData.byPlate).length > 0 ? (
-              <div>
+              <div className="overflow-x-auto">
                 {(() => {
-                  const plateRows = Object.entries(profitData.byPlate).sort((a,b)=>b[1]-a[1])
-                  const monthRows = Object.entries(profitData.byMonth).sort((a,b)=>a[0].localeCompare(b[0]))
-                  const maxLen = Math.max(plateRows.length, monthRows.length)
+                  const plates = Object.entries(profitData.byPlate).sort((a,b)=>b[1]-a[1]).map(([p])=>p)
+                  const months = Array.from({length:12},(_,i)=>`${profitYear}-${String(i+1).padStart(2,'0')}`)
+                    .filter(mo => Object.values(profitData.byPlateMonth).some(m=>m[mo]))
                   return (
-                    <table className="text-sm">
+                    <table className="text-xs border-collapse">
                       <thead>
-                        <tr className="border-b border-amber-300">
-                          <th className="text-left text-[10px] font-semibold text-zinc-400 pb-1 pr-4">차량번호</th>
-                          <th className="text-right text-[10px] font-semibold text-zinc-400 pb-1 pr-8">합계금액</th>
-                          <th className="text-left text-[10px] font-semibold text-zinc-400 pb-1 pr-4">월</th>
-                          <th className="text-right text-[10px] font-semibold text-zinc-400 pb-1">합계금액</th>
+                        <tr>
+                          <th className="text-left font-semibold text-zinc-400 pb-1 pr-3 whitespace-nowrap">차량번호</th>
+                          {months.map(mo=>(
+                            <th key={mo} className="text-right font-semibold text-zinc-400 pb-1 px-2 whitespace-nowrap">{parseInt(mo.slice(5))}월</th>
+                          ))}
+                          <th className="text-right font-semibold text-zinc-400 pb-1 pl-3 whitespace-nowrap border-l border-amber-300">합계</th>
                         </tr>
                       </thead>
-                      <tbody>
-                        {Array.from({length: maxLen}).map((_,i)=>{
-                          const [plate, pAmt] = plateRows[i] ?? ['','']
-                          const [mo, mAmt] = monthRows[i] ?? ['','']
-                          return (
-                            <tr key={i}>
-                              <td className="pr-4 py-0.5 font-medium text-zinc-700 whitespace-nowrap">{plate}</td>
-                              <td className="pr-8 py-0.5 font-semibold text-zinc-900 text-right whitespace-nowrap">{plate ? (pAmt as number).toLocaleString()+'원' : ''}</td>
-                              <td className="pr-4 py-0.5 font-medium text-zinc-700 whitespace-nowrap">{mo ? mo.slice(5)+'월' : ''}</td>
-                              <td className="py-0.5 font-semibold text-zinc-900 text-right whitespace-nowrap">{mo ? (mAmt as number).toLocaleString()+'원' : ''}</td>
-                            </tr>
-                          )
-                        })}
+                      <tbody className="divide-y divide-amber-100">
+                        {plates.map(plate=>(
+                          <tr key={plate} className="hover:bg-amber-50">
+                            <td className="pr-3 py-1 font-medium text-zinc-700 whitespace-nowrap">{plate}</td>
+                            {months.map(mo=>{
+                              const v = profitData.byPlateMonth[plate]?.[mo] ?? 0
+                              return <td key={mo} className="px-2 py-1 text-right text-zinc-800 whitespace-nowrap">{v ? v.toLocaleString() : <span className="text-zinc-300">-</span>}</td>
+                            })}
+                            <td className="pl-3 py-1 text-right font-semibold text-zinc-900 whitespace-nowrap border-l border-amber-300">{profitData.byPlate[plate].toLocaleString()}</td>
+                          </tr>
+                        ))}
+                        <tr className="border-t-2 border-amber-300 font-semibold">
+                          <td className="pr-3 py-1 text-zinc-600">합계</td>
+                          {months.map(mo=>{
+                            const v = profitData.byMonth[mo] ?? 0
+                            return <td key={mo} className="px-2 py-1 text-right text-zinc-800 whitespace-nowrap">{v ? v.toLocaleString() : <span className="text-zinc-300">-</span>}</td>
+                          })}
+                          <td className="pl-3 py-1 text-right text-amber-700 font-bold whitespace-nowrap border-l border-amber-300">{profitData.totalDispatch.toLocaleString()}</td>
+                        </tr>
                       </tbody>
                     </table>
                   )
                 })()}
-                <div className="flex items-center gap-6 border-t border-amber-300 pt-2 mt-3">
-                  <span className="text-xs font-bold text-zinc-600">전체 합계</span>
-                  <span className="text-base font-bold text-amber-700">{profitData.totalDispatch.toLocaleString()} 원</span>
-                </div>
               </div>
             ) : (
               <p className="text-lg font-bold text-zinc-950">{profitData ? profitData.totalDispatch.toLocaleString()+' 원' : '-'}</p>
