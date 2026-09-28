@@ -410,7 +410,7 @@ export default function TradeStatementPage() {
       })
       document.getElementById('jpg-capture-style')?.remove()
 
-      const filename = `거래명세서-${recipientName || selectedClient || ''}.jpg`
+      const filename = `거래명세서-${recipientName || selectedClient || ''}_${dateTo}.jpg`
 
       // 바로 다운로드
       const link = document.createElement('a')
