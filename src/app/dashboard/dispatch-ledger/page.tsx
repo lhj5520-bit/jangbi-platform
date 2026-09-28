@@ -74,6 +74,8 @@ export default function DispatchLedgerPage() {
   const exportRef = useRef<HTMLDivElement>(null)
   const exportPrintRef = useRef<HTMLDivElement>(null)
   const tableScrollRef = useRef<HTMLDivElement>(null)
+  const kakaoModalRef = useRef<HTMLDivElement>(null)
+  const [kakaoImage, setKakaoImage] = useState<string | null>(null)
 
   // 드래그로 테이블 가로 스크롤
   useEffect(() => {
@@ -1278,14 +1280,31 @@ export default function DispatchLedgerPage() {
             const date = r.log_date.slice(5)
             lines.push(`${date} ${r.plate_no || r.equipment_type || ''} ${r.work_type_1 || ''} ${r.operating_hours}h → ${sup.toLocaleString()}원`)
           })
-          lines.push(`\n합계: ${totalSup.toLocaleString()}원`)
+          lines.push(`\n공급가액: ${totalSup.toLocaleString()}원`)
           return lines.join('\n')
         }
 
-        function handleKakao() {
+        async function handleKakao() {
+          const el = kakaoModalRef.current
+          if (el) {
+            try {
+              const { toPng } = await import('html-to-image')
+              const dataUrl = await toPng(el, { backgroundColor: '#ffffff', pixelRatio: 2 })
+              setKakaoImage(dataUrl)
+              // 모바일 파일 공유 시도
+              const res = await fetch(dataUrl)
+              const blob = await res.blob()
+              const file = new File([blob], `정산_${driverDetailName}_${period}.png`, { type: 'image/png' })
+              if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                navigator.share({ files: [file] }).catch(() => {})
+              }
+              return
+            } catch {}
+          }
+          // 캡처 실패 시 텍스트 폴백
           const text = buildKakaoText()
           if (navigator.share) {
-            navigator.share({ text }).catch(() => { setKakaoText(text) })
+            navigator.share({ text }).catch(() => setKakaoText(text))
           } else {
             setKakaoText(text)
             navigator.clipboard?.writeText(text).catch(() => {})
@@ -1300,8 +1319,11 @@ export default function DispatchLedgerPage() {
                   <div className="font-bold text-gray-900 text-base">{driverDetailName}</div>
                   <div className="text-xs text-gray-400 mt-0.5">{period} · {sorted.length}건 · 공급가액 <span className="text-blue-600 font-semibold">{totalSup.toLocaleString()}원</span></div>
                 </div>
-                <button onClick={() => { setDriverDetailName(null); setKakaoText(null) }} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
+                <button onClick={() => { setDriverDetailName(null); setKakaoText(null); setKakaoImage(null) }} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
               </div>
+
+              {/* 캡처 대상 영역 (헤더+테이블, 버튼 제외) */}
+              <div ref={kakaoModalRef}>
 
               {/* 카톡 텍스트 패널 (PC 폴백 또는 공유 실패 시) */}
               {kakaoText ? (
@@ -1361,18 +1383,25 @@ export default function DispatchLedgerPage() {
                       </tbody>
                       <tfoot className="bg-gray-50 border-t-2 border-gray-200 sticky bottom-0">
                         <tr>
-                          <td colSpan={2} className="px-3 py-2 text-sm font-semibold text-gray-700">합계</td>
+                          <td colSpan={2} className="px-3 py-2 text-sm font-semibold text-gray-700">공급가액</td>
                           <td className="px-3 py-2 text-xs text-red-400 text-right">-{totalComm.toLocaleString()}</td>
                           <td className="px-3 py-2 text-right font-bold text-blue-700">{totalSup.toLocaleString()}</td>
                         </tr>
                       </tfoot>
                     </table>
                   </div>
-                  <div className="px-5 py-4 border-t border-gray-200 shrink-0">
+                  </div>{/* kakaoModalRef 닫기 */}
+                  <div className="px-5 py-4 border-t border-gray-200 shrink-0 space-y-2">
                     <button onClick={handleKakao}
                       className="w-full py-3 rounded-xl bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-bold text-sm flex items-center justify-center gap-2">
                       💬 카톡 보내기
                     </button>
+                    {kakaoImage && (
+                      <a href={kakaoImage} download={`정산_${driverDetailName}_${period}.png`}
+                        className="w-full py-2 rounded-xl border border-gray-200 text-gray-500 text-sm flex items-center justify-center gap-1 hover:bg-gray-50">
+                        📥 이미지 저장
+                      </a>
+                    )}
                   </div>
                 </>
               )}
