@@ -1374,13 +1374,14 @@ export default function DispatchLedgerPage() {
                     <button onClick={() => setBizEditOpen(v => !v)}
                       className="no-capture w-full flex items-center justify-between px-5 py-2 text-xs text-gray-400 hover:bg-gray-50">
                       <span className="font-medium text-gray-500">
-                        {sup ? `계산서 → ${sup.name}` : '계산서 발행처 선택'}
+                        {sup ? '계산서 발행처' : '계산서 발행처 선택'}
                       </span>
                       <span>{bizEditOpen ? '▲' : '▼'}</span>
                     </button>
                     {sup && !bizEditOpen && (
                       <div className="px-5 pb-3 text-xs text-gray-600 space-y-0.5">
                         <div className="text-[10px] text-gray-400 mb-1">계산서 발행 할 곳</div>
+                        <div className="font-semibold text-gray-800 text-sm mb-1">{sup.name}</div>
                         {sup.business_no && <div><span className="text-gray-400 mr-2">사업자번호</span>{sup.business_no}</div>}
                         {sup.ceo_name && <div><span className="text-gray-400 mr-2">대표자</span>{sup.ceo_name}</div>}
                         {sup.address && <div><span className="text-gray-400 mr-2">주소</span>{sup.address}</div>}
@@ -1390,7 +1391,7 @@ export default function DispatchLedgerPage() {
                       <div className="no-capture px-5 pb-3 space-y-1">
                         <p className="text-[10px] text-gray-400 mb-1">중기업체 선택</p>
                         {(() => {
-                          const pinnedKeywords = ['가온건설중기', '강토건설중기', '제이에이건설']
+                          const pinnedKeywords = ['가온건설중기', '강토', '제이에이건설']
                           const pinned = pinnedKeywords.map(kw => allSuppliers.find((s: any) => s.name.includes(kw))).filter(Boolean)
                           const pinnedIds = new Set(pinned.map((s: any) => s.id))
                           const rest = allSuppliers.filter((s: any) => !pinnedIds.has(s.id))
