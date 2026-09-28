@@ -1381,7 +1381,6 @@ export default function DispatchLedgerPage() {
                     {sup && !bizEditOpen && (
                       <div className="px-5 pb-3 text-xs text-gray-600 space-y-0.5">
                         <div className="text-[10px] text-gray-400 mb-1">계산서 발행 할 곳</div>
-                        <div className="font-semibold text-gray-800 text-sm mb-1">{sup.name}</div>
                         {sup.business_no && <div><span className="text-gray-400 mr-2">사업자번호</span>{sup.business_no}</div>}
                         {sup.ceo_name && <div><span className="text-gray-400 mr-2">대표자</span>{sup.ceo_name}</div>}
                         {sup.address && <div><span className="text-gray-400 mr-2">주소</span>{sup.address}</div>}
