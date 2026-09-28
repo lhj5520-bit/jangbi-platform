@@ -108,6 +108,19 @@ export default function DispatchLedgerPage() {
   const [kakaoText, setKakaoText] = useState<string | null>(null)
   const [driverPayment, setDriverPayment] = useState<Record<string, string>>({})
 
+  // 차주별 계산서 발행처 (중기업체 supplier_id, localStorage 저장)
+  const [driverInvoiceSup, setDriverInvoiceSup] = useState<Record<string, string>>(() => {
+    try { return JSON.parse(localStorage.getItem('jangbi:driver-invoice-sup') ?? '{}') } catch { return {} }
+  })
+  const [bizEditOpen, setBizEditOpen] = useState(false)
+  const setDriverInvoiceSupId = (driver: string, supId: string) => {
+    setDriverInvoiceSup(prev => {
+      const next = { ...prev, [driver]: supId }
+      try { localStorage.setItem('jangbi:driver-invoice-sup', JSON.stringify(next)) } catch {}
+      return next
+    })
+  }
+
   // 날짜 범위 바뀔 때 입금여부 localStorage 로드
   useEffect(() => {
     try {
@@ -1322,8 +1335,45 @@ export default function DispatchLedgerPage() {
                   <div className="font-bold text-gray-900 text-base">{driverDetailName}</div>
                   <div className="text-xs text-gray-400 mt-0.5">{period} · {sorted.length}건 · 공급가액 <span className="text-blue-600 font-semibold">{totalSup.toLocaleString()}원</span></div>
                 </div>
-                <button onClick={() => { setDriverDetailName(null); setKakaoText(null); setKakaoImage(null) }} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
+                <button onClick={() => { setDriverDetailName(null); setKakaoText(null); setKakaoImage(null); setBizEditOpen(false) }} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
               </div>
+
+              {/* 계산서 발행처 (중기업체 선택) */}
+              {(() => {
+                const supId = driverInvoiceSup[driverDetailName] ?? ''
+                const sup = allSuppliers.find((s: any) => s.id === supId)
+                return (
+                  <div className="border-b border-gray-100">
+                    <button onClick={() => setBizEditOpen(v => !v)}
+                      className="no-capture w-full flex items-center justify-between px-5 py-2 text-xs text-gray-400 hover:bg-gray-50">
+                      <span className="font-medium text-gray-500">
+                        {sup ? `계산서 → ${sup.name}` : '계산서 발행처 선택'}
+                      </span>
+                      <span>{bizEditOpen ? '▲' : '▼'}</span>
+                    </button>
+                    {sup && !bizEditOpen && (
+                      <div className="px-5 pb-3 text-xs text-gray-600 space-y-0.5">
+                        {sup.business_no && <div><span className="text-gray-400 mr-2">사업자번호</span>{sup.business_no}</div>}
+                        {sup.ceo_name && <div><span className="text-gray-400 mr-2">대표자</span>{sup.ceo_name}</div>}
+                        {sup.address && <div><span className="text-gray-400 mr-2">주소</span>{sup.address}</div>}
+                      </div>
+                    )}
+                    {bizEditOpen && (
+                      <div className="no-capture px-5 pb-3 space-y-1">
+                        <p className="text-[10px] text-gray-400 mb-1">중기업체 선택</p>
+                        <select value={supId}
+                          onChange={e => { setDriverInvoiceSupId(driverDetailName, e.target.value); setBizEditOpen(false) }}
+                          className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-blue-400">
+                          <option value="">선택 안함</option>
+                          {allSuppliers.map((s: any) => (
+                            <option key={s.id} value={s.id}>{s.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+                  </div>
+                )
+              })()}
 
               {/* 카톡 텍스트 패널 (PC 폴백 또는 공유 실패 시) */}
               {kakaoText ? (
