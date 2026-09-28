@@ -113,6 +113,9 @@ export default function DispatchLedgerPage() {
     try { return JSON.parse(localStorage.getItem('jangbi:driver-invoice-sup') ?? '{}') } catch { return {} }
   })
   const [bizEditOpen, setBizEditOpen] = useState(false)
+  const [supDocs, setSupDocs] = useState<any[]>([])
+  const [includeBizReg, setIncludeBizReg] = useState(false)
+
   const setDriverInvoiceSupId = (driver: string, supId: string) => {
     setDriverInvoiceSup(prev => {
       const next = { ...prev, [driver]: supId }
@@ -120,6 +123,14 @@ export default function DispatchLedgerPage() {
       return next
     })
   }
+
+  // 선택된 차주의 업체 서류 로드
+  useEffect(() => {
+    if (!driverDetailName) { setSupDocs([]); return }
+    const supId = driverInvoiceSup[driverDetailName]
+    if (!supId) { setSupDocs([]); return }
+    supabase.from('documents').select('*').eq('ref_id', supId).then(({ data }) => setSupDocs(data ?? []))
+  }, [driverDetailName, driverInvoiceSup])
 
   // 날짜 범위 바뀔 때 입금여부 localStorage 로드
   useEffect(() => {
@@ -1307,12 +1318,28 @@ export default function DispatchLedgerPage() {
                 filter: (node: HTMLElement) => !node.classList?.contains?.('no-capture')
               })
               setKakaoImage(dataUrl)
-              // 모바일 파일 공유 시도
+              // 정산 이미지 파일 생성
               const res = await fetch(dataUrl)
               const blob = await res.blob()
-              const file = new File([blob], `정산_${driverDetailName}_${period}.png`, { type: 'image/png' })
-              if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                navigator.share({ files: [file] }).catch(() => {})
+              const settlementFile = new File([blob], `정산_${driverDetailName}_${period}.png`, { type: 'image/png' })
+
+              // 사업자등록증 이미지 포함 여부
+              const filesToShare: File[] = [settlementFile]
+              if (includeBizReg && supDocs.length > 0) {
+                for (const doc of supDocs) {
+                  try {
+                    const { data: urlData } = supabase.storage.from('documents').getPublicUrl(doc.file_url)
+                    const docRes = await fetch(urlData.publicUrl)
+                    const docBlob = await docRes.blob()
+                    const ext = doc.file_url.split('.').pop() || 'jpg'
+                    const docFile = new File([docBlob], doc.file_name || `사업자등록증.${ext}`, { type: docBlob.type || 'image/jpeg' })
+                    filesToShare.push(docFile)
+                  } catch {}
+                }
+              }
+
+              if (navigator.canShare && navigator.canShare({ files: filesToShare })) {
+                navigator.share({ files: filesToShare }).catch(() => {})
               }
               return
             } catch {}
@@ -1441,6 +1468,18 @@ export default function DispatchLedgerPage() {
                     </table>
                   </div>
                   <div className="no-capture px-5 py-4 border-t border-gray-200 shrink-0 space-y-2">
+                    {supDocs.length > 0 && (
+                      <label className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={includeBizReg}
+                          onChange={e => setIncludeBizReg(e.target.checked)}
+                          className="w-4 h-4 accent-yellow-500"
+                        />
+                        <span>사업자등록증 함께 보내기</span>
+                        <span className="text-gray-400">({supDocs.length}개 파일)</span>
+                      </label>
+                    )}
                     <button onClick={handleKakao}
                       className="w-full py-3 rounded-xl bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-bold text-sm flex items-center justify-center gap-2">
                       💬 카톡 보내기
