@@ -1388,14 +1388,25 @@ export default function DispatchLedgerPage() {
                     {bizEditOpen && (
                       <div className="no-capture px-5 pb-3 space-y-1">
                         <p className="text-[10px] text-gray-400 mb-1">중기업체 선택</p>
-                        <select value={supId}
-                          onChange={e => { setDriverInvoiceSupId(driverDetailName, e.target.value); setBizEditOpen(false) }}
-                          className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-blue-400">
-                          <option value="">선택 안함</option>
-                          {allSuppliers.map((s: any) => (
-                            <option key={s.id} value={s.id}>{s.name}</option>
-                          ))}
-                        </select>
+                        {(() => {
+                          const pinnedNames = ['(주)가온건설중기', '강토건설중기', '(주)제이에이건설']
+                          const pinned = pinnedNames.map(n => allSuppliers.find((s: any) => s.name === n)).filter(Boolean)
+                          const rest = allSuppliers.filter((s: any) => !pinnedNames.includes(s.name))
+                          return (
+                            <select value={supId}
+                              onChange={e => { setDriverInvoiceSupId(driverDetailName, e.target.value); setBizEditOpen(false) }}
+                              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-blue-400">
+                              <option value="">선택 안함</option>
+                              {pinned.map((s: any) => (
+                                <option key={s.id} value={s.id}>⭐ {s.name}</option>
+                              ))}
+                              {pinned.length > 0 && <option disabled>──────────</option>}
+                              {rest.map((s: any) => (
+                                <option key={s.id} value={s.id}>{s.name}</option>
+                              ))}
+                            </select>
+                          )
+                        })()}
                       </div>
                     )}
                   </div>
