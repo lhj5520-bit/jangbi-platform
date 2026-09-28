@@ -1289,7 +1289,10 @@ export default function DispatchLedgerPage() {
           if (el) {
             try {
               const { toPng } = await import('html-to-image')
-              const dataUrl = await toPng(el, { backgroundColor: '#ffffff', pixelRatio: 2 })
+              const dataUrl = await toPng(el, {
+                backgroundColor: '#ffffff', pixelRatio: 2,
+                filter: (node: HTMLElement) => !node.classList?.contains?.('no-capture')
+              })
               setKakaoImage(dataUrl)
               // 모바일 파일 공유 시도
               const res = await fetch(dataUrl)
@@ -1313,7 +1316,7 @@ export default function DispatchLedgerPage() {
 
         return (
           <div className="fixed inset-0 bg-black/40 flex items-end md:items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl w-full max-w-md shadow-xl overflow-hidden flex flex-col max-h-[85vh]">
+            <div ref={kakaoModalRef} className="bg-white rounded-2xl w-full max-w-md shadow-xl overflow-hidden flex flex-col max-h-[85vh]">
               <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 shrink-0">
                 <div>
                   <div className="font-bold text-gray-900 text-base">{driverDetailName}</div>
@@ -1321,9 +1324,6 @@ export default function DispatchLedgerPage() {
                 </div>
                 <button onClick={() => { setDriverDetailName(null); setKakaoText(null); setKakaoImage(null) }} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
               </div>
-
-              {/* 캡처 대상 영역 (헤더+테이블, 버튼 제외) */}
-              <div ref={kakaoModalRef}>
 
               {/* 카톡 텍스트 패널 (PC 폴백 또는 공유 실패 시) */}
               {kakaoText ? (
@@ -1390,8 +1390,7 @@ export default function DispatchLedgerPage() {
                       </tfoot>
                     </table>
                   </div>
-                  </div>{/* kakaoModalRef 닫기 */}
-                  <div className="px-5 py-4 border-t border-gray-200 shrink-0 space-y-2">
+                  <div className="no-capture px-5 py-4 border-t border-gray-200 shrink-0 space-y-2">
                     <button onClick={handleKakao}
                       className="w-full py-3 rounded-xl bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-bold text-sm flex items-center justify-center gap-2">
                       💬 카톡 보내기
