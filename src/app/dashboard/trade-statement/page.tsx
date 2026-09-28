@@ -410,7 +410,7 @@ export default function TradeStatementPage() {
       })
       document.getElementById('jpg-capture-style')?.remove()
 
-      const filename = `거래명세서_${recipientName || ''}${dateFrom ? '_' + dateFrom : ''}.jpg`
+      const filename = `거래명세서-${recipientName || selectedClient || ''}.jpg`
 
       // 바로 다운로드
       const link = document.createElement('a')
@@ -493,7 +493,7 @@ export default function TradeStatementPage() {
         // 즉시 다운로드 (팝업 없이)
         const link = document.createElement('a')
         link.href = dataUrl
-        link.download = `거래명세서_${client}_${dateFrom}.jpg`
+        link.download = `거래명세서-${client}.jpg`
         document.body.appendChild(link)
         link.click()
         document.body.removeChild(link)
@@ -886,7 +886,12 @@ export default function TradeStatementPage() {
             className="no-print bg-green-600 hover:bg-green-700 text-white text-sm font-semibold px-4 py-2 rounded-xl flex items-center gap-2 shadow">
             🖼 JPG 저장
           </button>
-          <button onClick={() => window.print()}
+          <button onClick={() => {
+            const prev = document.title
+            document.title = `거래명세서-${recipientName || selectedClient || ''}`
+            window.print()
+            setTimeout(() => { document.title = prev }, 1000)
+          }}
             className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700">
             🖨️ 인쇄 / PDF
           </button>
