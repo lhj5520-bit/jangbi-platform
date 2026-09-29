@@ -250,7 +250,7 @@ export default function PayrollPage() {
               </div>
 
               {/* 명세서 본문 */}
-              <div ref={printRef} style={{ fontFamily: "'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif", background: '#fff', padding: '32px', border: '1px solid #ccc', borderRadius: 8, maxWidth: 700 }}>
+              <div ref={printRef} data-print-area style={{ fontFamily: "'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif", background: '#fff', padding: '32px', border: '1px solid #ccc', borderRadius: 8, maxWidth: 700 }}>
                 {/* 제목 */}
                 <div style={{ textAlign: 'center', marginBottom: 24 }}>
                   <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: 8, marginBottom: 4 }}>급 여 명 세 서</div>
@@ -323,9 +323,19 @@ export default function PayrollPage() {
 
       <style>{`
         @media print {
-          body * { visibility: hidden; }
-          #__next, #__next * { visibility: hidden; }
-          [data-print-area], [data-print-area] * { visibility: visible; }
+          body * { visibility: hidden !important; }
+          [data-print-area], [data-print-area] * { visibility: visible !important; }
+          [data-print-area] {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            border: none !important;
+            border-radius: 0 !important;
+            padding: 20px !important;
+            box-shadow: none !important;
+          }
         }
       `}</style>
     </div>
