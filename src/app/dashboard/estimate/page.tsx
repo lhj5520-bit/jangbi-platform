@@ -464,12 +464,12 @@ export default function EstimatePage() {
                       공<br/>급<br/>자
                     </td>
                     <td style={{ border: '1px solid #aaa', padding: '5px 8px', fontSize: 11, background: '#e8f4f8', fontWeight: 600, whiteSpace: 'nowrap' }}>
-                      상 호
+                      상&nbsp;&nbsp;호
                     </td>
-                    <td style={{ border: '1px solid #aaa', padding: '4px 8px', fontSize: 11, width: '18%' }}>
+                    <td colSpan={2} style={{ border: '1px solid #aaa', padding: '4px 8px', fontSize: 11, width: '22%' }}>
                       {GAON.name}
                     </td>
-                    <td style={{ border: '1px solid #aaa', padding: '4px 8px', fontSize: 11, width: '16%', position: 'relative' }}>
+                    <td style={{ border: '1px solid #aaa', padding: '4px 8px', fontSize: 11, width: '14%', position: 'relative' }}>
                       <span style={{ fontSize: 10, color: '#555' }}>대표</span>{' '}{GAON.ceo}
                       {stampImg && (
                         <img src={stampImg} alt="도장"
@@ -486,7 +486,7 @@ export default function EstimatePage() {
                     <td style={{ border: '1px solid #aaa', padding: '5px 8px', fontSize: 11, background: '#e8f4f8', fontWeight: 600, whiteSpace: 'nowrap' }}>
                       주&nbsp;&nbsp;소
                     </td>
-                    <td colSpan={2} style={{ border: '1px solid #aaa', padding: '4px 8px', fontSize: 10, color: '#333' }}>
+                    <td colSpan={3} style={{ border: '1px solid #aaa', padding: '4px 8px', fontSize: 10, color: '#333' }}>
                       {GAON.addr}
                     </td>
                   </tr>
@@ -500,8 +500,11 @@ export default function EstimatePage() {
                     <td style={{ border: '1px solid #aaa', padding: '4px 8px', fontSize: 11, whiteSpace: 'nowrap' }}>
                       {GAON.biz_type}
                     </td>
+                    <td style={{ border: '1px solid #aaa', padding: '5px 8px', fontSize: 11, background: '#e8f4f8', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                      종&nbsp;&nbsp;목
+                    </td>
                     <td style={{ border: '1px solid #aaa', padding: '4px 8px', fontSize: 11, whiteSpace: 'nowrap' }}>
-                      <span style={{ fontWeight: 600, color: '#555' }}>종&nbsp;&nbsp;목</span>&nbsp;&nbsp;{GAON.biz_item}
+                      {GAON.biz_item}
                     </td>
                   </tr>
                 </tbody>
