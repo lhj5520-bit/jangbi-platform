@@ -61,6 +61,24 @@ const cInp: React.CSSProperties = {
   fontSize: 11, outline: 'none', textAlign: 'center',
 }
 
+function handleKeyNav(e: React.KeyboardEvent, rowIdx: number, colIdx: number, totalRows: number) {
+  const arrows: Record<string, [number, number]> = {
+    ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1]
+  }
+  const delta = arrows[e.key]
+  if (!delta) return
+  const isSelect = (e.target as HTMLElement).tagName === 'SELECT'
+  // select 에서 좌우는 기본 동작(값 변경) 유지
+  if (isSelect && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) return
+  e.preventDefault()
+  const [dr, dc] = delta
+  const nextRow = rowIdx + dr
+  const nextCol = colIdx + dc
+  if (nextRow < 0 || nextRow >= totalRows) return
+  const target = document.querySelector<HTMLElement>(`[data-cell="${nextRow}-${nextCol}"]`)
+  target?.focus()
+}
+
 export default function EstimatePage() {
   const supabase = createClient()
   const printAreaRef = useRef<HTMLDivElement>(null)
@@ -494,7 +512,7 @@ export default function EstimatePage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {rows.map(r => (
+                  {rows.map((r, rowIdx) => (
                     <tr key={r.id}>
                       <td style={{ ...cTd, textAlign: 'center' }}>
                         {(() => {
@@ -505,6 +523,8 @@ export default function EstimatePage() {
                                 onChange={e => updateRow(r.id, 'type', e.target.value)}
                                 className="no-print" style={cInp} placeholder="종류 입력"
                                 onBlur={e => { if (!e.target.value) updateRow(r.id, 'type', '') }}
+                                data-cell={`${rowIdx}-0`}
+                                onKeyDown={e => handleKeyNav(e, rowIdx, 0, rows.length)}
                               />
                               <span className="print-only" style={{ fontSize: 11 }}>{r.type}</span>
                             </>
@@ -518,6 +538,8 @@ export default function EstimatePage() {
                                     updateRow(r.id, 'type', e.target.value)
                                   }
                                 }}
+                                data-cell={`${rowIdx}-0`}
+                                onKeyDown={e => handleKeyNav(e, rowIdx, 0, rows.length)}
                                 className="no-print" style={{ ...cInp, cursor: 'pointer' }}>
                                 <option value=""></option>
                                 {TYPE_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
@@ -531,13 +553,18 @@ export default function EstimatePage() {
                         {(!r.type || r.type === '기타' || !['굴삭기', '덤프트럭', '화물차', '기타'].includes(r.type)) ? (
                           <>
                             <input value={r.spec} onChange={e => updateRow(r.id, 'spec', e.target.value)}
-                              className="no-print" style={cInp} placeholder="직접 입력" />
+                              className="no-print" style={cInp} placeholder="직접 입력"
+                              data-cell={`${rowIdx}-1`}
+                              onKeyDown={e => handleKeyNav(e, rowIdx, 1, rows.length)}
+                            />
                             <span className="print-only" style={{ fontSize: 11 }}>{r.spec}</span>
                           </>
                         ) : (
                           <>
                             <select value={r.spec} onChange={e => updateRow(r.id, 'spec', e.target.value)}
-                              className="no-print" style={{ ...cInp, cursor: 'pointer' }}>
+                              className="no-print" style={{ ...cInp, cursor: 'pointer' }}
+                              data-cell={`${rowIdx}-1`}
+                              onKeyDown={e => handleKeyNav(e, rowIdx, 1, rows.length)}>
                               <option value=""></option>
                               {(SPEC_OPTIONS[r.type] ?? []).map(s => <option key={s} value={s}>{s}</option>)}
                             </select>
@@ -547,7 +574,9 @@ export default function EstimatePage() {
                       </td>
                       <td style={{ ...cTd, textAlign: 'center' }}>
                         <select value={r.unit} onChange={e => updateRow(r.id, 'unit', e.target.value)}
-                          className="no-print" style={{ ...cInp, cursor: 'pointer' }}>
+                          className="no-print" style={{ ...cInp, cursor: 'pointer' }}
+                          data-cell={`${rowIdx}-2`}
+                          onKeyDown={e => handleKeyNav(e, rowIdx, 2, rows.length)}>
                           <option value=""></option>
                           {UNIT_OPTIONS.map(u => <option key={u} value={u}>{u}</option>)}
                         </select>
@@ -556,13 +585,20 @@ export default function EstimatePage() {
                       <td style={cTd}>
                         <input type="text" inputMode="numeric" value={r.unit_price ? Number(r.unit_price).toLocaleString() : ''}
                           onChange={e => updateRow(r.id, 'unit_price', e.target.value.replace(/,/g, ''))}
-                          style={{ ...cInp, textAlign: 'right' }} />
+                          style={{ ...cInp, textAlign: 'right' }}
+                          data-cell={`${rowIdx}-3`}
+                          onKeyDown={e => handleKeyNav(e, rowIdx, 3, rows.length)}
+                        />
                       </td>
                       <td style={{ ...cTd, textAlign: 'right' }}>
                         {r.unit_price ? Number(r.unit_price).toLocaleString() : ''}
                       </td>
                       <td style={cTd}>
-                        <input value={r.note} onChange={e => updateRow(r.id, 'note', e.target.value)} style={{ ...cInp, textAlign: 'left' }} />
+                        <input value={r.note} onChange={e => updateRow(r.id, 'note', e.target.value)}
+                          style={{ ...cInp, textAlign: 'left' }}
+                          data-cell={`${rowIdx}-4`}
+                          onKeyDown={e => handleKeyNav(e, rowIdx, 4, rows.length)}
+                        />
                       </td>
                       <td style={{ ...cTd, textAlign: 'center', padding: 0 }} className="no-print">
                         <button onClick={() => removeRow(r.id)}
