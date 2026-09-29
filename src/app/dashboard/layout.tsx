@@ -216,7 +216,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         if (items.length === 0) return null
         return (
           <div key={groupName} className="mb-3">
-            <div className="px-3 pb-1.5 pt-1 text-[11px] font-semibold tracking-wide text-zinc-500">{groupName}</div>
+            <div className="px-3 pb-1.5 pt-1 text-[11px] font-bold tracking-widest text-zinc-300 uppercase border-b border-zinc-700 mb-1">{groupName}</div>
             {items.map(item => {
               const isActive = pathname === item.href
               return (
