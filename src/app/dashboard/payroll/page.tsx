@@ -139,9 +139,25 @@ export default function PayrollPage() {
     return '-'
   }
 
-  async function handlePrint() {
-    if (!printRef.current) return
-    window.print()
+  function handlePrint() {
+    if (!printRef.current || !selectedDriver) return
+    const content = printRef.current.innerHTML
+    const win = window.open('', '_blank', 'width=800,height=900')
+    if (!win) return
+    win.document.write(`<!DOCTYPE html><html><head>
+      <meta charset="utf-8"/>
+      <title>급여명세서_${selectedDriver.name}_${year}년${month}월</title>
+      <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Malgun Gothic','Apple SD Gothic Neo',sans-serif; padding: 32px; }
+        table { border-collapse: collapse; width: 100%; }
+        @page { margin: 15mm; }
+        @media print { body { padding: 0; } }
+      </style>
+    </head><body>${content}</body></html>`)
+    win.document.close()
+    win.focus()
+    setTimeout(() => { win.print() }, 300)
   }
 
   async function handleSaveImage() {
@@ -321,23 +337,6 @@ export default function PayrollPage() {
         </div>
       </div>
 
-      <style>{`
-        @media print {
-          body * { visibility: hidden !important; }
-          [data-print-area], [data-print-area] * { visibility: visible !important; }
-          [data-print-area] {
-            position: fixed !important;
-            top: 0 !important;
-            left: 0 !important;
-            width: 100% !important;
-            max-width: 100% !important;
-            border: none !important;
-            border-radius: 0 !important;
-            padding: 20px !important;
-            box-shadow: none !important;
-          }
-        }
-      `}</style>
     </div>
   )
 }
