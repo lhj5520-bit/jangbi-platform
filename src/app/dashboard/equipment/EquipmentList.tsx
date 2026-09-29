@@ -102,23 +102,29 @@ export default function EquipmentList({ ownership }: Props) {
     }
   }
 
-  async function handleShowSecCard(supplierId?: string, equipmentId?: string) {
-    const refId = supplierId || equipmentId
-    if (!refId) return
-    setSecCardLoading(refId)
+  async function handleShowSecCard(equipmentId: string, supplierId?: string) {
+    const loadingKey = equipmentId
+    setSecCardLoading(loadingKey)
     try {
-      const { data: docs } = await supabase
-        .from('documents')
-        .select('*')
-        .eq('ref_id', refId)
-        .eq('doc_type', '보안카드')
-        .limit(1)
-      if (!docs || docs.length === 0) {
+      // 보안카드는 equipment ID로 저장됨 (handleSecCardUpload 기준)
+      // supplier ID로도 폴백 조회
+      const ids = [equipmentId, supplierId].filter(Boolean) as string[]
+      let found: any = null
+      for (const refId of ids) {
+        const { data: docs } = await supabase
+          .from('documents')
+          .select('*')
+          .eq('ref_id', refId)
+          .eq('doc_type', '보안카드')
+          .limit(1)
+        if (docs && docs.length > 0) { found = docs[0]; break }
+      }
+      if (!found) {
         alert('등록된 보안카드 사진이 없습니다.')
         setSecCardLoading(null)
         return
       }
-      const { data: { publicUrl } } = supabase.storage.from('documents').getPublicUrl(docs[0].file_url)
+      const { data: { publicUrl } } = supabase.storage.from('documents').getPublicUrl(found.file_url)
       setSecCardPopup(publicUrl)
     } catch {
       alert('보안카드 사진을 불러오지 못했습니다.')
@@ -282,10 +288,10 @@ export default function EquipmentList({ ownership }: Props) {
                   className="flex-1 rounded-lg border border-gray-200 py-2.5 text-sm font-medium text-gray-600">수정</button>
                 {ownership === 'other' && (
                   <button
-                    onClick={() => handleShowSecCard(e.supplier_id ?? undefined, e.id)}
-                    disabled={secCardLoading === (e.supplier_id || e.id)}
+                    onClick={() => handleShowSecCard(e.id, e.supplier_id ?? undefined)}
+                    disabled={secCardLoading === e.id}
                     className="flex-1 rounded-lg border border-purple-200 py-2.5 text-sm font-medium text-purple-600 disabled:opacity-50">
-                    {secCardLoading === (e.supplier_id || e.id) ? '...' : '🔐 보안카드'}
+                    {secCardLoading === e.id ? '...' : '🔐 보안카드'}
                   </button>
                 )}
                 <button onClick={() => handleDelete(e.id)}
@@ -344,10 +350,10 @@ export default function EquipmentList({ ownership }: Props) {
                     <button onClick={() => { setSelected(e); setModalOpen(true) }} className="text-xs text-blue-600 hover:underline">수정</button>
                     {ownership === 'other' && (
                       <button
-                        onClick={() => handleShowSecCard(e.supplier_id ?? undefined, e.id)}
-                        disabled={secCardLoading === (e.supplier_id || e.id)}
+                        onClick={() => handleShowSecCard(e.id, e.supplier_id ?? undefined)}
+                        disabled={secCardLoading === e.id}
                         className="text-xs text-purple-500 hover:underline disabled:opacity-50">
-                        {secCardLoading === (e.supplier_id || e.id) ? '...' : '🔐 보안카드'}
+                        {secCardLoading === e.id ? '...' : '🔐 보안카드'}
                       </button>
                     )}
                     {readyId === e.id ? (
