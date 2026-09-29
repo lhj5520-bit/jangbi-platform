@@ -89,6 +89,8 @@ export default function SupplierEquipmentModal({
   const [uploading, setUploading] = useState(false)
   const [selectedDocIds, setSelectedDocIds] = useState<Set<string>>(new Set())
   const [sharing, setSharing] = useState(false)
+  const secCardRef = useRef<HTMLInputElement>(null)
+  const [secCardUploading, setSecCardUploading] = useState(false)
 
   function toggleDoc(id: string) {
     setSelectedDocIds(prev => {
@@ -180,6 +182,33 @@ export default function SupplierEquipmentModal({
     await supabase.storage.from('documents').remove([fileUrl])
     await supabase.from('documents').delete().eq('id', docId)
     setDocs(d => d.filter(doc => doc.id !== docId))
+  }
+
+  const [secCardPopup, setSecCardPopup] = useState<string | null>(null)
+
+  // 보안카드 업로드
+  async function handleSecCardUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    const refId = equipment?.id ?? editEquipId
+    if (!file || !refId) { alert('장비를 먼저 저장한 뒤 업로드해 주세요.'); e.target.value = ''; return }
+    setSecCardUploading(true)
+    const ext = file.name.split('.').pop()
+    const path = `${refId}/${Date.now()}_seccard.${ext}`
+    // 기존 보안카드 삭제
+    const existing = docs.filter(d => d.doc_type === '보안카드')
+    for (const d of existing) {
+      await supabase.storage.from('documents').remove([d.file_url])
+      await supabase.from('documents').delete().eq('id', d.id)
+    }
+    const { error } = await supabase.storage.from('documents').upload(path, file)
+    if (error) { alert('업로드 실패: ' + error.message); setSecCardUploading(false); e.target.value = ''; return }
+    const { data: inserted } = await supabase.from('documents').insert({
+      ref_type: 'equipment', ref_id: refId,
+      doc_type: '보안카드', file_url: path, file_name: file.name,
+    }).select().single()
+    if (inserted) setDocs(d => [inserted, ...d.filter(x => x.doc_type !== '보안카드')])
+    setSecCardUploading(false)
+    e.target.value = ''
   }
 
   const replaceInputRef = useRef<HTMLInputElement>(null)
@@ -535,6 +564,7 @@ export default function SupplierEquipmentModal({
   const inp = 'w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
 
   return (
+    <>
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-xl">
 
@@ -655,9 +685,38 @@ export default function SupplierEquipmentModal({
               <Row label="보험료">
                 <input value={form.insurance_premium} onChange={e => setF('insurance_premium', e.target.value)} className={inp} placeholder="연간 보험료" />
               </Row>
-              <Row label="메모">
+              <Row label="보안카드">
                 <textarea value={form.memo} onChange={e => setF('memo', e.target.value)}
                   className={inp + ' resize-none'} rows={2} placeholder="비고" />
+                {/* 보안카드 사진 */}
+                {(() => {
+                  const secDoc = docs.find(d => d.doc_type === '보안카드')
+                  const secUrl = secDoc ? supabase.storage.from('documents').getPublicUrl(secDoc.file_url).data.publicUrl : null
+                  return (
+                    <div className="mt-2">
+                      {secUrl ? (
+                        <div className="relative group">
+                          <img src={secUrl} alt="보안카드" onClick={() => setSecCardPopup(secUrl)}
+                            className="w-full rounded-lg border border-gray-200 cursor-pointer object-cover max-h-40" />
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors rounded-lg flex items-center justify-center">
+                            <span className="opacity-0 group-hover:opacity-100 text-white text-xs font-medium bg-black/50 px-2 py-1 rounded">🔍 크게 보기</span>
+                          </div>
+                          <button onClick={async () => {
+                            if (!confirm('보안카드 사진을 삭제하시겠습니까?')) return
+                            await supabase.storage.from('documents').remove([secDoc!.file_url])
+                            await supabase.from('documents').delete().eq('id', secDoc!.id)
+                            setDocs(d => d.filter(x => x.id !== secDoc!.id))
+                          }} className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs hover:bg-red-600">✕</button>
+                        </div>
+                      ) : (
+                        <label className="flex items-center justify-center gap-2 w-full py-2.5 border-2 border-dashed border-gray-300 rounded-lg text-sm text-gray-400 hover:border-blue-400 hover:text-blue-500 cursor-pointer transition-colors">
+                          {secCardUploading ? '업로드 중...' : '📷 보안카드 사진 추가'}
+                          <input ref={secCardRef} type="file" accept="image/*" className="hidden" onChange={handleSecCardUpload} disabled={secCardUploading} />
+                        </label>
+                      )}
+                    </div>
+                  )
+                })()}
               </Row>
             </div>
           </div>
@@ -798,6 +857,19 @@ export default function SupplierEquipmentModal({
 
       </div>
     </div>
+
+    {/* 보안카드 사진 팝업 */}
+    {secCardPopup && (
+      <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[60] p-4"
+        onClick={() => setSecCardPopup(null)}>
+        <div className="relative max-w-2xl w-full" onClick={e => e.stopPropagation()}>
+          <img src={secCardPopup} alt="보안카드" className="w-full rounded-xl shadow-2xl" />
+          <button onClick={() => setSecCardPopup(null)}
+            className="absolute top-2 right-2 bg-black/60 text-white rounded-full w-8 h-8 flex items-center justify-center text-lg hover:bg-black/80">✕</button>
+        </div>
+      </div>
+    )}
+    </>
   )
 }
 
