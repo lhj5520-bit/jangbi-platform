@@ -48,6 +48,7 @@ export default function EquipmentList({ ownership }: Props) {
   const [readyId, setReadyId] = useState<string | null>(null)
   const [secCardPopup, setSecCardPopup] = useState<string | null>(null)
   const [secCardLoading, setSecCardLoading] = useState<string | null>(null)
+  const [secCardIds, setSecCardIds] = useState<Set<string>>(new Set())
   // ref에 보관 → 클릭 핸들러에서 state 읽기 없이 즉시 접근 (iOS 제스처 컨텍스트 유지)
   const readyFilesRef = useRef<{ files: File[]; urls: string[] }>({ files: [], urls: [] })
   const supabase = createClient()
@@ -152,6 +153,17 @@ export default function EquipmentList({ ownership }: Props) {
     setEquipment(eq ?? [])
     setSuppliers(sup ?? [])
     setLoading(false)
+
+    // 보안카드가 있는 장비 ID 목록 로드
+    if (eq && eq.length > 0) {
+      const eqIds = eq.map((e: any) => e.id)
+      const { data: secDocs } = await supabase
+        .from('documents')
+        .select('ref_id')
+        .eq('doc_type', '보안카드')
+        .in('ref_id', eqIds)
+      if (secDocs) setSecCardIds(new Set(secDocs.map((d: any) => d.ref_id)))
+    }
   }
 
   useEffect(() => { load() }, [ownership])
@@ -286,7 +298,7 @@ export default function EquipmentList({ ownership }: Props) {
               <div className="flex gap-2">
                 <button onClick={() => { setSelected(e); setModalOpen(true) }}
                   className="flex-1 rounded-lg border border-gray-200 py-2.5 text-sm font-medium text-gray-600">수정</button>
-                {ownership === 'other' && (
+                {ownership === 'other' && secCardIds.has(e.id) && (
                   <button
                     onClick={() => handleShowSecCard(e.id, e.supplier_id ?? undefined)}
                     disabled={secCardLoading === e.id}
@@ -348,7 +360,7 @@ export default function EquipmentList({ ownership }: Props) {
                 <td className="px-5 py-3">
                   <div className="flex gap-2 justify-end items-center">
                     <button onClick={() => { setSelected(e); setModalOpen(true) }} className="text-xs text-blue-600 hover:underline">수정</button>
-                    {ownership === 'other' && (
+                    {ownership === 'other' && secCardIds.has(e.id) && (
                       <button
                         onClick={() => handleShowSecCard(e.id, e.supplier_id ?? undefined)}
                         disabled={secCardLoading === e.id}

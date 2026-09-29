@@ -52,6 +52,7 @@ const navItems: NavItem[] = [
   { href: '/dashboard/trade-statement',  label: '거래명세서',      icon: 'invoice',    group: '문서 발행' },
   { href: '/dashboard/estimate',         label: '견적서',          icon: 'invoice',    group: '문서 발행' },
   { href: '/dashboard/rental-contract',  label: '임대차계약서',    icon: 'ledger',     group: '문서 발행' },
+  { href: '/dashboard/payroll',          label: '급여명세서',      icon: 'expenses',   group: '문서 발행' },
 
   { href: '/dashboard/clients',          label: '발주처',          icon: 'clients',    group: '기준 정보' },
   { href: '/dashboard/suppliers',        label: '중기업체',        icon: 'suppliers',  group: '기준 정보' },
