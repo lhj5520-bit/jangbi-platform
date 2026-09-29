@@ -53,31 +53,32 @@ export default function PayrollPage() {
     const lastDay = new Date(year, month, 0).getDate()
     const to = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
 
+    // 배차 전체 조회 (driver_name 필터 없이)
     const { data: dispatches } = await supabase
       .from('dispatches')
       .select('id, log_date, driver_name, site_name, client_name, equipment_text')
       .gte('log_date', from)
       .lte('log_date', to)
-      .not('driver_name', 'is', null)
-      .neq('driver_name', '')
       .order('log_date', { ascending: true })
 
-    if (!dispatches) { setLoading(false); return }
+    if (!dispatches || dispatches.length === 0) { setLoading(false); return }
 
     const dispIds = dispatches.map(d => d.id)
-    const { data: logs } = dispIds.length > 0
-      ? await supabase.from('daily_logs').select(
-          'dispatch_id, operating_hours, unit_price, engineer_daily_wage, w1_hours, w1_unit, w2_hours, w2_unit, w3_hours, w3_unit'
-        ).in('dispatch_id', dispIds)
-      : { data: [] }
+    const { data: logs } = await supabase
+      .from('daily_logs')
+      .select('dispatch_id, driver_name, operating_hours, unit_price, engineer_daily_wage, w1_hours, w1_unit, w2_hours, w2_unit, w3_hours, w3_unit')
+      .in('dispatch_id', dispIds)
 
     const logMap: Record<string, any> = {}
     ;(logs ?? []).forEach(l => { logMap[l.dispatch_id] = l })
 
     const rows: DispatchRow[] = dispatches.map(d => {
       const l = logMap[d.id]
+      // 운전자명: daily_logs.driver_name 우선, 없으면 dispatches.driver_name(차주명)
+      const resolvedDriverName = l?.driver_name || d.driver_name || ''
       return {
         ...d,
+        driver_name: resolvedDriverName,
         operating_hours: l?.operating_hours ?? null,
         unit_price: l?.unit_price ?? null,
         engineer_daily_wage: l?.engineer_daily_wage ?? null,
@@ -85,9 +86,9 @@ export default function PayrollPage() {
         w2_hours: l?.w2_hours ?? null, w2_unit: l?.w2_unit ?? null,
         w3_hours: l?.w3_hours ?? null, w3_unit: l?.w3_unit ?? null,
       }
-    })
+    }).filter(r => r.driver_name) // 이름 없는 행 제외
 
-    // driver_name 기준 그룹
+    // 운전자명 기준 그룹
     const map: Record<string, DispatchRow[]> = {}
     rows.forEach(r => {
       const key = r.driver_name
