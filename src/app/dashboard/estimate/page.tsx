@@ -484,7 +484,7 @@ export default function EstimatePage() {
                         placeholder="현장명 입력" style={{ ...cInp, textAlign: 'left', width: '80%' }} />
                     </td>
                     <td style={{ border: '1px solid #aaa', padding: '5px 8px', fontSize: 11, background: '#e8f4f8', fontWeight: 600, whiteSpace: 'nowrap' }}>
-                      사업장소
+                      주&nbsp;&nbsp;소
                     </td>
                     <td colSpan={2} style={{ border: '1px solid #aaa', padding: '4px 8px', fontSize: 10, color: '#333' }}>
                       {GAON.addr}
@@ -495,13 +495,13 @@ export default function EstimatePage() {
                       아래와 같이 견적합니다.
                     </td>
                     <td style={{ border: '1px solid #aaa', padding: '5px 8px', fontSize: 11, background: '#e8f4f8', fontWeight: 600, whiteSpace: 'nowrap' }}>
-                      업태
+                      업&nbsp;&nbsp;태
                     </td>
-                    <td style={{ border: '1px solid #aaa', padding: '4px 8px', fontSize: 11 }}>
+                    <td style={{ border: '1px solid #aaa', padding: '4px 8px', fontSize: 11, whiteSpace: 'nowrap' }}>
                       {GAON.biz_type}
                     </td>
-                    <td style={{ border: '1px solid #aaa', padding: '4px 8px', fontSize: 11 }}>
-                      <span style={{ fontSize: 10, color: '#555' }}>종목</span>{' '}{GAON.biz_item}
+                    <td style={{ border: '1px solid #aaa', padding: '4px 8px', fontSize: 11, whiteSpace: 'nowrap' }}>
+                      <span style={{ fontWeight: 600, color: '#555' }}>종&nbsp;&nbsp;목</span>&nbsp;&nbsp;{GAON.biz_item}
                     </td>
                   </tr>
                 </tbody>
