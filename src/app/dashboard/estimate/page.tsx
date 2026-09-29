@@ -429,7 +429,7 @@ export default function EstimatePage() {
                 const cLbl: React.CSSProperties = {
                   border: '1px solid #aaa', padding: '5px 8px', fontSize: 11,
                   background: '#e8f4f8', fontWeight: 600,
-                  textAlign: 'justify', textAlignLast: 'justify',
+                  textAlign: 'center',
                 }
                 return (
                 <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 0 }}>
@@ -489,7 +489,7 @@ export default function EstimatePage() {
                       </td>
                     </tr>
                     <tr>
-                      <td style={{ ...cLbl }}>아래와 같이 견적합니다.</td>
+                      <td style={{ ...cLbl, textAlign: 'left' }}>아래와 같이 견적합니다.</td>
                       <td style={{ ...cLbl }}>업태</td>
                       <td style={{ border: '1px solid #aaa', padding: '4px 8px', fontSize: 11, whiteSpace: 'nowrap' }}>
                         {GAON.biz_type}
