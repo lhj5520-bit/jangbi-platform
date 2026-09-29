@@ -304,7 +304,7 @@ export default function PayrollPage() {
                   <tfoot>
                     <tr style={{ background: '#f0f4ff' }}>
                       <td colSpan={5} style={{ border: '1px solid #999', padding: '7px 8px', textAlign: 'center', fontWeight: 700 }}>합 계</td>
-                      <td style={{ border: '1px solid #999', padding: '7px 8px', textAlign: 'right', fontWeight: 700, fontSize: 13, color: '#1a56db' }}>
+                      <td style={{ border: '1px solid #999', padding: '7px 8px', textAlign: 'right', fontWeight: 700, fontSize: 13, color: '#1a56db', whiteSpace: 'nowrap' }}>
                         {fmt(selectedDriver.totalWage)}원
                       </td>
                     </tr>
