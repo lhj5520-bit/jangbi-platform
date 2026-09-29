@@ -1373,7 +1373,7 @@ export default function DispatchLedgerPage() {
                   <div className="border-b border-gray-100">
                     <button onClick={() => setBizEditOpen(v => !v)}
                       className="no-capture w-full flex items-center justify-between px-5 py-2 text-xs text-gray-400 hover:bg-gray-50">
-                      <span className="font-medium text-gray-500">
+                      <span className={`font-medium ${sup ? 'text-gray-500' : 'text-blue-500'}`}>
                         {sup ? '계산서 발행처' : '계산서 발행처 선택'}
                       </span>
                       <span>{bizEditOpen ? '▲' : '▼'}</span>
