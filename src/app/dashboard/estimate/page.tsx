@@ -528,7 +528,7 @@ export default function EstimatePage() {
                         })()}
                       </td>
                       <td style={{ ...cTd, textAlign: 'center' }}>
-                        {(!r.type || r.type === '기타') ? (
+                        {(!r.type || r.type === '기타' || !['굴삭기', '덤프트럭', '화물차', '기타'].includes(r.type)) ? (
                           <>
                             <input value={r.spec} onChange={e => updateRow(r.id, 'spec', e.target.value)}
                               className="no-print" style={cInp} placeholder="직접 입력" />
