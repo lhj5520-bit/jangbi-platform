@@ -13,7 +13,7 @@ const GAON = {
   biz_item: '건설장비 운영업',
 }
 
-const TYPE_OPTIONS = ['굴삭기', '덤프트럭', '화물차', '기타']
+const TYPE_OPTIONS = ['굴삭기', '덤프트럭', '화물차', '기타', '직접입력']
 const SPEC_OPTIONS: Record<string, string[]> = {
   '굴삭기':   ['03LC', '03W', '06W'],
   '덤프트럭': ['5D/T', '8D/T', '11D/T', '14D/T', '15D/T', '18D/T', '20D/T', '25D/T'],
@@ -497,12 +497,35 @@ export default function EstimatePage() {
                   {rows.map(r => (
                     <tr key={r.id}>
                       <td style={{ ...cTd, textAlign: 'center' }}>
-                        <select value={r.type} onChange={e => updateRow(r.id, 'type', e.target.value)}
-                          className="no-print" style={{ ...cInp, cursor: 'pointer' }}>
-                          <option value=""></option>
-                          {TYPE_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
-                        </select>
-                        <span className="print-only" style={{ fontSize: 11 }}>{r.type}</span>
+                        {(() => {
+                          const isCustom = r.type !== '' && !['굴삭기', '덤프트럭', '화물차', '기타'].includes(r.type)
+                          return isCustom ? (
+                            <>
+                              <input value={r.type}
+                                onChange={e => updateRow(r.id, 'type', e.target.value)}
+                                className="no-print" style={cInp} placeholder="종류 입력"
+                                onBlur={e => { if (!e.target.value) updateRow(r.id, 'type', '') }}
+                              />
+                              <span className="print-only" style={{ fontSize: 11 }}>{r.type}</span>
+                            </>
+                          ) : (
+                            <>
+                              <select value={r.type}
+                                onChange={e => {
+                                  if (e.target.value === '직접입력') {
+                                    updateRow(r.id, 'type', ' ')
+                                  } else {
+                                    updateRow(r.id, 'type', e.target.value)
+                                  }
+                                }}
+                                className="no-print" style={{ ...cInp, cursor: 'pointer' }}>
+                                <option value=""></option>
+                                {TYPE_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
+                              </select>
+                              <span className="print-only" style={{ fontSize: 11 }}>{r.type}</span>
+                            </>
+                          )
+                        })()}
                       </td>
                       <td style={{ ...cTd, textAlign: 'center' }}>
                         {(!r.type || r.type === '기타') ? (

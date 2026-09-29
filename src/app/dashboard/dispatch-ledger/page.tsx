@@ -1392,7 +1392,7 @@ export default function DispatchLedgerPage() {
                         <p className="text-[10px] text-gray-400 mb-1">중기업체 선택</p>
                         {(() => {
                           const pinnedKeywords = ['가온건설중기', '강토', '제이에이건설']
-                          const pinned = pinnedKeywords.map(kw => allSuppliers.find((s: any) => s.name.includes(kw))).filter(Boolean)
+                          const pinned = allSuppliers.filter((s: any) => pinnedKeywords.some((kw: string) => s.name.includes(kw)))
                           const pinnedIds = new Set(pinned.map((s: any) => s.id))
                           const rest = allSuppliers.filter((s: any) => !pinnedIds.has(s.id))
                           return (
