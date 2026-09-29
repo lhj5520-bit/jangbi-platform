@@ -202,13 +202,21 @@ export default function PayrollPage() {
               <div className="px-4 py-8 text-center text-gray-400 text-sm">배차 내역이 없습니다</div>
             ) : (
               <div className="divide-y divide-gray-100">
-                {drivers.map(d => (
-                  <button key={d.name} onClick={() => setSelectedDriver(d)}
-                    className={`w-full text-left px-4 py-3 hover:bg-blue-50 transition-colors ${selectedDriver?.name === d.name ? 'bg-blue-50 border-l-2 border-blue-500' : ''}`}>
-                    <div className="font-medium text-gray-900 text-sm">{d.name}</div>
-                    <div className="text-xs text-gray-500 mt-0.5">{d.rows.length}건 · {fmt(d.totalWage)}원</div>
-                  </button>
-                ))}
+                {drivers.map(d => {
+                  const isHighlight = ['홍정윤', '김영선', '안창수'].includes(d.name)
+                  const isSelected = selectedDriver?.name === d.name
+                  return (
+                    <button key={d.name} onClick={() => setSelectedDriver(d)}
+                      className={`w-full text-left px-4 py-3 transition-colors ${
+                        isSelected
+                          ? isHighlight ? 'bg-amber-50 border-l-2 border-amber-500' : 'bg-blue-50 border-l-2 border-blue-500'
+                          : isHighlight ? 'hover:bg-amber-50' : 'hover:bg-blue-50'
+                      }`}>
+                      <div className={`font-medium text-sm ${isHighlight ? 'text-amber-700 font-bold' : 'text-gray-900'}`}>{d.name}</div>
+                      <div className={`text-xs mt-0.5 ${isHighlight ? 'text-amber-600' : 'text-gray-500'}`}>{d.rows.length}건 · {fmt(d.totalWage)}원</div>
+                    </button>
+                  )
+                })}
               </div>
             )}
             {drivers.length > 0 && (
