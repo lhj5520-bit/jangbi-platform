@@ -618,15 +618,6 @@ export default function EstimatePage() {
                       </td>
                     </tr>
                   ))}
-                  {/* 합계 */}
-                  <tr>
-                    <td colSpan={3} style={{ ...cTd, background: '#e8f4f8', fontWeight: 700, textAlign: 'center', fontSize: 12 }}>합  계</td>
-                    <td style={{ ...cTd, background: '#e8f4f8' }}></td>
-                    <td style={{ ...cTd, background: '#e8f4f8', fontWeight: 700, textAlign: 'right', fontSize: 12 }}>
-                      {supplyTotal > 0 ? supplyTotal.toLocaleString() : ''}
-                    </td>
-                    <td colSpan={2} style={{ ...cTd, background: '#e8f4f8' }}></td>
-                  </tr>
                 </tbody>
               </table>
 
