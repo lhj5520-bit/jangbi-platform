@@ -425,96 +425,90 @@ export default function EstimatePage() {
               </div>
 
               {/* 상단 정보 */}
-              <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 0 }}>
-                <tbody>
-                  <tr>
-                    {/* 좌측: 견적일 */}
-                    <td style={{ border: '1px solid #aaa', padding: '5px 8px', fontSize: 11, width: '12%', background: '#e8f4f8', fontWeight: 600, whiteSpace: 'nowrap' }}>
-                      견 적 일
-                    </td>
-                    <td colSpan={2} style={{ border: '1px solid #aaa', padding: '4px 8px', fontSize: 11, width: '28%' }}>
-                      <span style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-                        <input value={year} onChange={e => setYear(e.target.value)} style={{ ...cInp, width: 36, textAlign: 'right' }} />년
-                        <input value={month} onChange={e => setMonth(e.target.value)} style={{ ...cInp, width: 24, textAlign: 'right' }} />월
-                        <input value={day} onChange={e => setDay(e.target.value)} style={{ ...cInp, width: 20, textAlign: 'right' }} />일
-                      </span>
-                    </td>
-                    <td style={{ border: '1px solid #aaa', padding: '5px 8px', fontSize: 11, background: '#e8f4f8', fontWeight: 600, whiteSpace: 'nowrap', width: '10%' }}>
-                      등록번호
-                    </td>
-                    <td colSpan={2} style={{ border: '1px solid #aaa', padding: '4px 8px', fontSize: 11, fontWeight: 600 }}>
-                      {GAON.biz_no}
-                    </td>
-                  </tr>
-                  <tr>
-                    <td rowSpan={3} style={{ border: '1px solid #aaa', padding: '5px 8px', fontSize: 11, background: '#e8f4f8', fontWeight: 600, textAlign: 'center', verticalAlign: 'middle' }}>
-                      공<br/>급<br/>받<br/>는<br/>자
-                    </td>
-                    <td style={{ border: '1px solid #aaa', padding: '4px 8px', fontSize: 11 }}>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <input list="client-list" value={receiver} onChange={e => setReceiver(e.target.value)}
-                          placeholder="발주처명" style={{ ...cInp, textAlign: 'left', flex: 1 }} />
-                        <span style={{ whiteSpace: 'nowrap' }}>귀하</span>
-                      </span>
-                      <datalist id="client-list">
-                        {clients.map(c => <option key={c} value={c} />)}
-                      </datalist>
-                    </td>
-                    <td rowSpan={3} style={{ border: '1px solid #aaa', padding: '5px 8px', fontSize: 11, background: '#e8f4f8', fontWeight: 600, textAlign: 'center', verticalAlign: 'middle', width: '6%' }}>
-                      공<br/>급<br/>자
-                    </td>
-                    <td style={{ border: '1px solid #aaa', padding: '5px 8px', fontSize: 11, background: '#e8f4f8', fontWeight: 600, whiteSpace: 'nowrap' }}>
-                      상&nbsp;&nbsp;호
-                    </td>
-                    <td colSpan={2} style={{ border: '1px solid #aaa', padding: '4px 8px', fontSize: 11, width: '22%' }}>
-                      {GAON.name}
-                    </td>
-                    <td style={{ border: '1px solid #aaa', padding: '4px 8px', fontSize: 11, width: '14%', position: 'relative' }}>
-                      <span style={{ fontSize: 10, color: '#555' }}>대표</span>{' '}{GAON.ceo}
-                      {stampImg && (
-                        <img src={stampImg} alt="도장"
-                          style={{ position: 'absolute', right: 2, top: '50%', marginTop: -(stampSize / 2), width: stampSize, height: stampSize, objectFit: 'contain', zIndex: 10, opacity: 0.85, pointerEvents: 'none' }} />
-                      )}
-                    </td>
-                  </tr>
-                  <tr>
-                    <td style={{ border: '1px solid #aaa', padding: '4px 8px', fontSize: 11 }}>
-                      <span style={{ fontSize: 10, color: '#666' }}>현장명</span>{' '}
-                      <input value={siteName} onChange={e => setSiteName(e.target.value)}
-                        placeholder="현장명 입력" style={{ ...cInp, textAlign: 'left', width: '80%' }} />
-                    </td>
-                    <td style={{ border: '1px solid #aaa', padding: '5px 8px', fontSize: 11, background: '#e8f4f8', fontWeight: 600, whiteSpace: 'nowrap' }}>
-                      주&nbsp;&nbsp;소
-                    </td>
-                    <td colSpan={3} style={{ border: '1px solid #aaa', padding: '4px 8px', fontSize: 10, color: '#333' }}>
-                      {GAON.addr}
-                    </td>
-                  </tr>
-                  <tr>
-                    <td style={{ border: '1px solid #aaa', padding: '5px 8px', fontSize: 11, background: '#e8f4f8', fontWeight: 600 }}>
-                      아래와 같이 견적합니다.
-                    </td>
-                    <td style={{ border: '1px solid #aaa', padding: '5px 8px', fontSize: 11, background: '#e8f4f8', fontWeight: 600, whiteSpace: 'nowrap' }}>
-                      업&nbsp;&nbsp;태
-                    </td>
-                    <td style={{ border: '1px solid #aaa', padding: '4px 8px', fontSize: 11, whiteSpace: 'nowrap' }}>
-                      {GAON.biz_type}
-                    </td>
-                    <td style={{ border: '1px solid #aaa', padding: '5px 8px', fontSize: 11, background: '#e8f4f8', fontWeight: 600, whiteSpace: 'nowrap' }}>
-                      종&nbsp;&nbsp;목
-                    </td>
-                    <td style={{ border: '1px solid #aaa', padding: '4px 8px', fontSize: 11, whiteSpace: 'nowrap' }}>
-                      {GAON.biz_item}
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+              {(() => {
+                const cLbl: React.CSSProperties = {
+                  border: '1px solid #aaa', padding: '5px 8px', fontSize: 11,
+                  background: '#e8f4f8', fontWeight: 600,
+                  textAlign: 'justify', textAlignLast: 'justify',
+                }
+                return (
+                <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 0 }}>
+                  <tbody>
+                    <tr>
+                      <td style={{ ...cLbl, width: '12%' }}>견적일</td>
+                      <td colSpan={2} style={{ border: '1px solid #aaa', padding: '4px 8px', fontSize: 11, width: '28%' }}>
+                        <span style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                          <input value={year} onChange={e => setYear(e.target.value)} style={{ ...cInp, width: 36, textAlign: 'right' }} />년
+                          <input value={month} onChange={e => setMonth(e.target.value)} style={{ ...cInp, width: 24, textAlign: 'right' }} />월
+                          <input value={day} onChange={e => setDay(e.target.value)} style={{ ...cInp, width: 20, textAlign: 'right' }} />일
+                        </span>
+                      </td>
+                      <td style={{ ...cLbl, width: '10%' }}>등록번호</td>
+                      <td colSpan={3} style={{ border: '1px solid #aaa', padding: '4px 8px', fontSize: 11, fontWeight: 600 }}>
+                        {GAON.biz_no}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td rowSpan={3} style={{ ...cLbl, textAlign: 'center', textAlignLast: 'center', verticalAlign: 'middle' }}>
+                        공<br/>급<br/>받<br/>는<br/>자
+                      </td>
+                      <td style={{ border: '1px solid #aaa', padding: '4px 8px', fontSize: 11 }}>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <input list="client-list" value={receiver} onChange={e => setReceiver(e.target.value)}
+                            placeholder="발주처명" style={{ ...cInp, textAlign: 'left', flex: 1 }} />
+                          <span style={{ whiteSpace: 'nowrap' }}>귀하</span>
+                        </span>
+                        <datalist id="client-list">
+                          {clients.map(c => <option key={c} value={c} />)}
+                        </datalist>
+                      </td>
+                      <td rowSpan={3} style={{ ...cLbl, textAlign: 'center', textAlignLast: 'center', verticalAlign: 'middle', width: '6%' }}>
+                        공<br/>급<br/>자
+                      </td>
+                      <td style={{ ...cLbl }}>상호</td>
+                      <td colSpan={2} style={{ border: '1px solid #aaa', padding: '4px 8px', fontSize: 11, width: '22%' }}>
+                        {GAON.name}
+                      </td>
+                      <td style={{ border: '1px solid #aaa', padding: '4px 8px', fontSize: 11, width: '14%', position: 'relative' }}>
+                        <span style={{ fontSize: 10, color: '#555' }}>대표</span>{' '}{GAON.ceo}
+                        {stampImg && (
+                          <img src={stampImg} alt="도장"
+                            style={{ position: 'absolute', right: 2, top: '50%', marginTop: -(stampSize / 2), width: stampSize, height: stampSize, objectFit: 'contain', zIndex: 10, opacity: 0.85, pointerEvents: 'none' }} />
+                        )}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td style={{ border: '1px solid #aaa', padding: '4px 8px', fontSize: 11 }}>
+                        <span style={{ fontSize: 10, color: '#666' }}>현장명</span>{' '}
+                        <input value={siteName} onChange={e => setSiteName(e.target.value)}
+                          placeholder="현장명 입력" style={{ ...cInp, textAlign: 'left', width: '80%' }} />
+                      </td>
+                      <td style={{ ...cLbl }}>주소</td>
+                      <td colSpan={3} style={{ border: '1px solid #aaa', padding: '4px 8px', fontSize: 10, color: '#333' }}>
+                        {GAON.addr}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td style={{ ...cLbl }}>아래와 같이 견적합니다.</td>
+                      <td style={{ ...cLbl }}>업태</td>
+                      <td style={{ border: '1px solid #aaa', padding: '4px 8px', fontSize: 11, whiteSpace: 'nowrap' }}>
+                        {GAON.biz_type}
+                      </td>
+                      <td style={{ ...cLbl }}>종목</td>
+                      <td style={{ border: '1px solid #aaa', padding: '4px 8px', fontSize: 11, whiteSpace: 'nowrap' }}>
+                        {GAON.biz_item}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+                )
+              })()}
 
               {/* 품목 테이블 */}
               <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: 0 }}>
                 <thead>
                   <tr>
-                    <th style={{ ...cTh, width: '14%' }}>종류</th>
+                    <th style={{ ...cTh, width: '14%' }}>건설기계명</th>
                     <th style={{ ...cTh, width: '12%' }}>규격</th>
                     <th style={{ ...cTh, width: '10%' }}>단위</th>
                     <th style={{ ...cTh, width: '16%' }}>단가</th>

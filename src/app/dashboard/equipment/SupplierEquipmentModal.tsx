@@ -695,11 +695,11 @@ export default function SupplierEquipmentModal({
                   return (
                     <div className="mt-2">
                       {secUrl ? (
-                        <div className="relative group">
-                          <img src={secUrl} alt="보안카드" onClick={() => setSecCardPopup(secUrl)}
-                            className="w-full rounded-lg border border-gray-200 cursor-pointer object-cover max-h-40" />
+                        <div className="relative group cursor-pointer" onClick={() => setSecCardPopup(secUrl)}>
+                          <img src={secUrl} alt="보안카드"
+                            className="w-full rounded-lg border border-gray-200 object-cover max-h-40 pointer-events-none" />
                           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors rounded-lg flex items-center justify-center">
-                            <span className="opacity-0 group-hover:opacity-100 text-white text-xs font-medium bg-black/50 px-2 py-1 rounded">🔍 크게 보기</span>
+                            <span className="opacity-0 group-hover:opacity-100 text-white text-xs font-medium bg-black/50 px-2 py-1 rounded pointer-events-none">🔍 크게 보기</span>
                           </div>
                           <button onClick={async () => {
                             if (!confirm('보안카드 사진을 삭제하시겠습니까?')) return
