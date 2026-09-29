@@ -7,17 +7,18 @@ import { toPng } from 'html-to-image'
 
 interface DispatchRow {
   id: string
-  log_date: string
+  start_date: string
   driver_name: string
   site_name: string
   client_name: string
   equipment_text: string
-  operating_hours?: number | null
-  unit_price?: number | null
+  quantity?: number | null
+  client_unit_price?: number | null
+  supplier_unit_price?: number | null
   engineer_daily_wage?: number | null
-  w1_hours?: number | null; w1_unit?: number | null; w1_wage?: number | null
-  w2_hours?: number | null; w2_unit?: number | null; w2_wage?: number | null
-  w3_hours?: number | null; w3_unit?: number | null; w3_wage?: number | null
+  work_time_1?: string | null; work_price_1?: number | null
+  work_time_2?: string | null; work_price_2?: number | null
+  work_time_3?: string | null; work_price_3?: number | null
 }
 
 interface DriverSummary {
@@ -53,40 +54,53 @@ export default function PayrollPage() {
     const lastDay = new Date(year, month, 0).getDate()
     const to = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
 
-    // 배차 전체 조회 (driver_name 필터 없이)
+    // 배차 전체 조회 (start_date 기준)
     const { data: dispatches } = await supabase
       .from('dispatches')
-      .select('id, log_date, driver_name, site_name, client_name, equipment_text')
-      .gte('log_date', from)
-      .lte('log_date', to)
-      .order('log_date', { ascending: true })
+      .select('id, start_date, driver_name, site_name, client_name, equipment_text, client_unit_price, supplier_unit_price, daily_logs(*)')
+      .gte('start_date', from)
+      .lte('start_date', to)
+      .order('start_date', { ascending: true })
 
     if (!dispatches || dispatches.length === 0) { setLoading(false); return }
 
-    const dispIds = dispatches.map(d => d.id)
-    const { data: logs } = await supabase
-      .from('daily_logs')
-      .select('dispatch_id, driver_name, operating_hours, unit_price, engineer_daily_wage, w1_hours, w1_unit, w2_hours, w2_unit, w3_hours, w3_unit')
-      .in('dispatch_id', dispIds)
+    function parseH(slot: string | null | undefined) {
+      if (!slot) return 0
+      const m = slot.match(/(\d{2}):(\d{2})\s*~\s*(\d{2}):(\d{2})/)
+      if (!m) return 0
+      return Math.max(0, (Number(m[3]) * 60 + Number(m[4]) - Number(m[1]) * 60 - Number(m[2])) / 60)
+    }
 
-    const logMap: Record<string, any> = {}
-    ;(logs ?? []).forEach(l => { logMap[l.dispatch_id] = l })
-
-    const rows: DispatchRow[] = dispatches.map(d => {
-      const l = logMap[d.id]
+    const rows: DispatchRow[] = dispatches.map((d: any) => {
+      const sortedLogs = [...(d.daily_logs ?? [])].sort((a: any, b: any) =>
+        (b.log_date ?? '') < (a.log_date ?? '') ? -1 : 1)
+      const log = sortedLogs[0] ?? null
       // 운전자명: daily_logs.driver_name 우선, 없으면 dispatches.driver_name(차주명)
-      const resolvedDriverName = l?.driver_name || d.driver_name || ''
+      const resolvedDriverName = log?.driver_name || d.driver_name || ''
+      // 노무비 계산
+      const slotWage =
+        (log?.work_time_1 && log?.work_price_1 ? Math.round(parseH(log.work_time_1) * log.work_price_1) : 0) +
+        (log?.work_time_2 && log?.work_price_2 ? Math.round(parseH(log.work_time_2) * log.work_price_2) : 0) +
+        (log?.work_time_3 && log?.work_price_3 ? Math.round(parseH(log.work_time_3) * log.work_price_3) : 0)
+      const qty = log?.quantity ?? 0
+      const supplierPrice = d.supplier_unit_price ?? 0
+      const wage = log?.engineer_daily_wage ?? (slotWage || Math.round(qty * supplierPrice))
       return {
-        ...d,
+        id: d.id,
+        start_date: d.start_date ?? '',
         driver_name: resolvedDriverName,
-        operating_hours: l?.operating_hours ?? null,
-        unit_price: l?.unit_price ?? null,
-        engineer_daily_wage: l?.engineer_daily_wage ?? null,
-        w1_hours: l?.w1_hours ?? null, w1_unit: l?.w1_unit ?? null,
-        w2_hours: l?.w2_hours ?? null, w2_unit: l?.w2_unit ?? null,
-        w3_hours: l?.w3_hours ?? null, w3_unit: l?.w3_unit ?? null,
+        site_name: d.site_name ?? '',
+        client_name: d.client_name ?? '',
+        equipment_text: d.equipment_text ?? '',
+        quantity: qty,
+        client_unit_price: d.client_unit_price,
+        supplier_unit_price: supplierPrice,
+        engineer_daily_wage: wage,
+        work_time_1: log?.work_time_1, work_price_1: log?.work_price_1,
+        work_time_2: log?.work_time_2, work_price_2: log?.work_price_2,
+        work_time_3: log?.work_time_3, work_price_3: log?.work_price_3,
       }
-    }).filter(r => r.driver_name) // 이름 없는 행 제외
+    }).filter((r: DispatchRow) => r.driver_name)
 
     // 운전자명 기준 그룹
     const map: Record<string, DispatchRow[]> = {}
@@ -113,24 +127,15 @@ export default function PayrollPage() {
   useEffect(() => { loadData() }, [year, month])
 
   function getWage(r: DispatchRow): number {
-    if (r.engineer_daily_wage != null) return r.engineer_daily_wage
-    const slots = [
-      r.w1_hours && r.w1_unit ? r.w1_hours * r.w1_unit : 0,
-      r.w2_hours && r.w2_unit ? r.w2_hours * r.w2_unit : 0,
-      r.w3_hours && r.w3_unit ? r.w3_hours * r.w3_unit : 0,
-    ]
-    const slotSum = slots.reduce((a, b) => a + b, 0)
-    if (slotSum > 0) return Math.round(slotSum)
-    if (r.operating_hours && r.unit_price) return Math.round(r.operating_hours * r.unit_price)
-    return 0
+    return r.engineer_daily_wage ?? 0
   }
 
   function getHours(r: DispatchRow): string {
-    if (r.w1_hours) {
-      const parts = [r.w1_hours, r.w2_hours, r.w3_hours].filter(Boolean)
-      return parts.join('+') + 'h'
+    if (r.work_time_1) {
+      const slots = [r.work_time_1, r.work_time_2, r.work_time_3].filter(Boolean)
+      return slots.join(' / ')
     }
-    if (r.operating_hours) return r.operating_hours + 'h'
+    if (r.quantity) return r.quantity + 'h'
     return '-'
   }
 
@@ -279,7 +284,7 @@ export default function PayrollPage() {
                   <tbody>
                     {selectedDriver.rows.map((r, i) => (
                       <tr key={r.id} style={{ background: i % 2 === 0 ? '#fff' : '#f9fafb' }}>
-                        <td style={{ border: '1px solid #ccc', padding: '5px 8px', textAlign: 'center', whiteSpace: 'nowrap' }}>{r.log_date}</td>
+                        <td style={{ border: '1px solid #ccc', padding: '5px 8px', textAlign: 'center', whiteSpace: 'nowrap' }}>{r.start_date}</td>
                         <td style={{ border: '1px solid #ccc', padding: '5px 8px' }}>{r.site_name || '-'}</td>
                         <td style={{ border: '1px solid #ccc', padding: '5px 8px' }}>{r.client_name || '-'}</td>
                         <td style={{ border: '1px solid #ccc', padding: '5px 8px', textAlign: 'center' }}>{r.equipment_text || '-'}</td>
