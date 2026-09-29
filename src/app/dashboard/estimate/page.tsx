@@ -241,6 +241,15 @@ export default function EstimatePage() {
     setRows(prev => [...prev, newRow()])
   }
 
+  function insertRowAfter(id: number) {
+    setRows(prev => {
+      const idx = prev.findIndex(r => r.id === id)
+      const next = [...prev]
+      next.splice(idx + 1, 0, newRow())
+      return next
+    })
+  }
+
   function removeRow(id: number) {
     setRows(prev => prev.map(r => r.id === id ? { ...newRow(), id: r.id } : r))
   }
@@ -600,9 +609,12 @@ export default function EstimatePage() {
                           onKeyDown={e => handleKeyNav(e, rowIdx, 4, rows.length)}
                         />
                       </td>
-                      <td style={{ ...cTd, textAlign: 'center', padding: 0 }} className="no-print">
+                      <td style={{ ...cTd, textAlign: 'center', padding: 0, whiteSpace: 'nowrap' }} className="no-print">
+                        <button onClick={() => insertRowAfter(r.id)}
+                          title="아래에 줄 삽입"
+                          style={{ fontSize: 10, color: '#4a90e2', cursor: 'pointer', background: 'none', border: 'none', padding: '2px 3px' }}>＋</button>
                         <button onClick={() => removeRow(r.id)}
-                          style={{ fontSize: 10, color: '#999', cursor: 'pointer', background: 'none', border: 'none', padding: '2px 4px' }}>✕</button>
+                          style={{ fontSize: 10, color: '#999', cursor: 'pointer', background: 'none', border: 'none', padding: '2px 3px' }}>✕</button>
                       </td>
                     </tr>
                   ))}
