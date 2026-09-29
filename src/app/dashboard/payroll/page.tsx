@@ -311,18 +311,9 @@ export default function PayrollPage() {
                   </tfoot>
                 </table>
 
-                {/* 서명란 */}
-                <div style={{ marginTop: 32, display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#555' }}>
-                  <div style={{ textAlign: 'center', minWidth: 120 }}>
-                    <div style={{ borderTop: '1px solid #aaa', paddingTop: 6, marginTop: 36 }}>지급인 (인)</div>
-                  </div>
-                  <div style={{ textAlign: 'center', minWidth: 120 }}>
-                    <div style={{ borderTop: '1px solid #aaa', paddingTop: 6, marginTop: 36 }}>수령인 (인)</div>
-                  </div>
-                </div>
-
-                <div style={{ marginTop: 20, fontSize: 11, color: '#aaa', textAlign: 'center' }}>
-                  위와 같이 급여를 지급합니다. {year}년 {month}월
+                <div style={{ marginTop: 28, textAlign: 'center', fontSize: 13, color: '#555', lineHeight: 1.8 }}>
+                  <div>{year}년 {month}월 한 달 동안 고생 많으셨습니다. 🙏</div>
+                  <div style={{ fontSize: 11, color: '#aaa', marginTop: 4 }}>{companyName || '(주)가온건설중기'} 드림</div>
                 </div>
               </div>
             </>
