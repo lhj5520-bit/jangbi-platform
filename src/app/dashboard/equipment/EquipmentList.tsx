@@ -46,6 +46,8 @@ export default function EquipmentList({ ownership }: Props) {
   const [sortAsc, setSortAsc] = useState(true)
   const [sharingId, setSharingId] = useState<string | null>(null)
   const [readyId, setReadyId] = useState<string | null>(null)
+  const [secCardPopup, setSecCardPopup] = useState<string | null>(null)
+  const [secCardLoading, setSecCardLoading] = useState<string | null>(null)
   // ref에 보관 → 클릭 핸들러에서 state 읽기 없이 즉시 접근 (iOS 제스처 컨텍스트 유지)
   const readyFilesRef = useRef<{ files: File[]; urls: string[] }>({ files: [], urls: [] })
   const supabase = createClient()
@@ -98,6 +100,30 @@ export default function EquipmentList({ ownership }: Props) {
     } catch (e: any) {
       if (e?.name !== 'AbortError') alert('문자 앱으로 그림파일 공유를 열지 못했습니다. 다시 시도해 주세요.')
     }
+  }
+
+  async function handleShowSecCard(supplierId?: string, equipmentId?: string) {
+    const refId = supplierId || equipmentId
+    if (!refId) return
+    setSecCardLoading(refId)
+    try {
+      const { data: docs } = await supabase
+        .from('documents')
+        .select('*')
+        .eq('ref_id', refId)
+        .eq('doc_type', '보안카드')
+        .limit(1)
+      if (!docs || docs.length === 0) {
+        alert('등록된 보안카드 사진이 없습니다.')
+        setSecCardLoading(null)
+        return
+      }
+      const { data: { publicUrl } } = supabase.storage.from('documents').getPublicUrl(docs[0].file_url)
+      setSecCardPopup(publicUrl)
+    } catch {
+      alert('보안카드 사진을 불러오지 못했습니다.')
+    }
+    setSecCardLoading(null)
   }
 
   function toggleSort(key: string) {
@@ -254,6 +280,14 @@ export default function EquipmentList({ ownership }: Props) {
               <div className="flex gap-2">
                 <button onClick={() => { setSelected(e); setModalOpen(true) }}
                   className="flex-1 rounded-lg border border-gray-200 py-2.5 text-sm font-medium text-gray-600">수정</button>
+                {ownership === 'other' && (
+                  <button
+                    onClick={() => handleShowSecCard(e.supplier_id ?? undefined, e.id)}
+                    disabled={secCardLoading === (e.supplier_id || e.id)}
+                    className="flex-1 rounded-lg border border-purple-200 py-2.5 text-sm font-medium text-purple-600 disabled:opacity-50">
+                    {secCardLoading === (e.supplier_id || e.id) ? '...' : '🔐 보안카드'}
+                  </button>
+                )}
                 <button onClick={() => handleDelete(e.id)}
                   className="flex-1 rounded-lg border border-gray-200 py-2.5 text-sm font-medium text-gray-500">삭제</button>
               </div>
@@ -306,8 +340,16 @@ export default function EquipmentList({ ownership }: Props) {
                 </td>
                 <td className="px-5 py-3 text-sm text-gray-500">{e.memo ?? ''}</td>
                 <td className="px-5 py-3">
-                  <div className="flex gap-2 justify-end">
+                  <div className="flex gap-2 justify-end items-center">
                     <button onClick={() => { setSelected(e); setModalOpen(true) }} className="text-xs text-blue-600 hover:underline">수정</button>
+                    {ownership === 'other' && (
+                      <button
+                        onClick={() => handleShowSecCard(e.supplier_id ?? undefined, e.id)}
+                        disabled={secCardLoading === (e.supplier_id || e.id)}
+                        className="text-xs text-purple-500 hover:underline disabled:opacity-50">
+                        {secCardLoading === (e.supplier_id || e.id) ? '...' : '🔐 보안카드'}
+                      </button>
+                    )}
                     {readyId === e.id ? (
                       <button onClick={handleExecuteShare} className="text-xs text-emerald-600 font-bold hover:underline animate-pulse">📤 탭하여 공유</button>
                     ) : (
@@ -323,6 +365,20 @@ export default function EquipmentList({ ownership }: Props) {
           </tbody>
         </table>
       </div>
+
+      {secCardPopup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80"
+          onClick={() => setSecCardPopup(null)}>
+          <div className="relative max-w-lg w-full mx-4" onClick={e => e.stopPropagation()}>
+            <img src={secCardPopup} alt="보안카드"
+              className="w-full rounded-xl border border-white/20 shadow-2xl object-contain max-h-[80vh]" />
+            <button onClick={() => setSecCardPopup(null)}
+              className="absolute -top-3 -right-3 w-8 h-8 rounded-full bg-white text-gray-800 font-bold text-sm shadow-lg flex items-center justify-center hover:bg-gray-100">
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
 
       {modalOpen && (
         <SupplierEquipmentModal equipment={selected} suppliers={suppliers} ownership={ownership}

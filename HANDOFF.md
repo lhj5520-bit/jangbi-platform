@@ -4,7 +4,7 @@
 **작업 폴더**: `D:\claude-test\jangbi-platform`  
 **배포 URL**: https://jangbi-platform.vercel.app  
 **Supabase**: https://qeurmytrzghonavsiqwa.supabase.co  
-**최종 정리**: 2026-09-22
+**최종 정리**: 2026-09-29
 
 ---
 
@@ -451,6 +451,83 @@ GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated;
 ---
 
 ## 8. 최근 중요 수정 이력
+
+### 2026-09-29 수정
+
+#### 배차내역서 — 사업자등록증 함께 카톡 보내기 (`dispatch-ledger/page.tsx`)
+- "사업자등록증 함께 보내기" 체크박스 추가 (카카오 보내기 버튼 영역).
+- `supDocs` state + useEffect: 선택된 공급업체의 `documents` 테이블에서 `doc_type='사업자등록증'` 문서 조회.
+- `handleKakao` 수정:
+  - 체크 시 Supabase Storage에서 사업자등록증 이미지 blob 가져와 `File` 객체 생성.
+  - `navigator.share({ files: [settlementFile, bizRegFile] })`로 다중 파일 공유.
+  - 개별 파일 fetch 실패 시 조용히 스킵.
+
+#### 배차내역서 — 공급업체 드롭다운 즐겨찾기 (`dispatch-ledger/page.tsx`)
+- `(주)가온건설중기`, `강토건설중기`, `(주)제이에이건설` 3곳을 드롭다운 맨 위 고정.
+- 구현 패턴:
+  ```tsx
+  const pinnedKeywords = ['가온건설중기', '강토', '제이에이건설']
+  const pinned = allSuppliers.filter((s: any) => pinnedKeywords.some((kw: string) => s.name.includes(kw)))
+  const pinnedIds = new Set(pinned.map((s: any) => s.id))
+  const rest = allSuppliers.filter((s: any) => !pinnedIds.has(s.id))
+  // [...pinned, ...rest]로 드롭다운 렌더
+  ```
+- 주의: `find` 대신 `filter + some` 써야 키워드당 1개 제한 없이 전부 올라옴.
+
+#### 배차내역서 — 계산서 발행처 UI 개선 (`dispatch-ledger/page.tsx`)
+- 미선택 시 버튼 라벨 "계산서 발행처 선택" (파란색), 선택 후 "계산서 발행처" (회색).
+- 공급업체 선택 시 정보 박스 추가:
+  - "계산서 발행 할 곳" 레이블 (10px 회색)
+  - 상호명 (bold, 14px)
+  - 사업자번호 / 대표자 / 주소 (10px, 회색 레이블 + 값)
+
+#### 견적서 다수 개선 (`estimate/page.tsx`)
+
+**종류 직접입력**
+- 종류 드롭다운에 "직접입력" 옵션 추가.
+- 선택 시 text input으로 전환, 이미 비표준 값이면 자동으로 text input 표시.
+- 규격 컬럼도 종류가 비표준(custom)이면 text input으로 전환.
+
+**화살표 키 셀 이동**
+- `handleKeyNav(e, rowIdx, colIdx, totalRows)` 함수 구현.
+- 각 input/select에 `data-cell="${rowIdx}-${colIdx}"` + `onKeyDown` 연결.
+- SELECT 박스에서 ←/→는 옵션 이동에 사용하므로 기본 동작 유지.
+
+**칸 중간삽입 버튼**
+- 각 행 끝에 `＋` 버튼 추가 → `insertRowAfter(id)` 호출.
+- 선택한 행 바로 아래에 빈 행 삽입.
+
+**합계 행 제거**
+- 기존 합계 row 완전 제거.
+
+**헤더 4컬럼 구조 + 레이블 정렬**
+- 헤더 테이블을 4컬럼(업태 | 값 | 종목 | 값) 구조로 재편.
+- 등록번호 값: `colSpan={3}`, 상호 값: `colSpan={2}`, 주소 값: `colSpan={3}`.
+- 레이블 셀 공통 스타일 `cLbl`: `textAlign: 'center'`, `background: '#e8f4f8'`.
+- "아래와 같이 견적합니다."는 문장이므로 `textAlign: 'left'` 오버라이드.
+- "사업장소" → "주　소" (전각 공백으로 두 글자 맞춤).
+- 테이블 헤더 컬럼명: 종류 → **건설기계명**.
+
+#### estimates 테이블 RLS 해제 (Supabase SQL)
+- `alter table estimates disable row level security;`
+- `grant all on table estimates to anon, authenticated;`
+- 정책명에 따옴표 사용 오류로 실패 후 위 방법으로 처리.
+
+#### 장비타사 — 보안카드 이미지 업로드/조회/팝업 (`SupplierEquipmentModal.tsx`)
+- "메모" 행 이름 → "보안카드"로 변경.
+- 보안카드 이미지 업로드: `doc_type: '보안카드'`로 `documents` 테이블 + Storage(`documents` 버킷) 저장.
+- 기존 보안카드 삭제 후 새 파일 업로드 (교체 방식).
+- 이미지 섹션: 미리보기 + "🔍 크게 보기" 호버 오버레이 + 삭제 버튼.
+- 팝업 (`secCardPopup` state): `z-[60]` fullscreen 이미지 뷰어.
+- 클릭 투과 버그 수정: overlay div와 span에 `pointer-events-none` 적용, `onClick`은 wrapper div에.
+- `<>` fragment로 return 래핑 (팝업 div를 모달 외부에 배치).
+
+#### 장비타사 — 업체 변경 시 서류 목록 갱신 (`SupplierEquipmentModal.tsx`)
+- `docRefId` 우선순위 수정: `selectedSupId || equipment?.id`.
+- `docRefType`: `selectedSupId`가 있으면 `'supplier'`, 없으면 `'equipment'`.
+- 업체 선택 변경 시 해당 업체의 서류 목록(보안카드 포함)이 즉시 갱신됨.
+
+---
 
 ### 2026-09-22 수정
 
