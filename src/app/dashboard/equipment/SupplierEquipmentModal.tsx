@@ -146,9 +146,9 @@ export default function SupplierEquipmentModal({
     setSharing(false)
   }
 
-  // 서류 ref: 장비 수정모드면 equipment.id, 업체 모드면 selectedSupId (동적)
-  const docRefId = equipment?.id ?? selectedSupId
-  const docRefType = equipment?.id ? 'equipment' : 'supplier'
+  // 서류 ref: 업체가 선택되면 업체 기준, 없으면 장비 기준
+  const docRefId = selectedSupId || equipment?.id
+  const docRefType = selectedSupId ? 'supplier' : 'equipment'
 
   useEffect(() => {
     if (!docRefId) return
