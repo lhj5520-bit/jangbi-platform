@@ -173,6 +173,19 @@ export default function PayrollPage() {
     }
   }
 
+  async function handleCopyImage() {
+    if (!printRef.current) return
+    try {
+      const { toBlob } = await import('html-to-image')
+      const blob = await toBlob(printRef.current, { backgroundColor: '#fff', pixelRatio: 2 })
+      if (!blob) throw new Error('blob 생성 실패')
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })])
+      alert('클립보드에 복사되었습니다.\n카카오톡 채팅창에서 Ctrl+V로 붙여넣기 하세요.')
+    } catch (e) {
+      alert('클립보드 복사 실패 (브라우저가 지원하지 않을 수 있습니다)')
+    }
+  }
+
   const prevMonth = () => { if (month === 1) { setYear(y => y - 1); setMonth(12) } else setMonth(m => m - 1) }
   const nextMonth = () => { if (month === 12) { setYear(y => y + 1); setMonth(1) } else setMonth(m => m + 1) }
 
@@ -262,6 +275,10 @@ export default function PayrollPage() {
                 <button onClick={handleSaveImage}
                   className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 text-sm font-medium hover:bg-gray-50">
                   📷 이미지 저장
+                </button>
+                <button onClick={handleCopyImage}
+                  className="px-4 py-2 rounded-lg border border-yellow-400 text-yellow-700 bg-yellow-50 text-sm font-medium hover:bg-yellow-100">
+                  📋 클립보드 복사
                 </button>
               </div>
 
