@@ -290,6 +290,12 @@ export default function PayrollPage() {
                         {fmt(selectedDriver.totalWage)}원
                       </td>
                     </tr>
+                    <tr>
+                      <td style={{ border: '1px solid #999', padding: '6px 10px', background: '#e8f4f8', fontWeight: 600, textAlign: 'center' }}>장 비</td>
+                      <td colSpan={3} style={{ border: '1px solid #999', padding: '6px 10px' }}>
+                        {[...new Set(selectedDriver.rows.map(r => r.equipment_text).filter(Boolean))].join(', ') || '-'}
+                      </td>
+                    </tr>
                   </tbody>
                 </table>
 
@@ -300,7 +306,6 @@ export default function PayrollPage() {
                       <th style={{ border: '1px solid #999', padding: '6px 8px', textAlign: 'center' }}>날짜</th>
                       <th style={{ border: '1px solid #999', padding: '6px 8px', textAlign: 'center' }}>현장명</th>
                       <th style={{ border: '1px solid #999', padding: '6px 8px', textAlign: 'center' }}>발주처</th>
-                      <th style={{ border: '1px solid #999', padding: '6px 8px', textAlign: 'center' }}>장비</th>
                       <th style={{ border: '1px solid #999', padding: '6px 8px', textAlign: 'center' }}>작업일수</th>
                       <th style={{ border: '1px solid #999', padding: '6px 8px', textAlign: 'center' }}>지급액</th>
                     </tr>
@@ -311,7 +316,6 @@ export default function PayrollPage() {
                         <td style={{ border: '1px solid #ccc', padding: '5px 8px', textAlign: 'center', whiteSpace: 'nowrap' }}>{r.start_date}</td>
                         <td style={{ border: '1px solid #ccc', padding: '5px 8px' }}>{r.site_name || '-'}</td>
                         <td style={{ border: '1px solid #ccc', padding: '5px 8px' }}>{r.client_name || '-'}</td>
-                        <td style={{ border: '1px solid #ccc', padding: '5px 8px', textAlign: 'center' }}>{r.equipment_text || '-'}</td>
                         <td style={{ border: '1px solid #ccc', padding: '5px 8px', textAlign: 'center' }}>1일</td>
                         <td style={{ border: '1px solid #ccc', padding: '5px 8px', textAlign: 'right', fontWeight: 500 }}>{fmt(getWage(r))}원</td>
                       </tr>
@@ -319,7 +323,7 @@ export default function PayrollPage() {
                   </tbody>
                   <tfoot>
                     <tr style={{ background: '#f0f4ff' }}>
-                      <td colSpan={5} style={{ border: '1px solid #999', padding: '7px 8px', textAlign: 'center', fontWeight: 700 }}>합 계</td>
+                      <td colSpan={4} style={{ border: '1px solid #999', padding: '7px 8px', textAlign: 'center', fontWeight: 700 }}>합 계</td>
                       <td style={{ border: '1px solid #999', padding: '7px 8px', textAlign: 'right', fontWeight: 700, fontSize: 13, color: '#1a56db', whiteSpace: 'nowrap' }}>
                         {fmt(selectedDriver.totalWage)}원
                       </td>
