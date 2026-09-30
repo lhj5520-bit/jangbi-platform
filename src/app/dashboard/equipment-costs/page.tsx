@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 
-const CATEGORIES = ['주유비', '급여', '수리·정비비', '보험료', '정기검사비', '소모품', '지입료', '기타']
+const CATEGORIES = ['주유비', '급여', '수리·정비비', '보험료', '정기검사비', '소모품', '지입료', '대출이자']
 const TYPE_LABEL: Record<string, string> = { excavator: '굴삭기', dump: '덤프', truck: '화물', cargo: '화물' }
 
 interface EquipRow { id: string; plate_no: string | null; type: string | null }
@@ -323,7 +323,7 @@ export default function EquipmentCostsPage() {
               <tr key={c.id} className={`border-b border-gray-100 last:border-0 ${editingId === c.id ? 'bg-blue-50' : ''}`}>
                 <td className="px-4 py-2 whitespace-nowrap">{c.cost_date}</td>
                 <td className="px-4 py-2 whitespace-nowrap font-medium">{plateOf(c.equipment_id)}</td>
-                <td className="px-4 py-2 whitespace-nowrap">{c.category}</td>
+                <td className="px-4 py-2 whitespace-nowrap">{c.category === '기타' ? '대출이자' : c.category}</td>
                 <td className="px-4 py-2 text-right whitespace-nowrap">{fmt(c.amount ?? 0)}원</td>
                 <td className="px-4 py-2 text-gray-500">{c.memo ?? ''}</td>
                 <td className="px-4 py-2 text-right whitespace-nowrap">
