@@ -1477,7 +1477,7 @@ export default function DispatchLedgerPage() {
                       <tfoot className="bg-gray-50 border-t-2 border-gray-200 sticky bottom-0">
                         <tr>
                           <td colSpan={2} className="px-3 py-2 text-sm font-semibold text-gray-700">공급가액</td>
-                          <td className="px-3 py-2 text-xs text-red-400 text-right">-{totalComm.toLocaleString()}</td>
+                          <td className="px-3 py-2 text-xs text-red-400 text-right"><span className="text-gray-400 mr-1">공제액</span>-{totalComm.toLocaleString()}</td>
                           <td className="px-3 py-2 text-right font-bold text-blue-700">{totalSup.toLocaleString()}</td>
                         </tr>
                       </tfoot>
