@@ -117,12 +117,7 @@ export default function PayrollPage() {
     })
 
     const summaries: DriverSummary[] = Object.entries(map).map(([name, dRows]) => {
-      const totalWage = dRows.reduce((s, r) => {
-        const wage = r.engineer_daily_wage
-          ?? (r.w1_hours && r.w1_unit ? Math.round(r.w1_hours * r.w1_unit) : null)
-          ?? (r.operating_hours && r.unit_price ? Math.round(r.operating_hours * r.unit_price) : 0)
-        return s + (wage ?? 0)
-      }, 0)
+      const totalWage = dRows.reduce((s, r) => s + (r.engineer_daily_wage ?? 0), 0)
       return { name, totalWage, rows: dRows }
     }).sort((a, b) => b.totalWage - a.totalWage)
 

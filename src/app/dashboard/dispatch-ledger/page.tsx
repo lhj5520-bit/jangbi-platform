@@ -1169,7 +1169,6 @@ export default function DispatchLedgerPage() {
           <div className="text-lg font-bold text-gray-800">{exportRows.length}건{selectedRows.size > 0 ? <span className="text-xs font-normal text-blue-500 ml-1">(선택)</span> : ''}</div>
         </div>
       </div>
-      </div>
       </div>{/* /sticky */}
 
       <div ref={tableScrollRef} className="overflow-x-auto rounded-xl border border-gray-200 bg-white">
