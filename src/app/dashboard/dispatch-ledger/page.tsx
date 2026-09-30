@@ -1061,6 +1061,7 @@ export default function DispatchLedgerPage() {
           <button onClick={() => setSelectedRows(new Set())} className="text-gray-400 hover:text-gray-600 text-sm ml-auto">취소</button>
         </div>
       )}
+      <div className="sticky top-0 z-20 bg-[#f3f0ea] pb-2 -mx-4 px-4 md:-mx-8 md:px-8 pt-1">
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-xl font-bold text-gray-900">배차내역서</h1>
         <div className="flex gap-2">
@@ -1168,6 +1169,7 @@ export default function DispatchLedgerPage() {
           <div className="text-lg font-bold text-gray-800">{exportRows.length}건{selectedRows.size > 0 ? <span className="text-xs font-normal text-blue-500 ml-1">(선택)</span> : ''}</div>
         </div>
       </div>
+      </div>{/* /sticky */}
 
       <div ref={tableScrollRef} className="overflow-x-auto rounded-xl border border-gray-200 bg-white">
         <table className="min-w-full text-sm">

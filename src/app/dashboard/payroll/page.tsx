@@ -301,7 +301,7 @@ export default function PayrollPage() {
                       <th style={{ border: '1px solid #999', padding: '6px 8px', textAlign: 'center' }}>현장명</th>
                       <th style={{ border: '1px solid #999', padding: '6px 8px', textAlign: 'center' }}>발주처</th>
                       <th style={{ border: '1px solid #999', padding: '6px 8px', textAlign: 'center' }}>장비</th>
-                      <th style={{ border: '1px solid #999', padding: '6px 8px', textAlign: 'center' }}>가동시간</th>
+                      <th style={{ border: '1px solid #999', padding: '6px 8px', textAlign: 'center' }}>작업일수</th>
                       <th style={{ border: '1px solid #999', padding: '6px 8px', textAlign: 'center' }}>지급액</th>
                     </tr>
                   </thead>
@@ -312,7 +312,7 @@ export default function PayrollPage() {
                         <td style={{ border: '1px solid #ccc', padding: '5px 8px' }}>{r.site_name || '-'}</td>
                         <td style={{ border: '1px solid #ccc', padding: '5px 8px' }}>{r.client_name || '-'}</td>
                         <td style={{ border: '1px solid #ccc', padding: '5px 8px', textAlign: 'center' }}>{r.equipment_text || '-'}</td>
-                        <td style={{ border: '1px solid #ccc', padding: '5px 8px', textAlign: 'center' }}>{getHours(r)}</td>
+                        <td style={{ border: '1px solid #ccc', padding: '5px 8px', textAlign: 'center' }}>1일</td>
                         <td style={{ border: '1px solid #ccc', padding: '5px 8px', textAlign: 'right', fontWeight: 500 }}>{fmt(getWage(r))}원</td>
                       </tr>
                     ))}

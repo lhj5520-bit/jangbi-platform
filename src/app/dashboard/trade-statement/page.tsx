@@ -638,7 +638,15 @@ export default function TradeStatementPage() {
         unit_price: (d.client_unit_price ?? 0) > 0 ? (d.client_unit_price ?? 0).toLocaleString() : '',
       }]
     })
-    const allRows = mergeRows(rawRows)
+    const allRows = mergeRows(rawRows).sort((a: any, b: any) => {
+      if (a.log_date < b.log_date) return -1
+      if (a.log_date > b.log_date) return 1
+      if ((a.equipment_type ?? '') < (b.equipment_type ?? '')) return -1
+      if ((a.equipment_type ?? '') > (b.equipment_type ?? '')) return 1
+      if ((a.plate_no ?? '') < (b.plate_no ?? '')) return -1
+      if ((a.plate_no ?? '') > (b.plate_no ?? '')) return 1
+      return 0
+    })
 
     const uniqueClients = ([...new Set(allRows.map((r: any) => r.client_name).filter(Boolean))] as string[]).sort((a, b) => a.localeCompare(b, 'ko'))
     setClients(uniqueClients)
@@ -1141,7 +1149,7 @@ export default function TradeStatementPage() {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead>
                 <tr style={{ background: '#f0f0f0', borderBottom: '1px solid #000' }}>
-                  {['작업일', '구분', '차량번호', '작업', '시간', '단가', '공급가액', '세액', '비고'].map(h => (
+                  {['작업일', '기종', '차량번호', '작업', '시간', '단가', '공급가액', '세액', '비고'].map(h => (
                     <th key={h} style={{ padding: '6px 4px', borderRight: '1px solid #ccc', textAlign: 'center', fontWeight: 'bold', whiteSpace: 'nowrap' }}>{h}</th>
                   ))}
                   <th className="no-print" style={{ padding: '4px', width: 60 }}></th>
