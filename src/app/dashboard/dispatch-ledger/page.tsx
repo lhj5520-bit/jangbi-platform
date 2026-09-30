@@ -1705,10 +1705,10 @@ function LedgerTableRow({ r, bg, hrs, unitP, sales, isFirstSlot, slotsTotalSales
   const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
   const isToday = r.log_date === todayStr
   const isDup = r.plate_no ? dupKeys.has(`${r.log_date}|${r.plate_no}`) : false
-  const rowClass = `${isDup ? 'bg-red-50 hover:bg-red-100/80 transition-colors' : isToday ? 'bg-amber-50/80 hover:bg-amber-100/80 transition-colors' : bg}${selectedRows.has(r.id) ? ' !bg-blue-50' : ''}`
+  const rowClass = `${isDup ? 'bg-red-50 hover:bg-red-100/80' : isToday ? 'bg-amber-50/80 hover:bg-amber-100/80' : bg}${selectedRows.has(r.id) ? ' !bg-blue-50' : ''} cursor-default select-none`
   return (
-    <tr className={rowClass}>
-      <td className="px-3 py-2 text-center">
+    <tr className={rowClass} onClick={() => toggleRowSelect(r.id)}>
+      <td className="px-3 py-2 text-center" onClick={e => e.stopPropagation()}>
         <input type="checkbox" checked={selectedRows.has(r.id)} onChange={() => toggleRowSelect(r.id)} className="w-4 h-4 accent-blue-600 cursor-pointer" />
       </td>
       <td className={td}>
