@@ -9,6 +9,7 @@ interface DispatchRow {
   id: string
   start_date: string
   driver_name: string
+  dispatch_owner?: string
   site_name: string
   client_name: string
   equipment_text: string
@@ -37,6 +38,7 @@ export default function PayrollPage() {
   const [month, setMonth] = useState(today.getMonth() + 1)
   const [loading, setLoading] = useState(false)
   const [drivers, setDrivers] = useState<DriverSummary[]>([])
+  const [ownerFilter, setOwnerFilter] = useState('')
   const [selectedDriver, setSelectedDriver] = useState<DriverSummary | null>(null)
   const [companyName, setCompanyName] = useState('')
   const printRef = useRef<HTMLDivElement>(null)
@@ -91,6 +93,7 @@ export default function PayrollPage() {
         id: d.id,
         start_date: d.start_date ?? '',
         driver_name: resolvedDriverName,
+        dispatch_owner: d.driver_name ?? '',
         site_name: d.site_name ?? '',
         client_name: d.client_name ?? '',
         equipment_text: d.equipment_text ?? '',
@@ -192,6 +195,10 @@ export default function PayrollPage() {
   const prevMonth = () => { if (month === 1) { setYear(y => y - 1); setMonth(12) } else setMonth(m => m - 1) }
   const nextMonth = () => { if (month === 12) { setYear(y => y + 1); setMonth(1) } else setMonth(m => m + 1) }
 
+  // 차주 목록 (전체 rows에서 unique)
+  const allOwners = [...new Set(drivers.flatMap(d => d.rows.map(r => r.dispatch_owner).filter(Boolean)))] as string[]
+  const filteredDrivers = ownerFilter ? drivers.filter(d => d.rows.some(r => r.dispatch_owner === ownerFilter)) : drivers
+
   return (
     <div className="p-4 md:p-8">
       {/* 헤더 */}
@@ -224,17 +231,26 @@ export default function PayrollPage() {
         {/* 왼쪽: 운전자 목록 */}
         <div className="w-64 shrink-0">
           <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-            <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
-              <span className="text-sm font-semibold text-gray-700">{year}년 {month}월 운전자</span>
-              <span className="ml-2 text-xs text-gray-400">{drivers.length}명</span>
+            <div className="px-4 py-3 bg-gray-50 border-b border-gray-200 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-semibold text-gray-700">{year}년 {month}월 운전자</span>
+                <span className="text-xs text-gray-400">{filteredDrivers.length}명</span>
+              </div>
+              {allOwners.length > 0 && (
+                <select value={ownerFilter} onChange={e => { setOwnerFilter(e.target.value); setSelectedDriver(null) }}
+                  className="w-full text-xs border border-gray-300 rounded px-2 py-1 bg-white">
+                  <option value="">전체 차주</option>
+                  {allOwners.sort().map(o => <option key={o} value={o}>{o}</option>)}
+                </select>
+              )}
             </div>
             {loading ? (
               <div className="px-4 py-8 text-center text-gray-400 text-sm">불러오는 중...</div>
-            ) : drivers.length === 0 ? (
+            ) : filteredDrivers.length === 0 ? (
               <div className="px-4 py-8 text-center text-gray-400 text-sm">배차 내역이 없습니다</div>
             ) : (
               <div className="divide-y divide-gray-100">
-                {drivers.map(d => {
+                {filteredDrivers.map(d => {
                   const isHighlight = ['홍정윤', '김영선', '안창수'].includes(d.name)
                   const isSelected = selectedDriver?.name === d.name
                   return (
@@ -251,11 +267,11 @@ export default function PayrollPage() {
                 })}
               </div>
             )}
-            {drivers.length > 0 && (
+            {filteredDrivers.length > 0 && (
               <div className="px-4 py-3 bg-gray-50 border-t border-gray-200">
-                <div className="text-xs text-gray-500">합계</div>
+                <div className="text-xs text-gray-500">합계{ownerFilter ? ` (${ownerFilter})` : ''}</div>
                 <div className="text-sm font-bold text-gray-900">
-                  {fmt(drivers.reduce((s, d) => s + d.totalWage, 0))}원
+                  {fmt(filteredDrivers.reduce((s, d) => s + d.totalWage, 0))}원
                 </div>
               </div>
             )}
