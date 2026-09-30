@@ -16,6 +16,7 @@ interface DispatchRow {
   client_unit_price?: number | null
   supplier_unit_price?: number | null
   engineer_daily_wage?: number | null
+  work_hours?: number
   work_time_1?: string | null; work_price_1?: number | null
   work_time_2?: string | null; work_price_2?: number | null
   work_time_3?: string | null; work_price_3?: number | null
@@ -85,6 +86,7 @@ export default function PayrollPage() {
       const qty = log?.quantity ?? 0
       const supplierPrice = d.supplier_unit_price ?? 0
       const wage = log?.engineer_daily_wage ?? (slotWage || Math.round(qty * supplierPrice))
+      const totalHours = parseH(log?.work_time_1) + parseH(log?.work_time_2) + parseH(log?.work_time_3)
       return {
         id: d.id,
         start_date: d.start_date ?? '',
@@ -96,6 +98,7 @@ export default function PayrollPage() {
         client_unit_price: d.client_unit_price,
         supplier_unit_price: supplierPrice,
         engineer_daily_wage: wage,
+        work_hours: totalHours > 0 ? totalHours : (qty > 0 ? qty : 0),
         work_time_1: log?.work_time_1, work_price_1: log?.work_price_1,
         work_time_2: log?.work_time_2, work_price_2: log?.work_price_2,
         work_time_3: log?.work_time_3, work_price_3: log?.work_price_3,
@@ -301,7 +304,7 @@ export default function PayrollPage() {
                     </tr>
                     <tr>
                       <td style={{ border: '1px solid #999', padding: '6px 10px', background: '#e8f4f8', fontWeight: 600, textAlign: 'center' }}>작업일수</td>
-                      <td style={{ border: '1px solid #999', padding: '6px 10px' }}>{selectedDriver.rows.length}일</td>
+                      <td style={{ border: '1px solid #999', padding: '6px 10px' }}>{selectedDriver.rows.length}일 / {selectedDriver.rows.reduce((s, r) => s + (r.work_hours ?? 0), 0)}h</td>
                       <td style={{ border: '1px solid #999', padding: '6px 10px', background: '#e8f4f8', fontWeight: 600, textAlign: 'center' }}>지급총액</td>
                       <td style={{ border: '1px solid #999', padding: '6px 10px', fontWeight: 700, color: '#1a56db' }}>
                         {fmt(selectedDriver.totalWage)}원
@@ -323,7 +326,7 @@ export default function PayrollPage() {
                       <th style={{ border: '1px solid #999', padding: '6px 8px', textAlign: 'center' }}>날짜</th>
                       <th style={{ border: '1px solid #999', padding: '6px 8px', textAlign: 'center' }}>현장명</th>
                       <th style={{ border: '1px solid #999', padding: '6px 8px', textAlign: 'center' }}>발주처</th>
-                      <th style={{ border: '1px solid #999', padding: '6px 8px', textAlign: 'center' }}>작업일수</th>
+                      <th style={{ border: '1px solid #999', padding: '6px 8px', textAlign: 'center' }}>작업시간</th>
                       <th style={{ border: '1px solid #999', padding: '6px 8px', textAlign: 'center' }}>지급액</th>
                     </tr>
                   </thead>
@@ -333,7 +336,7 @@ export default function PayrollPage() {
                         <td style={{ border: '1px solid #ccc', padding: '5px 8px', textAlign: 'center', whiteSpace: 'nowrap' }}>{r.start_date}</td>
                         <td style={{ border: '1px solid #ccc', padding: '5px 8px' }}>{r.site_name || '-'}</td>
                         <td style={{ border: '1px solid #ccc', padding: '5px 8px' }}>{r.client_name || '-'}</td>
-                        <td style={{ border: '1px solid #ccc', padding: '5px 8px', textAlign: 'center' }}>1일</td>
+                        <td style={{ border: '1px solid #ccc', padding: '5px 8px', textAlign: 'center' }}>{r.work_hours ? `${r.work_hours}h` : '-'}</td>
                         <td style={{ border: '1px solid #ccc', padding: '5px 8px', textAlign: 'right', fontWeight: 500 }}>{fmt(getWage(r))}원</td>
                       </tr>
                     ))}
