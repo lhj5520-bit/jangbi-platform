@@ -878,7 +878,19 @@ export default function TradeStatementPage() {
           <select onChange={e => { if (e.target.value) loadTsRecord(e.target.value) }} value={tsSavedId}
             className="no-print text-xs border border-gray-300 rounded px-2 py-1.5 bg-white max-w-[180px] truncate">
             <option value="">📂 저장된 명세서…</option>
-            {tsSavedList.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
+            {(() => {
+              const groups: Record<string, typeof tsSavedList> = {}
+              tsSavedList.forEach(s => {
+                const ym = s.label.slice(0, 7)
+                if (!groups[ym]) groups[ym] = []
+                groups[ym].push(s)
+              })
+              return Object.entries(groups).map(([ym, items]) => (
+                <optgroup key={ym} label={`── ${ym} ──`}>
+                  {items.map(s => <option key={s.id} value={s.id}>{s.label.slice(8)}</option>)}
+                </optgroup>
+              ))
+            })()}
           </select>
           {tsSavedId && (
             <button onClick={async () => {
