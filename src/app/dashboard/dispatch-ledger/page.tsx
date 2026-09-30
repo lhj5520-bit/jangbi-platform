@@ -958,7 +958,8 @@ export default function DispatchLedgerPage() {
     <>
     <div className="p-4 md:p-6" ref={exportRef}>
       {selectedRows.size > 0 && (
-        <div className="flex items-center gap-3 mb-3 px-4 py-3 bg-blue-50 border border-blue-200 rounded-xl overflow-x-auto">
+        <div className="sticky top-0 z-30 -mx-4 px-4 md:-mx-8 md:px-8 bg-[#f3f0ea] pt-1 pb-1">
+        <div className="flex items-center gap-3 px-4 py-2 bg-blue-50 border border-blue-200 rounded-xl overflow-x-auto">
           <span className="text-sm text-blue-700 font-medium">{selectedRows.size}행 선택됨</span>
           <input type="date" value={copyDate} onChange={e => setCopyDate(e.target.value)}
             className="px-2 py-1.5 border border-teal-300 rounded-lg text-sm focus:outline-none w-36" />
@@ -1059,6 +1060,7 @@ export default function DispatchLedgerPage() {
             {deleting ? '삭제 중...' : '선택 삭제'}
           </button>
           <button onClick={() => setSelectedRows(new Set())} className="text-gray-400 hover:text-gray-600 text-sm ml-auto">취소</button>
+        </div>
         </div>
       )}
       <div className="sticky top-0 z-20 bg-[#f3f0ea] pb-2 -mx-4 px-4 md:-mx-8 md:px-8 pt-1">
