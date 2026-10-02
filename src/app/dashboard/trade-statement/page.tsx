@@ -262,13 +262,21 @@ export default function TradeStatementPage() {
       const labelCount: Record<string, number> = {}
       const labelIdx: Record<string, number> = {}
       baseLabels.forEach(l => { labelCount[l] = (labelCount[l] ?? 0) + 1 })
-      setTsSavedList(data.map((d: any, i: number) => {
+      const mapped = data.map((d: any, i: number) => {
         const base = baseLabels[i]
         const label = labelCount[base] > 1
           ? (() => { labelIdx[base] = (labelIdx[base] ?? 0) + 1; return `${base} (${labelIdx[base]})` })()
           : base
         return { id: d.id, label }
-      }))
+      })
+      // 월별 그룹 내에서 이름순 정렬
+      mapped.sort((a, b) => {
+        const ymA = a.label.slice(0, 7)
+        const ymB = b.label.slice(0, 7)
+        if (ymA !== ymB) return ymB.localeCompare(ymA) // 월은 최신순
+        return a.label.slice(8).localeCompare(b.label.slice(8), 'ko') // 이름은 가나다순
+      })
+      setTsSavedList(mapped)
     }
   }
 
