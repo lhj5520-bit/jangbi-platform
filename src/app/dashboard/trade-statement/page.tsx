@@ -94,6 +94,7 @@ export default function TradeStatementPage() {
   const [selectedPdfSaved, setSelectedPdfSaved] = useState<Set<string>>(new Set())
   const [recipientName, setRecipientName] = useState('')
   const [siteName, setSiteName] = useState('')
+  const [customBaseDate, setCustomBaseDate] = useState('')
 
   const [editRows, setEditRows] = useState<EditRow[]>([])
   // 배차내역서에서 넘어온 행 임시 보관 (load()가 덮어쓰기 전에 복원용)
@@ -287,6 +288,7 @@ export default function TradeStatementPage() {
     // 날짜 변경이 없을 경우 load() 재실행 안 되므로 직접 세팅
     setRecipientName(data.client_name ?? '')
     setSiteName(data.site_name ?? '')
+    setCustomBaseDate(data.base_date ?? '')
     setEditRows(rows)
   }
 
@@ -340,6 +342,7 @@ export default function TradeStatementPage() {
         site_name: siteName,
         date_from: dateFrom || null,
         date_to: dateTo || null,
+        base_date: customBaseDate || null,
         rows: editRows,
         supplier_id: selectedSupId || null,
       }
@@ -810,7 +813,7 @@ export default function TradeStatementPage() {
   const totalAmount = totalSupply + totalVat
 
   const baseDateLabel = (() => {
-    const d = new Date(dateTo)
+    const d = new Date(customBaseDate || dateTo)
     return `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일`
   })()
 
@@ -1164,7 +1167,12 @@ export default function TradeStatementPage() {
               <div style={{ borderRight: '1px solid #ccc' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: '72px 1fr', borderBottom: '1px solid #ccc' }}>
                   <div style={{ padding: '5px 8px', borderRight: '1px solid #ccc', fontSize: 13, fontWeight: 'bold', background: '#f5f5f5' }}>기준일</div>
-                  <div style={{ padding: '5px 8px', fontSize: 13 }}>{baseDateLabel}</div>
+                  <div style={{ padding: '2px 4px', fontSize: 13 }}>
+                    <input type="date" value={customBaseDate || dateTo}
+                      onChange={e => setCustomBaseDate(e.target.value)}
+                      className="editable-cell"
+                      style={{ fontSize: 13, border: 'none', background: 'transparent', width: '100%', cursor: 'pointer' }} />
+                  </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', padding: '4px 8px', borderBottom: '1px solid #ccc', gap: 4 }}>
                   <input className="editable-cell" value={recipientName}
