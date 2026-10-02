@@ -91,6 +91,7 @@ export default function TradeStatementPage() {
   const [downloadingAll, setDownloadingAll] = useState(false)
   const [selectPdfOpen, setSelectPdfOpen] = useState(false)
   const [selectedPdfClients, setSelectedPdfClients] = useState<Set<string>>(new Set())
+  const [selectedPdfSaved, setSelectedPdfSaved] = useState<Set<string>>(new Set())
   const [recipientName, setRecipientName] = useState('')
   const [siteName, setSiteName] = useState('')
 
@@ -545,6 +546,49 @@ export default function TradeStatementPage() {
     }
   }
 
+  async function handleDownloadSavedPdf(ids: string[]) {
+    if (downloadingAll || ids.length === 0) return
+    setDownloadingAll(true)
+    const { toJpeg } = await import('html-to-image')
+    const savedId = tsSavedId
+    const savedRecipient = recipientName
+    const savedSite = siteName
+    const savedRows = [...editRows]
+    try {
+      for (const id of ids) {
+        await loadTsRecord(id)
+        await new Promise(r => setTimeout(r, 900))
+        const el = printAreaRef.current
+        if (!el) continue
+        const captureStyle = document.createElement('style')
+        captureStyle.id = 'all-pdf-capture-style'
+        captureStyle.textContent = `.no-print{display:none!important}.cell-row{background:#fff!important}table{border-collapse:collapse!important}table td,table th{border:1px solid #ccc!important}`
+        document.head.appendChild(captureStyle)
+        const origZoom = (el.style as any).zoom
+        const origTransform = el.style.transform
+        const origW = el.style.width; const origMW = el.style.maxWidth; const origMH = el.style.minHeight
+        ;(el.style as any).zoom = '1'; el.style.transform = 'none'
+        el.style.width = '900px'; el.style.maxWidth = '900px'; el.style.minHeight = '1123px'
+        await new Promise(r => setTimeout(r, 200))
+        const dataUrl = await toJpeg(el, { quality: 0.95, pixelRatio: 1.5, backgroundColor: '#ffffff', width: 900, height: Math.max(1123, el.scrollHeight), style: { margin: '0' } })
+        const saved = tsSavedList.find(s => s.id === id)
+        const link = document.createElement('a')
+        link.href = dataUrl
+        link.download = `거래명세서-${saved?.label ?? id}.jpg`
+        document.body.appendChild(link); link.click(); document.body.removeChild(link)
+        ;(el.style as any).zoom = origZoom; el.style.transform = origTransform
+        el.style.width = origW; el.style.maxWidth = origMW; el.style.minHeight = origMH
+        document.getElementById('all-pdf-capture-style')?.remove()
+        await new Promise(r => setTimeout(r, 200))
+      }
+    } catch (e) { alert('PDF 생성 실패: ' + String(e)) }
+    finally {
+      setDownloadingAll(false)
+      if (savedId) await loadTsRecord(savedId)
+      else { setRecipientName(savedRecipient); setSiteName(savedSite); setEditRows(savedRows) }
+    }
+  }
+
   function handleStampUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
@@ -956,46 +1000,49 @@ export default function TradeStatementPage() {
         </div>
 
         {/* 선택 PDF 패널 */}
-        {selectPdfOpen && (
+        {selectPdfOpen && (() => {
+          const ym = dateFrom.slice(0, 7)
+          const monthSaved = tsSavedList.filter(s => s.label.startsWith(ym))
+          return (
           <div className="border border-indigo-200 bg-indigo-50 rounded-xl p-3 space-y-2">
             <div className="flex items-center justify-between">
-              <p className="text-sm font-medium text-indigo-800">인쇄할 거래처 선택</p>
+              <p className="text-sm font-medium text-indigo-800">{ym} 저장된 명세서 선택</p>
               <div className="flex gap-2">
-                <button onClick={() => setSelectedPdfClients(new Set(clients))}
+                <button onClick={() => setSelectedPdfSaved(new Set(monthSaved.map(s => s.id)))}
                   className="text-xs px-2 py-1 bg-white border border-indigo-300 rounded text-indigo-600 hover:bg-indigo-100">전체 선택</button>
-                <button onClick={() => setSelectedPdfClients(new Set())}
+                <button onClick={() => setSelectedPdfSaved(new Set())}
                   className="text-xs px-2 py-1 bg-white border border-gray-300 rounded text-gray-500 hover:bg-gray-100">전체 해제</button>
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
-              {clients.map(c => {
-                const isChecked = selectedPdfClients.has(c)
+              {monthSaved.length === 0 && <p className="text-sm text-gray-400">이 달 저장된 명세서가 없습니다.</p>}
+              {monthSaved.map(s => {
+                const isChecked = selectedPdfSaved.has(s.id)
                 return (
-                  <button key={c} onClick={() => setSelectedPdfClients(prev => {
-                    const next = new Set(prev)
-                    isChecked ? next.delete(c) : next.add(c)
-                    return next
+                  <button key={s.id} onClick={() => setSelectedPdfSaved(prev => {
+                    const next = new Set(prev); isChecked ? next.delete(s.id) : next.add(s.id); return next
                   })}
                     className={`px-3 py-1.5 rounded-lg border text-sm font-medium transition-colors ${
                       isChecked ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-700 border-gray-300 hover:border-indigo-400'
                     }`}>
-                    {isChecked ? '✓ ' : ''}{c}
+                    {isChecked ? '✓ ' : ''}{s.label.slice(8)}
                   </button>
                 )
               })}
             </div>
             <button
               onClick={() => {
-                if (selectedPdfClients.size === 0) return alert('거래처를 선택해주세요.')
-                handleDownloadAllPdf([...selectedPdfClients])
+                if (selectedPdfSaved.size === 0) return alert('명세서를 선택해주세요.')
+                handleDownloadSavedPdf([...selectedPdfSaved])
                 setSelectPdfOpen(false)
               }}
-              disabled={downloadingAll || selectedPdfClients.size === 0}
+              disabled={downloadingAll || selectedPdfSaved.size === 0}
               className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-300 text-white text-sm font-semibold rounded-lg transition-colors">
-              {downloadingAll ? '⏳ 생성중...' : `📥 선택 PDF`}
+              {downloadingAll ? '⏳ 생성중...' : `📥 선택 PDF (${selectedPdfSaved.size}건)`}
             </button>
           </div>
-        )}
+          )
+        })()}
 
         <div className="flex flex-wrap gap-3 items-center">
           <div className="flex items-center gap-2">
