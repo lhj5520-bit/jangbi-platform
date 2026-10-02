@@ -277,6 +277,18 @@ export default function TradeStatementPage() {
     setEditRows(rows)
   }
 
+  async function handleDuplicate() {
+    if (!tsSavedId) return
+    const { data } = await supabase.from('trade_statements').select('*').eq('id', tsSavedId).single()
+    if (!data) return
+    const { id: _id, created_at: _c, ...rest } = data
+    const { data: newData, error } = await supabase.from('trade_statements').insert({ ...rest }).select('id').single()
+    if (error || !newData) { alert('복사 실패'); return }
+    await loadTsList()
+    await loadTsRecord(newData.id)
+    alert('복사 완료! 새 명세서로 이동했습니다.')
+  }
+
   const [savingCompany, setSavingCompany] = useState(false)
   async function handleSaveCompanyInline() {
     setSavingCompany(true)
@@ -893,14 +905,20 @@ export default function TradeStatementPage() {
             })()}
           </select>
           {tsSavedId && (
-            <button onClick={async () => {
-              if (!confirm('이 거래명세서를 삭제할까요?')) return
-              await supabase.from('trade_statements').delete().eq('id', tsSavedId)
-              setTsSavedId('')
-              await loadTsList()
-            }} className="no-print text-xs px-2.5 py-1.5 rounded bg-red-500 text-white hover:bg-red-600">
-              🗑 삭제
-            </button>
+            <>
+              <button onClick={handleDuplicate}
+                className="no-print text-xs px-2.5 py-1.5 rounded bg-sky-500 text-white hover:bg-sky-600">
+                📋 복사
+              </button>
+              <button onClick={async () => {
+                if (!confirm('이 거래명세서를 삭제할까요?')) return
+                await supabase.from('trade_statements').delete().eq('id', tsSavedId)
+                setTsSavedId('')
+                await loadTsList()
+              }} className="no-print text-xs px-2.5 py-1.5 rounded bg-red-500 text-white hover:bg-red-600">
+                🗑 삭제
+              </button>
+            </>
           )}
           <button onClick={handleSaveJpg}
             className="no-print bg-green-600 hover:bg-green-700 text-white text-sm font-semibold px-4 py-2 rounded-xl flex items-center gap-2 shadow">
