@@ -255,7 +255,19 @@ export default function TradeStatementPage() {
   async function loadTsList() {
     const { data, error } = await supabase.from('trade_statements').select('id, client_name, site_name, date_from, created_at').order('date_from', { ascending: false }).limit(60)
     if (error) { console.error('trade_statements 로드 오류:', error); return }
-    if (data) setTsSavedList(data.map((d: any) => ({ id: d.id, label: `${(d.date_from ?? '').slice(0, 7)} ${d.client_name ?? ''} ${d.site_name ?? ''}`.trim() })))
+    if (data) {
+      const baseLabels = data.map((d: any) => `${(d.date_from ?? '').slice(0, 7)} ${d.client_name ?? ''} ${d.site_name ?? ''}`.trim())
+      const labelCount: Record<string, number> = {}
+      const labelIdx: Record<string, number> = {}
+      baseLabels.forEach(l => { labelCount[l] = (labelCount[l] ?? 0) + 1 })
+      setTsSavedList(data.map((d: any, i: number) => {
+        const base = baseLabels[i]
+        const label = labelCount[base] > 1
+          ? (() => { labelIdx[base] = (labelIdx[base] ?? 0) + 1; return `${base} (${labelIdx[base]})` })()
+          : base
+        return { id: d.id, label }
+      }))
+    }
   }
 
   async function loadTsRecord(id: string) {
