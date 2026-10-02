@@ -550,11 +550,14 @@ export default function TradeStatementPage() {
     if (downloadingAll || ids.length === 0) return
     setDownloadingAll(true)
     const { toJpeg } = await import('html-to-image')
+    const { jsPDF } = await import('jspdf')
     const savedId = tsSavedId
     const savedRecipient = recipientName
     const savedSite = siteName
     const savedRows = [...editRows]
     try {
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+      let firstPage = true
       for (const id of ids) {
         await loadTsRecord(id)
         await new Promise(r => setTimeout(r, 900))
@@ -571,16 +574,18 @@ export default function TradeStatementPage() {
         el.style.width = '900px'; el.style.maxWidth = '900px'; el.style.minHeight = '1123px'
         await new Promise(r => setTimeout(r, 200))
         const dataUrl = await toJpeg(el, { quality: 0.95, pixelRatio: 1.5, backgroundColor: '#ffffff', width: 900, height: Math.max(1123, el.scrollHeight), style: { margin: '0' } })
-        const saved = tsSavedList.find(s => s.id === id)
-        const link = document.createElement('a')
-        link.href = dataUrl
-        link.download = `거래명세서-${saved?.label ?? id}.jpg`
-        document.body.appendChild(link); link.click(); document.body.removeChild(link)
         ;(el.style as any).zoom = origZoom; el.style.transform = origTransform
         el.style.width = origW; el.style.maxWidth = origMW; el.style.minHeight = origMH
         document.getElementById('all-pdf-capture-style')?.remove()
-        await new Promise(r => setTimeout(r, 200))
+        // A4 크기(210x297mm)에 이미지 맞추기
+        if (!firstPage) pdf.addPage()
+        firstPage = false
+        const imgH = Math.round(297 * el.scrollHeight / 1123)
+        pdf.addImage(dataUrl, 'JPEG', 0, 0, 210, Math.max(297, imgH))
+        await new Promise(r => setTimeout(r, 150))
       }
+      const ym = dateFrom.slice(0, 7)
+      pdf.save(`거래명세서_${ym}.pdf`)
     } catch (e) { alert('PDF 생성 실패: ' + String(e)) }
     finally {
       setDownloadingAll(false)
